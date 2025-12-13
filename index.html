@@ -102,14 +102,14 @@
 
 <script>
 // ★ CONFIG: SUPABASE ★
-const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; // ★ここにURL★
-const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ'; // ★ここにAPIキー★
+const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
 const LIFF_ID = '2007980232-dK2Dp84Y';
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 const FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000};
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 }; // 0=Sun
 
-// Init Clients (FIXED: Added window.supabase)
+// Init Clients
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let state = { date: new Date(), uid: '', data: {}, pending: null };
 
@@ -161,7 +161,7 @@ async function loadData() {
   // Bookings
   if(books) books.forEach(b => {
     let t = b.start_time;
-    // 簡易的に60分枠として処理 (本来はwhileループで埋めるべきだが今回は固定)
+    // 簡易的に60分枠として処理
     const endSlots = [t, addTime(t, 30)];
     endSlots.forEach(slot => {
         if(res[b.staff] && res[b.staff][slot]) {
@@ -184,14 +184,14 @@ async function createBooking() {
   loading(true);
   const p = state.pending;
   
-  // Conflict Check (簡易版)
+  // Conflict Check
   const { data: exists } = await db.from('bookings')
     .select('id').eq('date', fmt(state.date)).eq('staff', p.staff).eq('start_time', p.time).neq('status', 'キャンセル');
     
   if(exists && exists.length > 0) { loading(false); alert('既に予約が入っています'); return; }
 
   const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const end = addTime(p.time, 60); // 60min fixed
+  const end = addTime(p.time, 60);
   
   const { error } = await db.from('bookings').insert({
     id: id,
