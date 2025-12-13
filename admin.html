@@ -32,9 +32,22 @@
     .inp { width:100%; padding:10px; border:1px solid var(--border); margin-bottom:10px; }
     .btns { display:flex; gap:10px; margin-top:20px; } .btns .btn { flex:1; }
     #loader { position:fixed; top:20px; right:20px; background:#000; color:#fff; padding:5px 10px; font-weight:700; display:none; z-index:999; }
+
+    /* Login Screen */
+    #loginScreen { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .login-box { text-align: center; width: 300px; }
   </style>
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <h2 style="margin-bottom:20px; font-size:16px; font-weight:800; letter-spacing:0.1em;">ADMIN ACCESS</h2>
+      <input type="password" id="passcode" class="inp" placeholder="PASSWORD" style="text-align:center; margin-bottom:16px;">
+      <button class="btn primary" style="width:100%;" onclick="checkPass()">LOGIN</button>
+    </div>
+  </div>
+
   <div id="loader">PROCESSING</div>
   <div class="wrap">
     <header>
@@ -48,15 +61,28 @@
 
 <script>
 // ★ CONFIG: SUPABASE ★
-const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; // ★ここにURL★
-const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ'; // ★ここにAPIキー★
+const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
+const PASS_CODE = "admin89"; // 簡易パスワード設定
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 
-// Init Client (Corrected: Use window.supabase.createClient)
+// Init Client
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {} };
 
-window.onload = () => { renderHead(); load(); };
+window.onload = () => { 
+  // ログイン画面表示のため初期ロードは保留
+};
+
+function checkPass(){
+  const val = document.getElementById('passcode').value;
+  if(val === PASS_CODE){
+    document.getElementById('loginScreen').style.display='none';
+    renderHead(); load();
+  } else {
+    alert('Invalid Password');
+  }
+}
 
 async function load() {
   document.getElementById('loader').style.display='block';
