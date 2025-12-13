@@ -3,105 +3,413 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>89CENTER</title>
-  <!-- Supabase JS (UMD Build) & LIFF -->
+  <title>89CENTER 予約</title>
+  
+  <!-- Fonts: Google Fonts (Noto Sans JP / Roboto) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS & LIFF -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
   <style>
-    /* 89CENTER DESIGN v12 (Same Style) */
-    :root { --bg:#FFF; --text:#000; --sub:#999; --line:#E5E5E5; --accent:#000; --error:#FF3B30; --font:"Helvetica Neue",Arial,sans-serif; }
-    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; outline:none; }
-    body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; letter-spacing:0.04em; -webkit-font-smoothing:antialiased; }
-    .container { max-width:500px; margin:0 auto; padding:0 20px 100px; }
-    header { height:80px; display:flex; align-items:center; justify-content:center; position:sticky; top:0; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); z-index:50; border-bottom:1px solid transparent; }
-    h1 { font-size:14px; font-weight:700; letter-spacing:0.15em; margin:0; }
-    
-    /* NAV */
-    .nav { display:flex; justify-content:space-between; align-items:center; margin:40px 0; padding:0 10px; }
-    .nav-btn { width:40px; height:40px; border:1px solid var(--line); border-radius:50%; background:transparent; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-    .date-display { text-align:center; }
-    .date-main { font-size:24px; font-weight:300; margin-bottom:4px; }
-    .date-sub { font-size:11px; color:var(--sub); font-family:monospace; }
-    #datePicker { position:absolute; opacity:0; pointer-events:none; }
+    /* --- 89CENTER DESIGN SYSTEM v13 (Japanese Modern) --- */
+    :root {
+      --bg: #FFFFFF;
+      --text: #111111;
+      --sub: #888888;
+      --line: #E5E5E5;
+      --accent: #000000;
+      --error: #FF3B30;
+      --surface: #F9F9F9;
+      
+      /* Typography */
+      --font-jp: "Noto Sans JP", sans-serif;
+      --font-en: "Roboto", sans-serif;
+      
+      /* Spacing */
+      --radius: 4px;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
 
-    /* GRID */
-    .grid-scroller { overflow-x:auto; margin:0 -20px; padding:0 20px; }
-    table { width:100%; min-width:360px; border-collapse:collapse; table-layout:fixed; }
-    th { font-size:10px; font-weight:700; color:var(--sub); padding:20px 0; border-bottom:1px solid var(--text); }
-    th:first-child { position:sticky; left:0; z-index:20; width:48px; background:var(--bg); border-right:1px solid var(--line); }
-    td { height:60px; border-bottom:1px solid var(--line); vertical-align:middle; position:relative; }
-    td:first-child { position:sticky; left:0; z-index:5; background:var(--bg); border-right:1px solid var(--line); text-align:center; font-size:11px; font-weight:600; color:var(--sub); }
-    
-    .cell { width:100%; height:100%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-    .free::after { content:''; width:6px; height:6px; border:1px solid var(--text); border-radius:50%; }
-    .booked::after, .blocked::after, .closed::after { content:''; width:4px; height:1px; background:var(--line); }
-    .own { background:var(--text); }
-    .own::after { content:''; width:6px; height:6px; background:#fff; border-radius:50%; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: var(--font-jp); font-size: 14px; line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: safe-area-inset-bottom;
+    }
 
-    /* MODAL */
-    .overlay { position:fixed; inset:0; background:rgba(255,255,255,0.1); backdrop-filter:blur(8px); display:flex; align-items:flex-end; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity 0.4s; }
-    .overlay.open { opacity:1; pointer-events:auto; }
-    .sheet { width:100%; max-width:500px; background:#fff; box-shadow:0 -10px 40px rgba(0,0,0,0.1); border-radius:32px 32px 0 0; padding:40px 32px 60px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16,1,0.3,1); }
-    .overlay.open .sheet { transform:translateY(0); }
+    /* UTILS */
+    .en { font-family: var(--font-en); font-weight: 400; font-size: 0.75em; display: block; opacity: 0.6; line-height: 1.2; letter-spacing: 0.05em; margin-top: 2px; text-transform: uppercase; }
+    .hidden { display: none !important; }
+    .btn-icon { background: none; border: none; padding: 0; cursor: pointer; }
+
+    /* LAYOUT */
+    .container { max-width: 600px; margin: 0 auto; padding: 0 20px 120px; }
+
+    /* HEADER */
+    header {
+      height: 70px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      z-index: 50; border-bottom: 1px solid transparent; transition: border-color 0.3s;
+      padding: 0 4px;
+    }
+    header.scrolled { border-color: var(--line); }
     
-    .sheet-h { text-align:center; margin-bottom:40px; }
-    .sheet-ttl { font-size:12px; font-weight:700; letter-spacing:0.2em; margin-bottom:8px; }
-    .inp { width:100%; border:none; border-bottom:1px solid var(--text); padding:16px 0; font-size:16px; margin-bottom:24px; border-radius:0; }
-    .btn-wrap { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:40px; }
-    .btn { height:56px; border:1px solid var(--line); background:#fff; border-radius:4px; font-size:12px; font-weight:700; letter-spacing:0.1em; cursor:pointer; }
-    .btn-bk { background:var(--text); color:#fff; border-color:var(--text); }
-    .hidden { display:none; }
+    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 800; letter-spacing: 0.02em; margin: 0; }
     
+    .header-btn {
+      font-size: 11px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
+      padding: 6px 12px; border-radius: 99px; background: transparent; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; line-height: 1; gap: 2px;
+    }
+    .header-btn .en { font-size: 8px; margin: 0; }
+
+    /* DATE NAV */
+    .nav { 
+      display: flex; justify-content: space-between; align-items: center; 
+      margin: 32px 0 24px; padding: 0 8px;
+    }
+    .nav-btn {
+      width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%;
+      background: transparent; color: var(--text); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .nav-btn:active { background: var(--text); color: #fff; border-color: var(--text); }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--line); color: var(--sub); background: transparent; }
+    
+    .date-display { text-align: center; cursor: pointer; position: relative; }
+    .date-main { font-size: 18px; font-weight: 700; font-feature-settings: "palt"; }
+    .date-sub { font-family: var(--font-en); font-size: 12px; color: var(--sub); letter-spacing: 0.05em; }
+    #datePicker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+    /* LEGEND */
+    .legend {
+      display: flex; justify-content: center; gap: 20px; margin-bottom: 24px;
+      font-size: 11px; color: var(--sub); font-weight: 500;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.free { border: 1px solid var(--sub); background: #fff; }
+    .dot.own { background: var(--text); }
+    .dot.ng { background: var(--line); }
+
+    /* SCHEDULE GRID */
+    .grid-scroller { 
+      overflow-x: auto; -webkit-overflow-scrolling: touch; 
+      margin: 0 -20px; padding: 0 20px; /* Bleed layout */
+    }
+    table { width: 100%; min-width: 360px; border-collapse: collapse; table-layout: fixed; }
+    
+    th {
+      font-size: 11px; font-weight: 700; color: var(--text); text-align: center;
+      padding: 16px 0; border-bottom: 2px solid var(--text);
+      position: sticky; top: 0; z-index: 10; background: var(--bg);
+    }
+    th .en { font-size: 8px; font-weight: 400; color: var(--sub); }
+    
+    th:first-child { 
+      position: sticky; left: 0; z-index: 20; width: 50px; 
+      border-right: 1px solid var(--line);
+    }
+
+    td {
+      height: 64px; vertical-align: middle; border-bottom: 1px solid var(--line);
+      padding: 4px; position: relative;
+    }
+    td:first-child {
+      position: sticky; left: 0; z-index: 5; background: var(--bg);
+      border-right: 1px solid var(--line);
+      text-align: center; font-family: var(--font-en); font-size: 11px; font-weight: 500; color: var(--sub);
+    }
+
+    /* CELLS */
+    .cell {
+      width: 100%; height: 100%; border-radius: 4px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.1s;
+    }
+    .free:hover { background-color: var(--surface); }
+    .free::after { content: ''; width: 10px; height: 10px; border: 1px solid var(--sub); border-radius: 50%; }
+    .free:active { transform: scale(0.9); }
+    
+    .booked, .blocked, .closed { cursor: default; }
+    .booked::after, .blocked::after, .closed::after { content: '×'; font-family: var(--font-en); font-size: 16px; color: var(--line); font-weight: 300; }
+    .blocked::after { content: '−'; }
+
+    .own { background: var(--text); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .own::after { content: '予約'; font-size: 10px; font-weight: 700; }
+
+    /* MODAL (Bottom Sheet) */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(6px);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s var(--ease);
+    }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+    
+    .sheet {
+      width: 100%; max-width: 600px; background: #fff;
+      border-radius: 24px 24px 0 0; padding: 32px 24px 48px;
+      transform: translateY(100%); transition: transform 0.4s var(--ease);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .overlay.open .sheet { transform: translateY(0); }
+
+    .sheet-header { text-align: center; margin-bottom: 32px; }
+    .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .sheet-sub { font-size: 11px; color: var(--sub); font-family: var(--font-en); }
+
+    .info-list { margin-bottom: 32px; }
+    .info-item { 
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+    }
+    .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
+    .info-value { font-weight: 600; text-align: right; }
+
+    /* Forms */
+    .form-group { margin-bottom: 32px; }
+    .inp {
+      width: 100%; padding: 12px 0; margin-bottom: 24px;
+      border: none; border-bottom: 1px solid var(--text);
+      font-size: 16px; font-family: inherit; border-radius: 0; background: transparent;
+      transition: border-color 0.2s;
+    }
+    .inp:focus { outline: none; border-bottom: 2px solid var(--text); }
+    .inp::placeholder { color: var(--line); }
+
+    /* Buttons */
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 32px; }
+    .btn {
+      height: 52px; border: 1px solid var(--line); background: #fff;
+      border-radius: 99px; font-size: 13px; font-weight: 700; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      line-height: 1; transition: opacity 0.2s;
+    }
+    .btn .en { font-size: 9px; margin-top: 3px; font-weight: 400; opacity: 0.6; }
+    .btn:active { opacity: 0.7; }
+    
+    .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .btn-primary .en { color: rgba(255,255,255,0.7); }
+    .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
+    .btn-full { width: 100%; margin-top: 16px; }
+
+    /* Checkbox */
+    .chk-wrap { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 0 4px; }
+    .chk { width: 20px; height: 20px; accent-color: var(--text); margin-top: 2px; }
+    .chk-label { font-size: 12px; line-height: 1.5; color: var(--sub); }
+    .link { color: var(--text); text-decoration: underline; cursor: pointer; }
+
+    /* STAFF LIST Styles */
+    .staff-list { display: grid; gap: 16px; }
+    .staff-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .staff-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+    .staff-role { font-size: 10px; background: var(--text); color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+    .staff-desc { font-size: 13px; color: var(--sub); line-height: 1.5; margin-top: 8px; }
+    .staff-intro { font-size: 12px; text-align: center; color: var(--sub); margin-bottom: 24px; line-height: 1.6; background: var(--surface); padding: 12px; border-radius: 8px; }
+
+    /* TERMS Styles */
+    .terms-box { height: 240px; overflow-y: auto; font-size: 13px; line-height: 1.7; color: var(--sub); border: 1px solid var(--line); padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+    .terms-box h4 { color: var(--text); margin: 16px 0 8px; font-size: 14px; }
+    .terms-box h4:first-child { margin-top: 0; }
+
     /* LOADER */
-    .loader { position:fixed; inset:0; background:#fff; z-index:999; display:flex; align-items:center; justify-content:center; transition:opacity 0.5s; }
-    .line { width:40px; height:2px; background:var(--line); position:relative; overflow:hidden; }
-    .line::after { content:''; position:absolute; inset:0; background:var(--text); transform:translateX(-100%); animation:load 1.5s cubic-bezier(0.8,0,0.2,1) infinite; }
-    @keyframes load { 0% { transform:translateX(-100%); } 50% { transform:translateX(0); } 100% { transform:translateX(100%); } }
+    .loader-overlay {
+      position: fixed; inset: 0; background: #fff; z-index: 999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.4s;
+    }
+    .spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid var(--line); border-top-color: var(--text);
+      animation: spin 1s infinite linear;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .load-text { margin-top: 16px; font-family: var(--font-en); font-size: 10px; letter-spacing: 0.1em; color: var(--sub); }
+    
+    #loginOverlay { background: rgba(255,255,255,0.98); z-index: 2000; }
   </style>
 </head>
 <body>
-  <div class="loader" id="loader"><div class="line"></div></div>
-  <header><h1>89CENTER</h1></header>
-  
+
+  <!-- LOADER -->
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <div class="load-text">INITIALIZING</div>
+  </div>
+
+  <!-- HEADER -->
+  <header id="header">
+    <h1>89CENTER</h1>
+    <button class="header-btn" onclick="openStaffModal()">
+      スタッフについて
+      <span class="en">ABOUT STAFF</span>
+    </button>
+  </header>
+
   <div class="container">
+    <!-- DATE NAV -->
     <div class="nav">
-      <button class="nav-btn" onclick="addDay(-1)">−</button>
+      <button class="nav-btn" id="prevBtn" onclick="addDay(-1)">‹</button>
       <div class="date-display" onclick="document.getElementById('datePicker').showPicker()">
-        <div class="date-main" id="dMain"></div><div class="date-sub" id="dSub"></div>
+        <div class="date-main" id="dMain">--月--日</div>
+        <div class="date-sub" id="dSub">YYYY.MM.DD</div>
         <input type="date" id="datePicker">
       </div>
-      <button class="nav-btn" onclick="addDay(1)">+</button>
+      <button class="nav-btn" id="nextBtn" onclick="addDay(1)">›</button>
     </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="legend-item"><div class="dot free"></div>空き</div>
+      <div class="legend-item"><div class="dot own"></div>予約済</div>
+      <div class="legend-item"><div class="dot ng"></div>不可</div>
+    </div>
+
+    <!-- TABLE -->
     <div class="grid-scroller">
-      <table id="schedule"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+      <table id="schedule">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center; margin-top:60px;">
+      <a class="link" style="font-size:11px; color:var(--sub);" onclick="openTermsModal()">利用規約・プライバシーポリシー</a>
     </div>
   </div>
 
+  <!-- LOGIN MODAL -->
+  <div class="overlay" id="loginOverlay">
+    <div style="text-align:center;">
+      <h2 style="font-size:16px; margin-bottom:24px;">予約にはLINEログインが必要です</h2>
+      <button class="btn btn-primary" style="width:200px;" onclick="liff.login()">
+        LINEでログイン
+        <span class="en">LINE LOGIN</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- BOOKING MODAL -->
   <div class="overlay" id="modal">
     <div class="sheet">
-      <div class="sheet-h"><div class="sheet-ttl" id="mTitle"></div><div style="font-size:11px; color:#999;" id="mSub"></div></div>
-      
-      <div id="formCreate" class="hidden">
-        <input class="inp" id="pName" placeholder="YOUR NAME">
-        <input class="inp" id="pPhone" type="tel" placeholder="PHONE NUMBER">
-        <input class="inp" id="pSym" placeholder="NOTE (OPTIONAL)">
-        <div class="btn-wrap">
-          <button class="btn" onclick="closeModal()">CLOSE</button>
-          <button class="btn btn-bk" onclick="createBooking()">CONFIRM</button>
+      <div class="sheet-header">
+        <div class="sheet-title" id="mTitle">予約確認</div>
+        <div class="sheet-sub" id="mSub">CONFIRMATION</div>
+      </div>
+
+      <div class="info-list">
+        <div class="info-item">
+          <div class="info-label">日時<span class="en">DATE & TIME</span></div>
+          <div class="info-value" id="mDate"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">担当スタッフ<span class="en">STAFF</span></div>
+          <div class="info-value" id="mStaff"></div>
         </div>
       </div>
 
-      <div id="formCancel" class="hidden">
-        <div class="btn-wrap">
-          <button class="btn" onclick="closeModal()">CLOSE</button>
-          <button class="btn" style="color:#F00; border-color:#F00;" onclick="cancelBooking()">CANCEL</button>
+      <!-- Create Form -->
+      <div id="formCreate" class="hidden">
+        <div class="form-group">
+          <input class="inp" id="pName" placeholder="お名前 (必須)">
+          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須)">
+          <input class="inp" id="pSym" placeholder="症状・ご要望 (任意)">
+        </div>
+        <div class="chk-wrap">
+          <input type="checkbox" id="inTerm" class="chk">
+          <label for="inTerm" class="chk-label">
+            <span class="link" onclick="openTermsModal()">利用規約</span> と <span class="link" onclick="openTermsModal()">プライバシーポリシー</span> に同意します。
+          </label>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
+          <button class="btn btn-primary" onclick="submitCreate()">予約する<span class="en">BOOK</span></button>
         </div>
       </div>
+
+      <!-- Cancel Form -->
+      <div id="formCancel" class="hidden">
+        <p style="text-align:center; font-size:13px; color:var(--sub); margin-bottom:24px;">
+          この予約をキャンセルしますか？<br>
+          <span class="en">Do you want to cancel this booking?</span>
+        </p>
+        <div class="btn-group">
+          <button class="btn" onclick="closeAll()">戻る<span class="en">BACK</span></button>
+          <button class="btn btn-danger" onclick="submitCancel()">キャンセル実行<span class="en">EXECUTE</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF MODAL -->
+  <div class="overlay" id="staffModal">
+    <div class="sheet">
+      <div class="sheet-header">
+        <div class="sheet-title">スタッフについて</div>
+        <div class="sheet-sub">ABOUT STAFF</div>
+      </div>
+      <div class="staff-intro">
+        当院のスタッフは全員、国家資格を保有しており、<br>
+        <strong>どのような症状・治療にも基本的に対応可能</strong>です。<br>
+        下記はそれぞれの得意分野・専門領域のご案内です。
+      </div>
+      <div class="staff-list">
+        <div class="staff-card">
+          <div class="staff-name">麻生川<span class="staff-role">院長</span></div>
+          <div class="staff-desc">全般的な治療統括、スポーツ外傷、難治性疼痛の治療を専門としています。</div>
+        </div>
+        <div class="staff-card">
+          <div class="staff-name">岡野<span class="staff-role">鍼灸・美容</span></div>
+          <div class="staff-desc">鍼灸治療による自律神経調整や、美容鍼などの美容メニューを得意としています。</div>
+        </div>
+        <div class="staff-card">
+          <div class="staff-name">堀江<span class="staff-role">骨盤矯正・腰痛</span></div>
+          <div class="staff-desc">骨盤や骨格の矯正技術に長けており、慢性的な腰痛の改善に定評があります。</div>
+        </div>
+        <div class="staff-card">
+          <div class="staff-name">松田<span class="staff-role">肩こり・姿勢</span></div>
+          <div class="staff-desc">デスクワークによる肩こりや猫背などの姿勢改善指導を得意としています。</div>
+        </div>
+        <div class="staff-card">
+          <div class="staff-name">山口<span class="staff-role">リハビリ</span></div>
+          <div class="staff-desc">機能回復訓練やストレッチ指導など、動ける体作りをサポートします。</div>
+        </div>
+      </div>
+      <button class="btn btn-full" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
+    </div>
+  </div>
+
+  <!-- TERMS MODAL -->
+  <div class="overlay" id="termsModal">
+    <div class="sheet">
+      <div class="sheet-header">
+        <div class="sheet-title">規約・ポリシー</div>
+        <div class="sheet-sub">TERMS & PRIVACY</div>
+      </div>
+      <div class="terms-box">
+        <h4>1. 利用規約</h4>
+        <p>本予約システム（以下「本システム」）を利用することで、利用者は本規約に同意したものとみなします。予約は確定した時点で枠が確保されます。無断キャンセルや直前のキャンセルが繰り返される場合、今後のご利用をお断りすることがあります。</p>
+        
+        <h4>2. 個人情報の取り扱い（プライバシーポリシー）</h4>
+        <p><strong>収集する情報：</strong>氏名、電話番号、LINEユーザーID、予約履歴。<br>
+        <strong>利用目的：</strong>予約管理、施術に関する連絡、サービス向上のための分析。<br>
+        <strong>第三者提供：</strong>法令に基づく場合を除き、利用者の同意なく第三者に個人情報を提供することはありません。<br>
+        <strong>管理：</strong>個人情報は適切なセキュリティ対策を講じて厳重に管理します。</p>
+        
+        <h4>3. 免責事項</h4>
+        <p>システム障害や通信環境の不具合により予約が完了しなかった場合、当院は一切の責任を負いません。</p>
+      </div>
+      <button class="btn btn-full" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
     </div>
   </div>
 
 <script>
-// ★ CONFIG: SUPABASE ★
+// ★ CONFIG ★
 const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
 const LIFF_ID = '2007980232-dK2Dp84Y';
@@ -109,59 +417,72 @@ const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 const FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000};
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 }; // 0=Sun
 
-// Init Clients
+// Init
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let state = { date: new Date(), uid: '', data: {}, pending: null };
 
+// --- INIT FLOW ---
 window.onload = async () => {
-  renderHead(); renderDate();
-  document.getElementById('datePicker').onchange = (e) => {
+  window.onscroll = () => document.getElementById('header').classList.toggle('scrolled', window.scrollY > 10);
+  
+  // Date Picker Limit (Today ~ +2 Months)
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 2);
+  
+  const dp = document.getElementById('datePicker');
+  dp.min = fmt(today);
+  dp.max = fmt(maxDate);
+  dp.onchange = (e) => {
     if(e.target.value) { state.date = new Date(e.target.value); renderDate(); loadData(); }
   };
+
+  renderHead();
+  renderDate();
 
   try {
     if (typeof liff !== 'undefined') {
       await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) {
-        if (!liff.isInClient()) liff.login();
-      } else {
+      if (liff.isLoggedIn()) {
         const p = await liff.getProfile(); state.uid = p.userId;
+        loadData();
+      } else {
+        if(liff.isInClient()) {
+           liff.login(); 
+        } else {
+           loading(false);
+           document.getElementById('loginOverlay').classList.add('open');
+        }
       }
     }
-  } catch(e) { if(location.hostname.includes('localhost')) state.uid = 'DEBUG_USER'; }
-  loadData();
+  } catch(e) { 
+    if(location.hostname.includes('localhost')) { state.uid = 'DEBUG_USER'; loadData(); }
+  }
 };
 
+// --- DATA LOGIC ---
 async function loadData() {
   loading(true);
   const dStr = fmt(state.date);
   
-  // 1. Get Bookings
   const { data: books } = await db.from('bookings').select('*').eq('date', dStr).neq('status', 'キャンセル');
-  // 2. Get Blocks
   const { data: blocks } = await db.from('blocks').select('*').eq('date', dStr);
   
-  // Logic
-  const res = {};
-  const slots = genSlots();
+  const res = {}; 
+  const slots = genSlots(); 
   const dow = state.date.getDay();
 
   STAFFS.forEach(s => {
-    res[s] = {};
+    res[s] = {}; 
     slots.forEach(t => res[s][t] = { status:'free', id:'' });
-    // Closed
     if(WEEKLY_OFF[s] === dow) slots.forEach(t => res[s][t].status = 'closed');
   });
 
-  // Blocks
-  if(blocks) blocks.forEach(b => {
-    if(res[b.staff] && res[b.staff][b.time]) res[b.staff][b.time].status = 'blocked';
-  });
+  if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time].status = 'blocked'; });
 
-  // Bookings
   if(books) books.forEach(b => {
     let t = b.start_time;
-    // 簡易的に60分枠として処理
+    // 60min booking logic
     const endSlots = [t, addTime(t, 30)];
     endSlots.forEach(slot => {
         if(res[b.staff] && res[b.staff][slot]) {
@@ -179,61 +500,64 @@ async function loadData() {
 async function createBooking() {
   const name = document.getElementById('pName').value;
   const phone = document.getElementById('pPhone').value;
-  if(!name || !phone) return alert('入力してください');
+  const term = document.getElementById('inTerm').checked;
+  if(!name || !phone) return alert('必須項目を入力してください');
+  if(!term) return alert('利用規約への同意が必要です');
   
   loading(true);
   const p = state.pending;
+  const { data: exists } = await db.from('bookings').select('id').eq('date', fmt(state.date)).eq('staff', p.staff).eq('start_time', p.time).neq('status', 'キャンセル');
   
-  // Conflict Check
-  const { data: exists } = await db.from('bookings')
-    .select('id').eq('date', fmt(state.date)).eq('staff', p.staff).eq('start_time', p.time).neq('status', 'キャンセル');
-    
-  if(exists && exists.length > 0) { loading(false); alert('既に予約が入っています'); return; }
+  if(exists && exists.length > 0) { loading(false); alert('申し訳ありません、タッチの差で予約が埋まりました'); return; }
 
   const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const end = addTime(p.time, 60);
-  
   const { error } = await db.from('bookings').insert({
-    id: id,
-    date: fmt(state.date),
-    start_time: p.time,
-    end_time: end,
-    staff: p.staff,
-    patient_name: name,
-    phone: phone,
-    symptoms: document.getElementById('pSym').value,
-    fee: FEES[p.staff],
-    user_id: state.uid
+    id: id, date: fmt(state.date), start_time: p.time, end_time: addTime(p.time, 60),
+    staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
+    fee: FEES[p.staff], user_id: state.uid
   });
 
   if(error) alert('Error: ' + error.message);
-  else { closeModal(); loadData(); alert('予約しました'); }
+  else { closeAll(); loadData(); alert('予約が完了しました'); }
   loading(false);
 }
 
 async function cancelBooking() {
   loading(true);
-  const { error } = await db.from('bookings')
-    .update({ status: 'キャンセル' })
-    .eq('id', state.pending.id)
-    .eq('user_id', state.uid); // Security check
-    
+  const { error } = await db.from('bookings').update({ status: 'キャンセル' }).eq('id', state.pending.id).eq('user_id', state.uid);
   if(error) alert('Error: ' + error.message);
-  else { closeModal(); loadData(); alert('キャンセルしました'); }
+  else { closeAll(); loadData(); alert('キャンセルしました'); }
   loading(false);
 }
 
-// --- UI HELPERS ---
+// --- RENDER ---
 function renderHead() {
-  let h = '<tr><th></th>'; STAFFS.forEach(s => h += `<th>${s}</th>`);
+  let h = '<tr><th></th>'; 
+  STAFFS.forEach(s => h += `<th>${s}<span class="en">${getEnName(s)}</span></th>`); 
   document.getElementById('thead').innerHTML = h + '</tr>';
 }
-function renderDate() {
-  const d = state.date, w = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  document.getElementById('dMain').textContent = `${d.getMonth()+1}.${d.getDate()}`;
-  document.getElementById('dSub').textContent = w[d.getDay()];
-  document.getElementById('datePicker').value = fmt(d);
+function getEnName(n){
+  const m = {'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MATSUDA','山口':'YAMAGUCHI'};
+  return m[n] || '';
 }
+
+function renderDate() {
+  const d = state.date;
+  const w = ['日','月','火','水','木','金','土'];
+  const m = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  document.getElementById('dMain').textContent = `${d.getMonth()+1}月${d.getDate()}日 (${w[d.getDay()]})`;
+  document.getElementById('dSub').textContent = `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${m[d.getDay()]}`;
+  document.getElementById('datePicker').value = fmt(d);
+  
+  // Date Nav Logic
+  const today = new Date(); today.setHours(0,0,0,0);
+  const max = new Date(); max.setMonth(max.getMonth()+2);
+  
+  const current = new Date(d); current.setHours(0,0,0,0);
+  document.getElementById('prevBtn').disabled = (current <= today);
+  document.getElementById('nextBtn').disabled = (current >= max);
+}
+
 function renderBody() {
   const b = document.getElementById('tbody'); b.innerHTML = '';
   const times = genSlots();
@@ -247,23 +571,53 @@ function renderBody() {
     tr.innerHTML = h; b.appendChild(tr);
   });
 }
+
+// --- ACTIONS ---
 function tap(s, t, st, id) {
   if(st==='blocked'||st==='closed'||st==='booked') return;
   state.pending = { staff:s, time:t, id:id };
-  document.getElementById('mTitle').textContent = st==='own' ? 'YOUR BOOKING' : 'RESERVATION';
-  document.getElementById('mSub').textContent = `${s} @ ${t}`;
+  
+  document.getElementById('mTitle').textContent = st==='own' ? 'ご予約内容' : '予約確認';
+  document.getElementById('mSub').textContent = st==='own' ? 'YOUR BOOKING' : 'CONFIRMATION';
+  document.getElementById('mDate').textContent = `${document.getElementById('dMain').textContent} ${t}`;
+  document.getElementById('mStaff').textContent = s;
   
   const isOwn = st==='own';
   document.getElementById('formCreate').classList.toggle('hidden', isOwn);
   document.getElementById('formCancel').classList.toggle('hidden', !isOwn);
-  if(!isOwn) { document.getElementById('pName').value=''; document.getElementById('pPhone').value=''; }
+  
+  if(!isOwn) { 
+    document.getElementById('pName').value=''; 
+    document.getElementById('pPhone').value='';
+    document.getElementById('pSym').value='';
+    document.getElementById('inTerm').checked = false;
+  }
   document.getElementById('modal').classList.add('open');
 }
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-function addDay(n) { state.date.setDate(state.date.getDate()+n); renderDate(); loadData(); }
-function loading(b) { const l=document.getElementById('loader'); l.style.opacity=b?'1':'0'; l.style.pointerEvents=b?'auto':'none'; }
+
+function addDay(n) {
+  const newDate = new Date(state.date);
+  newDate.setDate(newDate.getDate() + n);
+  
+  // 期間制限チェック
+  const today = new Date(); today.setHours(0,0,0,0);
+  const max = new Date(); max.setMonth(max.getMonth()+2);
+  
+  if(newDate < today || newDate > max) return;
+  
+  state.date = newDate;
+  renderDate(); loadData();
+}
+
+function openStaffModal(){ document.getElementById('staffModal').classList.add('open'); }
+function openTermsModal(){ document.getElementById('termsModal').classList.add('open'); }
+function closeAll(){ document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
+function loading(b){ const l=document.getElementById('loader'); l.style.opacity=b?'1':'0'; l.style.pointerEvents=b?'auto':'none'; }
+
+// Utils
 function fmt(d) { return d.toISOString().split('T')[0]; }
-function genSlots() { const a=[]; for(let h=9; h<21; h++) for(let m=0; m<60; m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
+function pad(n) { return ('0'+n).slice(-2); }
+function genSlots() { const a=[]; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
 function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
 </script>
 </body>
