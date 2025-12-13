@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADMIN 89CENTER</title>
+  <!-- Supabase JS (UMD Build) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    /* Admin Theme */
+    :root { --bg:#F5F5F7; --card:#FFF; --txt:#111; --sub:#888; --border:#DDD; --accent:#000; --blue:#007AFF; --red:#FF3B30; --font:"Helvetica Neue",sans-serif; }
+    * { box-sizing:border-box; outline:none; }
+    body { margin:0; padding:20px; background:var(--bg); font-family:var(--font); color:var(--txt); font-size:12px; }
+    .wrap { max-width:1400px; margin:0 auto; }
+    header { display:flex; justify-content:space-between; margin-bottom:20px; }
+    .btn { height:32px; padding:0 16px; border:1px solid var(--border); background:var(--card); font-weight:700; cursor:pointer; }
+    .btn.primary { background:var(--accent); color:#fff; }
+    .btn.danger { color:var(--red); border-color:var(--red); }
+    .grid { background:var(--card); border:1px solid var(--border); overflow-x:auto; max-height:85vh; margin-top:20px; }
+    table { width:100%; min-width:800px; border-collapse:collapse; table-layout:fixed; }
+    th { position:sticky; top:0; background:#FAFAFA; z-index:10; padding:12px; border-bottom:1px solid var(--txt); border-right:1px solid var(--border); }
+    th:first-child { left:0; z-index:20; width:60px; }
+    td { height:48px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:2px; }
+    td:first-child { position:sticky; left:0; background:#FAFAFA; z-index:5; text-align:center; font-weight:700; }
+    .cell { width:100%; height:100%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; font-weight:600; }
+    .free:hover { background:#EEE; }
+    .booked { background:#E6F0FF; color:var(--blue); }
+    .blocked { background:#EEE; color:#AAA; background-image:linear-gradient(45deg,#fff 25%,transparent 25%,transparent 50%,#fff 50%,#fff 75%,transparent 75%,transparent); background-size:4px 4px; }
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; display:none; align-items:center; justify-content:center; }
+    .overlay.open { display:flex; }
+    .box { background:#fff; width:400px; padding:30px; box-shadow:0 20px 50px rgba(0,0,0,0.3); }
+    .inp { width:100%; padding:10px; border:1px solid var(--border); margin-bottom:10px; }
+    .btns { display:flex; gap:10px; margin-top:20px; } .btns .btn { flex:1; }
+    #loader { position:fixed; top:20px; right:20px; background:#000; color:#fff; padding:5px 10px; font-weight:700; display:none; z-index:999; }
+  </style>
+</head>
+<body>
+  <div id="loader">PROCESSING</div>
+  <div class="wrap">
+    <header>
+      <h1>ADMIN 89CENTER</h1>
+      <div><button class="btn" onclick="move(-1)">←</button> <span id="dDisp" style="font-weight:700; margin:0 10px;"></span> <button class="btn" onclick="move(1)">→</button></div>
+    </header>
+    <div class="grid"><table id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  </div>
+
+  <div class="overlay" id="modal"><div class="box" id="mContent"></div></div>
+
+<script>
+// ★ CONFIG: SUPABASE ★
+const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co'; // ★ここにURL★
+const SUPABASE_KEY = 'YOUR_ANON_KEY'; // ★ここにAPIキー★
+const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
+
+// Init Client (Corrected: Use window.supabase.createClient)
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let s = { date: new Date(), data: {} };
+
+window.onload = () => { renderHead(); load(); };
+
+async function load() {
+  document.getElementById('loader').style.display='block';
+  const dStr = fmt(s.date);
+  document.getElementById('dDisp').textContent = dStr;
+  
+  const { data: books } = await db.from('bookings').select('*').eq('date', dStr).neq('status','キャンセル');
+  const { data: blocks } = await db.from('blocks').select('*').eq('date', dStr);
+  
+  const res = {}; const times = genSlots();
+  STAFFS.forEach(nm => {
+    res[nm] = {}; times.forEach(t => res[nm][t] = { status:'free', label:'' });
+  });
+  
+  if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time] = { status:'blocked', label:'BLOCK' }; });
+  if(books) books.forEach(b => {
+    let t = b.start_time;
+    // 60min予約として表示
+    const endSlots = [t, addTime(t, 30)];
+    endSlots.forEach(slot => {
+        if(res[b.staff] && res[b.staff][slot]) res[b.staff][slot] = { status:'booked', label:b.patient_name, id:b.id, detail:b };
+    });
+  });
+  
+  s.data = res; renderGrid();
+  document.getElementById('loader').style.display='none';
+}
+
+function renderHead() {
+  let h='<tr><th></th>'; STAFFS.forEach(n=>h+=`<th>${n}</th>`); document.getElementById('thead').innerHTML=h+'</tr>';
+}
+function renderGrid() {
+  const b=document.getElementById('tbody'); b.innerHTML='';
+  genSlots().forEach(t => {
+    const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
+    STAFFS.forEach(nm => {
+      const c = s.data[nm][t];
+      h+=`<td><div class="cell ${c.status}" onclick="tap('${nm}','${t}')">${c.label}</div></td>`;
+    });
+    tr.innerHTML=h; b.appendChild(tr);
+  });
+}
+
+function tap(nm, t) {
+  const c = s.data[nm][t];
+  const m = document.getElementById('mContent');
+  if(c.status === 'booked') {
+    const d = c.detail;
+    m.innerHTML = `<h3>BOOKING</h3><p>${d.patient_name}<br>${d.phone}<br>${d.symptoms||''}</p><div class="btns"><button class="btn danger" onclick="cancel('${d.id}')">CANCEL</button><button class="btn" onclick="closeM()">CLOSE</button></div>`;
+  } else if(c.status === 'free') {
+    m.innerHTML = `<h3>CREATE / BLOCK</h3><p>${nm} @ ${t}</p><input id="cNm" class="inp" placeholder="Name"><input id="cPh" class="inp" placeholder="Phone"><div class="btns"><button class="btn" onclick="block('${nm}','${t}')">BLOCK</button><button class="btn primary" onclick="create('${nm}','${t}')">CREATE</button></div><button class="btn" style="width:100%; margin-top:10px;" onclick="closeM()">CLOSE</button>`;
+  } else if(c.status === 'blocked') {
+    m.innerHTML = `<h3>UNBLOCK?</h3><div class="btns"><button class="btn danger" onclick="unblock('${nm}','${t}')">UNBLOCK</button><button class="btn" onclick="closeM()">CLOSE</button></div>`;
+  }
+  document.getElementById('modal').classList.add('open');
+}
+
+async function create(nm, t) {
+  const name = document.getElementById('cNm').value;
+  if(!name) return;
+  const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+  await db.from('bookings').insert({ id, date:fmt(s.date), start_time:t, end_time:addTime(t,60), staff:nm, patient_name:name, phone:document.getElementById('cPh').value, status:'予約済み' });
+  closeM(); load();
+}
+async function cancel(id) {
+  if(!confirm('Sure?')) return;
+  await db.from('bookings').update({ status:'キャンセル' }).eq('id', id);
+  closeM(); load();
+}
+async function block(nm, t) {
+  await db.from('blocks').insert({ date:fmt(s.date), time:t, staff:nm });
+  closeM(); load();
+}
+async function unblock(nm, t) {
+  await db.from('blocks').delete().match({ date:fmt(s.date), time:t, staff:nm });
+  closeM(); load();
+}
+
+function move(n) { s.date.setDate(s.date.getDate()+n); load(); }
+function closeM() { document.getElementById('modal').classList.remove('open'); }
+function fmt(d) { return d.toISOString().split('T')[0]; }
+function genSlots() { const a=[]; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
+function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
+</script>
+</body>
+</html>
