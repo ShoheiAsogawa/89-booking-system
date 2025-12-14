@@ -15,11 +15,11 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* --- 89CENTER MOBILE FIRST DESIGN v19 --- */
+    /* --- 89CENTER MOBILE FIRST DESIGN v20 (High Visibility) --- */
     :root {
-      --bg: #FFFFFF; --text: #111111; --sub: #888888; --line: #E5E5E5;
+      --bg: #FFFFFF; --text: #111111; --sub: #666666; --line: #E5E5E5;
       --accent: #000000; --error: #FF3B30; --surface: #F9F9F9;
-      --own-bg: #FFF4E6; --own-text: #F39C12;
+      --own-bg: #FFE0B2; --own-text: #E65100; /* Orange Accent */
       
       --font-jp: "Noto Sans JP", sans-serif; --font-en: "Roboto", sans-serif;
       --radius: 8px; --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -73,13 +73,18 @@
     .cal-icon { width: 16px; height: 16px; opacity: 0.4; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-    /* LEGEND */
-    .legend { display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; font-size: 10px; color: var(--sub); font-weight: 500; }
-    .legend-item { display: flex; align-items: center; gap: 4px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot.free { border: 1px solid var(--sub); background: #fff; }
-    .dot.own { background: var(--own-text); }
-    .dot.ng { background: var(--line); }
+    /* LEGEND (凡例) - High Contrast */
+    .legend { 
+      display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; 
+      font-size: 12px; color: var(--text); font-weight: 700;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    
+    /* 凡例用マーク */
+    .mark { display: inline-flex; align-items: center; justify-content: center; font-family: sans-serif; }
+    .mark.free { color: var(--sub); font-size: 16px; line-height: 1; } /* ○ */
+    .mark.own { width: 12px; height: 12px; background: var(--own-text); border-radius: 50%; } /* ● (Orange) */
+    .mark.ng { color: #888; font-size: 18px; line-height: 1; font-weight: 700; } /* × */
 
     /* TABLE - Mobile Optimized */
     .grid-wrapper {
@@ -88,7 +93,7 @@
     }
     .grid-scroller { 
       overflow-x: auto; -webkit-overflow-scrolling: touch; 
-      max-height: 70vh; /* Prevent excessive height */
+      max-height: 70vh;
     }
     table { width: 100%; min-width: 340px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
     
@@ -115,17 +120,30 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       cursor: pointer; position: relative;
     }
-    .free:active { background-color: var(--surface); transform: scale(0.95); transition: 0.1s; }
-    .free::after { content: ''; width: 8px; height: 8px; border: 1px solid var(--sub); border-radius: 50%; }
     
-    /* Disabled Styles */
-    .booked, .blocked, .closed, .past { cursor: default; background: #FAFAFA; }
-    .booked::after, .blocked::after, .closed::after, .past::after { content: '×'; font-family: var(--font-en); font-size: 14px; color: var(--line); font-weight: 300; }
-    .blocked::after { content: '−'; }
+    /* 空き: はっきりした丸 */
+    .free:active { background-color: var(--surface); transform: scale(0.95); transition: 0.1s; }
+    .free::after { 
+      content: ''; width: 12px; height: 12px; 
+      border: 1.5px solid #888; /* 濃いめのグレー */
+      border-radius: 50%; 
+    }
+    
+    /* 予約不可・過去・ブロック: はっきりした× */
+    .booked, .blocked, .closed, .past { cursor: default; background: #F5F5F5; }
+    .booked::after, .blocked::after, .closed::after, .past::after { 
+      content: '×'; 
+      font-family: sans-serif; /* シンプルなフォント */
+      font-size: 20px; /* 大きく */
+      color: #999; /* 濃いめのグレー */
+      font-weight: 400; 
+      line-height: 1;
+    }
+    .blocked::after { content: '−'; font-weight: 700; font-size: 18px; }
 
-    /* Own Booking */
-    .own { background: var(--own-bg); color: var(--own-text); box-shadow: 0 2px 4px rgba(230, 126, 34, 0.1); }
-    .own::after { content: '予約'; font-size: 9px; font-weight: 700; }
+    /* 自分の予約: オレンジ */
+    .own { background: var(--own-bg); color: var(--own-text); box-shadow: 0 2px 4px rgba(230, 126, 34, 0.15); border: 1px solid rgba(230, 126, 34, 0.3); }
+    .own::after { content: '予約'; font-size: 10px; font-weight: 700; }
 
     /* FOOTER LINK */
     .footer-link { text-align: center; margin-top: 40px; padding-bottom: 20px; }
@@ -222,10 +240,11 @@
       <button class="nav-btn" id="nextBtn" onclick="addDay(1)">›</button>
     </div>
 
+    <!-- 直感的な凡例 -->
     <div class="legend">
-      <div class="legend-item"><div class="dot free"></div>空き</div>
-      <div class="legend-item"><div class="dot own"></div>予約済</div>
-      <div class="legend-item"><div class="dot ng"></div>不可</div>
+      <div class="legend-item"><span class="mark free">○</span> 空き</div>
+      <div class="legend-item"><span class="mark own"></span> あなたの予約</div>
+      <div class="legend-item"><span class="mark ng">×</span> 予約不可</div>
     </div>
 
     <div class="grid-wrapper">
