@@ -15,7 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    /* --- 89CENTER ADMIN SYSTEM v18.2 (Memo UX Update) --- */
+    /* --- 89CENTER ADMIN SYSTEM v19 (Refresh Logic Fix) --- */
     :root {
       --bg: #F9FAFB; --surface: #FFFFFF; --text: #111827; --sub: #6B7280; --line: #E5E7EB;
       --accent: #111827; --blue: #3B82F6; --red: #EF4444; --green: #10B981;
@@ -187,7 +187,8 @@
       </div>
       <div class="header-right">
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック <span class="en">BLOCK</span></button>
-        <button class="btn btn-ghost" onclick="location.reload()">更新 <span class="en">REFRESH</span></button>
+        <!-- Updated Refresh Button: Calls refreshData() instead of reload -->
+        <button class="btn btn-ghost" onclick="refreshData()">更新 <span class="en">REFRESH</span></button>
       </div>
     </header>
 
@@ -252,7 +253,7 @@
         <label class="inp-lbl">管理者メモ</label>
         <textarea id="memo" class="inp" placeholder="メモを入力（自動保存）"></textarea>
       </div>
-      <div class="btns"><button class="btn btn-danger" onclick="runCancel()">キャンセル</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
+      <div class="btns"><button class="btn btn-danger" onclick="runCancel()">予約キャンセル</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
     </div>
   </div>
 
@@ -262,7 +263,7 @@
       <div class="inp-group"><label class="inp-lbl">患者名</label><input id="cName" class="inp" placeholder="氏名"></div>
       <div class="inp-group"><label class="inp-lbl">電話番号</label><input id="cPhone" class="inp" placeholder="090-0000-0000"></div>
       <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考"></textarea></div>
-      <div class="btns"><button class="btn btn-ghost" onclick="closeAll()">中止</button><button class="btn btn-primary" onclick="runCreate()">確定</button></div>
+      <div class="btns"><button class="btn btn-ghost" onclick="closeAll()">キャンセルｋ<button><button class="btn btn-primary" onclick="runCreate()">確定</button></div>
     </div>
   </div>
 
@@ -290,8 +291,15 @@ const TIMES = []; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) TIMES.push(('0'+
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
 let chartInst = null;
+let currentTab = 'schedule'; // Track current tab for refresh
 
 window.onload = () => {
+  // Login Session Check
+  if (sessionStorage.getItem('adminLogged') === 'true') {
+    document.getElementById('loginScreen').style.display = 'none';
+    renderHead(); load();
+  }
+
   document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value); load(); } };
   const ts=document.getElementById('blkStart'), te=document.getElementById('blkEnd');
   TIMES.forEach(t => { ts.add(new Option(t, t)); te.add(new Option(t, t)); }); te.value = "20:30"; 
@@ -306,12 +314,14 @@ window.onload = () => {
 
 function checkPass(){
   if(document.getElementById('passcode').value === PASS_CODE){
+    sessionStorage.setItem('adminLogged', 'true'); // Save session
     document.getElementById('loginScreen').style.display='none';
     renderHead(); load();
   } else { alert('パスワードが違います'); }
 }
 
 function switchTab(tab) {
+  currentTab = tab; // Update state
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('[onclick="switchTab(\''+tab+'\')"]').forEach(e => e.classList.add('active'));
   document.getElementById('viewSchedule').classList.toggle('hidden', tab!=='schedule');
@@ -319,6 +329,12 @@ function switchTab(tab) {
   document.getElementById('viewDashboard').classList.toggle('hidden', tab!=='dashboard');
   document.getElementById('bulkBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
   if(tab==='dashboard') loadDashboard();
+}
+
+function refreshData() {
+  if(currentTab === 'dashboard') loadDashboard();
+  else if(currentTab === 'search') runSearch();
+  else load();
 }
 
 // SCHEDULE
