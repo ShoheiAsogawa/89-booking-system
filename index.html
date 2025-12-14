@@ -15,7 +15,7 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* --- 89CENTER MOBILE DESIGN v24 (Enhanced UI & Guide) --- */
+    /* --- 89CENTER MOBILE DESIGN v25 (Fixed Layout & Polish) --- */
     :root {
       --bg: #FFFFFF;
       --text: #222222;
@@ -24,9 +24,9 @@
       --accent: #111111;
       --surface: #FAFAFA;
       
-      /* Status Colors - Adjusted Orange */
-      --color-own: #E65100; /* Deep Orange Border/Text */
-      --bg-own: #FFCC80;    /* Richer Orange Background */
+      /* Status Colors */
+      --color-own: #E65100;
+      --bg-own: #FFCC80;
       --color-ng: #999999;
       --bg-ng: #F7F7F7;
       
@@ -41,7 +41,7 @@
     body {
       margin: 0; padding: 0; background: var(--bg); color: var(--text);
       font-family: var(--font-jp); font-size: 14px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + var(--safe-bottom));
+      -webkit-font-smoothing: antialiased; padding-bottom: calc(60px + var(--safe-bottom));
     }
 
     /* UTILS */
@@ -49,139 +49,142 @@
     .hidden { display: none !important; }
 
     /* CONTAINER */
-    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 12px; }
 
     /* HEADER */
     header {
-      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      height: 56px; display: flex; align-items: center; justify-content: space-between;
       position: sticky; top: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
       z-index: 50; border-bottom: 1px solid transparent; transition: border-color 0.3s;
-      padding: 0 20px;
+      padding: 0 16px; margin-bottom: 16px;
     }
     header.scrolled { border-color: var(--line); }
-    h1 { font-family: var(--font-en); font-size: 20px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
+    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
     
     .header-btn {
-      font-size: 11px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
-      padding: 6px 14px; border-radius: 99px; background: transparent; cursor: pointer;
+      font-size: 10px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
+      padding: 4px 10px; border-radius: 99px; background: transparent; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; line-height: 1; gap: 2px;
     }
 
-    /* NAV & DATE PICKER BUTTON */
-    .nav { display: flex; justify-content: space-between; align-items: center; margin: 32px 0; padding: 0 4px; }
+    /* NAV */
+    .nav { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; padding: 0; }
     .nav-btn {
-      width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 50%;
-      background: #fff; color: var(--text); font-size: 20px; cursor: pointer;
+      width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%;
+      background: #fff; color: var(--text); font-size: 18px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;
     }
     .nav-btn:active { background: var(--text); color: #fff; transform: scale(0.95); }
     .nav-btn:disabled { opacity: 0.3; pointer-events: none; border-color: var(--line); box-shadow: none; }
     
     .date-display { 
+      flex-grow: 1; margin: 0 12px;
       text-align: center; cursor: pointer; position: relative; 
-      padding: 8px 12px; border-radius: 12px; transition: background 0.2s;
+      padding: 6px 0; border-radius: 8px; transition: background 0.2s;
     }
     .date-display:active { background: var(--surface); }
     .date-main { 
-      font-size: 20px; font-weight: 700; font-feature-settings: "palt"; 
-      display: flex; align-items: center; justify-content: center; gap: 12px; 
+      font-size: 18px; font-weight: 700; font-feature-settings: "palt"; 
+      display: flex; align-items: center; justify-content: center; gap: 8px; 
     }
-    .date-sub { font-family: var(--font-en); font-size: 12px; color: var(--sub); letter-spacing: 0.05em; margin-top: 4px; }
+    .date-sub { font-family: var(--font-en); font-size: 11px; color: var(--sub); letter-spacing: 0.05em; margin-top: 2px; }
     
-    /* Calendar Button Style */
+    /* Calendar Button */
     .cal-btn {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--text); color: #fff;
+      width: 24px; height: 24px; border-radius: 50%; background: var(--text); color: #fff;
       display: flex; align-items: center; justify-content: center; 
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    .cal-icon { width: 16px; height: 16px; }
+    .cal-icon { width: 12px; height: 12px; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 10; }
 
     /* LEGEND (凡例) */
     .legend { 
-      display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; 
-      font-size: 12px; color: var(--text); font-weight: 700;
+      display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; 
+      font-size: 11px; color: var(--text); font-weight: 700;
     }
-    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
     
     .mark { display: flex; align-items: center; justify-content: center; font-family: var(--font-en); }
-    .mark.free { font-size: 20px; color: var(--sub); line-height: 1; } /* ○ */
-    /* ● (Darker Orange) */
-    .mark.own { width: 12px; height: 12px; background: var(--color-own); border-radius: 50%; } 
-    .mark.ng { font-size: 22px; color: var(--color-ng); line-height: 1; } /* × */
+    .mark.free { font-size: 16px; color: #444; line-height: 1; } /* ○ */
+    .mark.own { width: 10px; height: 10px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); } /* ● */
+    .mark.ng { font-size: 20px; color: var(--color-ng); line-height: 1; } /* × */
 
-    /* TABLE */
+    /* TABLE (Fixed Layout) */
     .grid-wrapper {
-      position: relative; border-radius: 12px; overflow: hidden;
+      position: relative; border-radius: 8px; overflow: hidden;
       border: 1px solid var(--line); box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     }
-    .grid-scroller { 
-      overflow-x: auto; -webkit-overflow-scrolling: touch; 
-      max-height: 70vh; scrollbar-width: none;
-    }
-    .grid-scroller::-webkit-scrollbar { display: none; }
     
-    table { width: 100%; min-width: 360px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+    /* 横スクロールなしで画面に収める設定 */
+    table { 
+      width: 100%; min-width: 0; /* min-width削除 */
+      border-collapse: separate; border-spacing: 0; 
+      table-layout: fixed; 
+    }
     
     th {
-      font-size: 11px; font-weight: 700; color: var(--text); text-align: center;
-      padding: 16px 0; border-bottom: 2px solid var(--text);
+      font-size: 10px; font-weight: 700; color: var(--text); text-align: center;
+      padding: 10px 0; border-bottom: 2px solid var(--text);
       position: sticky; top: 0; z-index: 10; background: var(--bg);
+      line-height: 1.2;
     }
-    th .en { font-size: 9px; font-weight: 400; color: var(--sub); display: block; margin-top: 2px; }
+    th .en { font-size: 8px; font-weight: 400; color: var(--sub); display: block; transform: scale(0.9); margin-left: 0; }
+    
+    /* Time Column Width */
     th:first-child { 
-      position: sticky; left: 0; z-index: 20; width: 50px; 
+      position: sticky; left: 0; z-index: 20; width: 36px; /* 時間列を細く */
       border-right: 1px solid var(--line); 
     }
 
-    td { height: 64px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 4px; }
+    td { height: 52px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 0; }
     td:first-child {
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
-      text-align: center; font-family: var(--font-en); font-size: 11px; font-weight: 500; color: var(--sub);
+      text-align: center; font-family: var(--font-en); font-size: 10px; font-weight: 500; color: var(--sub);
     }
 
     /* CELLS */
     .cell {
-      width: 100%; height: 100%; border-radius: 6px;
+      width: 100%; height: 100%; border-radius: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; position: relative; transition: all 0.1s;
+      cursor: pointer; position: relative; transition: background 0.1s;
     }
     
     /* 空き: ○ */
-    .free::after { 
-      content: '○'; font-size: 18px; color: var(--line); font-weight: 400; line-height: 1;
+    /* .cell.free::after とすることで凡例への影響を回避 */
+    .cell.free::after { 
+      content: '○'; font-size: 16px; color: #333; /* 濃いグレー */
+      font-weight: 400; line-height: 1;
       font-family: var(--font-en);
     }
-    .free:hover::after { color: var(--sub); }
-    .free:active { background-color: var(--surface); transform: scale(0.95); }
+    .cell.free:active { background-color: var(--surface); }
     
     /* NG: × */
     .booked, .blocked, .closed, .past { cursor: default; background: var(--bg-ng); }
     .booked::after, .blocked::after, .closed::after, .past::after { 
       content: '×'; 
       font-family: sans-serif; 
-      font-size: 24px; 
+      font-size: 22px; 
       color: #999; 
       font-weight: 400; 
       line-height: 1;
       margin-top: -2px;
     }
-    .blocked::after { content: '−'; font-size: 20px; font-weight: 700; }
+    .blocked::after { content: '−'; font-size: 18px; font-weight: 700; }
 
-    /* 自分の予約: ● (Darker Orange) */
+    /* 自分の予約: ● */
     .own { 
-      background: var(--bg-own); 
-      border: 1px solid var(--color-own);
+      background: var(--bg-own); color: var(--color-own); 
+      border: 1px solid rgba(230, 126, 34, 0.2);
     }
-    /* 文字削除 */
     .own::after { content: ''; } 
 
     /* FOOTER LINK */
-    .footer-links { text-align: center; margin-top: 40px; padding-bottom: 20px; display: flex; flex-direction: column; gap: 16px; }
-    .link { color: var(--text); text-decoration: underline; cursor: pointer; font-size: 12px; }
-    .link-sub { color: var(--sub); font-size: 11px; text-decoration: none; }
+    .footer-links { text-align: center; margin-top: 32px; padding-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .link { color: var(--text); text-decoration: underline; cursor: pointer; font-size: 11px; }
+    .link-sub { color: var(--sub); font-size: 10px; text-decoration: none; }
 
     /* MODALS */
     .overlay {
@@ -193,54 +196,48 @@
     
     .sheet {
       width: 100%; max-width: 600px; background: #fff;
-      border-radius: 24px 24px 0 0; padding: 32px 24px calc(32px + var(--safe-bottom));
+      border-radius: 20px 20px 0 0; padding: 24px 20px calc(24px + var(--safe-bottom));
       transform: translateY(100%); transition: transform 0.4s var(--ease);
       max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     }
     .overlay.open .sheet { transform: translateY(0); }
 
-    .sheet-header { text-align: center; margin-bottom: 32px; }
+    .sheet-header { text-align: center; margin-bottom: 24px; }
     .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
     .sheet-sub { font-size: 10px; color: var(--sub); font-family: var(--font-en); letter-spacing: 0.1em; }
 
-    .info-list { margin-bottom: 32px; border: 1px solid var(--line); border-radius: 12px; padding: 0 20px; }
-    .info-item { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .info-list { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+    .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-item:last-child { border-bottom: none; }
-    .info-label { font-size: 12px; color: var(--sub); font-weight: 700; }
+    .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
     .info-value { font-weight: 700; }
 
-    .form-group { margin-bottom: 32px; }
+    .form-group { margin-bottom: 24px; }
     .inp { 
-      width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid var(--line); 
-      border-radius: 12px; font-size: 16px; -webkit-appearance: none; background: #fff;
+      width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); 
+      border-radius: 8px; font-size: 15px; -webkit-appearance: none; background: #fff;
       transition: border-color 0.2s;
     }
     .inp:focus { outline: none; border-color: var(--text); }
-    .inp::placeholder { color: var(--line); }
+    .inp::placeholder { color: #BBB; }
 
-    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
     .btn { 
-      height: 56px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
-      font-size: 14px; font-weight: 700; cursor: pointer; 
+      height: 48px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
+      font-size: 13px; font-weight: 700; cursor: pointer; 
       display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; 
       transition: opacity 0.2s;
     }
     .btn:active { opacity: 0.7; transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
     .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
-    .btn-full { width: 100%; margin-top: 16px; }
+    .btn-full { width: 100%; margin-top: 12px; }
 
     .chk-wrap { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; padding: 8px; border-radius: 8px; background: var(--surface); }
-    .chk { width: 24px; height: 24px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
-    .chk-label { font-size: 13px; line-height: 1.5; color: var(--text); font-weight: 500; }
-    
-    /* GUIDANCE Styles */
-    .guide-section { margin-bottom: 24px; }
-    .guide-ttl { font-size: 14px; font-weight: 700; border-left: 3px solid var(--text); padding-left: 8px; margin-bottom: 12px; }
-    .guide-txt { font-size: 13px; line-height: 1.7; color: var(--sub); }
-    .guide-step { background: var(--surface); padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
-    .guide-step strong { color: var(--text); }
-    
+    .chk { width: 20px; height: 20px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
+    .chk-label { font-size: 12px; line-height: 1.5; color: var(--text); font-weight: 500; }
+    .link { color: var(--text); text-decoration: underline; cursor: pointer; }
+
     /* STAFF LIST */
     .staff-list { display: grid; gap: 12px; }
     .staff-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
@@ -373,35 +370,19 @@
     </div>
   </div>
 
-  <!-- GUIDE MODAL (注意事項・使い方) -->
+  <!-- GUIDE MODAL -->
   <div class="overlay" id="guideModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">注意事項・使い方</div><div class="sheet-sub">GUIDE</div></div>
       <div style="height:320px; overflow-y:auto;">
-        
         <div class="guide-section">
-          <div class="guide-ttl">⚠️ 注意事項・免責事項</div>
-          <p class="guide-txt">
-            1. <strong>予約の確定について</strong><br>
-            本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。急病や天災等により、店舗側の判断で予約をキャンセルさせていただく場合があります。<br><br>
-            2. <strong>システム障害について</strong><br>
-            通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。予約完了画面が表示されたことを必ずご確認ください。<br><br>
-            3. <strong>利用制限</strong><br>
-            無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
+          <div class="guide-ttl" style="font-size:14px; font-weight:700; margin-bottom:12px;">⚠️ 注意事項・免責事項</div>
+          <p class="guide-txt" style="font-size:13px; line-height:1.7; color:var(--sub);">
+            1. <strong>予約の確定について</strong><br>本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。<br><br>
+            2. <strong>システム障害について</strong><br>通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。<br><br>
+            3. <strong>利用制限</strong><br>無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
           </p>
         </div>
-
-        <div class="guide-section">
-          <div class="guide-ttl">📱 アプリの使い方</div>
-          <div class="guide-step"><strong>STEP 1</strong><br>カレンダーから希望日を選び、空いている「○」をタップします。</div>
-          <div class="guide-step"><strong>STEP 2</strong><br>お名前と電話番号を入力し、「予約する」ボタンを押すと確定します。</div>
-          <div class="guide-step"><strong>STEP 3</strong><br>予約確認やキャンセルは、オレンジ色の「予約済」枠をタップしてください。</div>
-          <div class="guide-step" style="background:#FFF3E0; color:#E65100;">
-            <strong>※当日のキャンセルについて</strong><br>
-            システムからは行えません。お手数ですがお電話にてご連絡ください。
-          </div>
-        </div>
-
       </div>
       <button class="btn btn-full" onclick="closeAll()">閉じる</button>
     </div>
@@ -580,7 +561,7 @@ function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HOR
 
 function renderDate() {
   const d = state.date, w = ['日','月','火','水','木','金','土'];
-  document.getElementById('dMain').innerHTML = `${d.getMonth()+1}月${d.getDate()}日 (${w[d.getDay()]})`;
+  document.getElementById('dMain').innerHTML = `${d.getMonth()+1}月${d.getDate()}日 (${w[d.getDay()]}) <div class="cal-btn"><svg class="cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>`;
   document.getElementById('dSub').textContent = `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
   document.getElementById('datePicker').value = fmt(d);
   
