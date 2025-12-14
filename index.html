@@ -15,7 +15,7 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* --- 89CENTER MOBILE DESIGN v25 (Fixed Layout & Polish) --- */
+    /* --- 89CENTER MOBILE DESIGN v26 (Guide Updated) --- */
     :root {
       --bg: #FFFFFF;
       --text: #222222;
@@ -246,6 +246,13 @@
     .staff-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
     .staff-intro { font-size: 11px; text-align: center; color: var(--sub); margin-bottom: 20px; line-height: 1.7; background: var(--surface); padding: 12px; border-radius: 12px; }
 
+    /* GUIDANCE Styles (NEW) */
+    .guide-section { margin-bottom: 32px; }
+    .guide-ttl { font-size: 14px; font-weight: 700; border-left: 3px solid var(--text); padding-left: 10px; margin-bottom: 16px; }
+    .guide-txt { font-size: 13px; line-height: 1.8; color: var(--sub); }
+    .guide-step { background: var(--surface); padding: 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; color: var(--sub); }
+    .guide-step strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 12px; opacity: 0.8; }
+
     /* WARNING MODAL */
     #warnModal .sheet { text-align: center; }
     .warn-icon { font-size: 32px; margin-bottom: 16px; display: block; }
@@ -370,19 +377,44 @@
     </div>
   </div>
 
-  <!-- GUIDE MODAL -->
+  <!-- GUIDE MODAL (注意事項・使い方) -->
   <div class="overlay" id="guideModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">注意事項・使い方</div><div class="sheet-sub">GUIDE</div></div>
-      <div style="height:320px; overflow-y:auto;">
+      <div style="height:400px; overflow-y:auto; padding-right:4px;">
+        
         <div class="guide-section">
-          <div class="guide-ttl" style="font-size:14px; font-weight:700; margin-bottom:12px;">⚠️ 注意事項・免責事項</div>
-          <p class="guide-txt" style="font-size:13px; line-height:1.7; color:var(--sub);">
-            1. <strong>予約の確定について</strong><br>本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。<br><br>
-            2. <strong>システム障害について</strong><br>通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。<br><br>
-            3. <strong>利用制限</strong><br>無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
+          <div class="guide-ttl">⚠️ 注意事項・免責事項</div>
+          <p class="guide-txt">
+            1. <strong>予約の確定について</strong><br>
+            本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。急病や天災等により、店舗側の判断で予約をキャンセルさせていただく場合があります。<br><br>
+            2. <strong>システム障害について</strong><br>
+            通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。予約完了画面が表示されたことを必ずご確認ください。<br><br>
+            3. <strong>利用制限</strong><br>
+            無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
           </p>
         </div>
+
+        <div class="guide-section">
+          <div class="guide-ttl">📱 アプリの使い方</div>
+          <div class="guide-step">
+            <strong>STEP 1</strong>
+            カレンダーから希望の日付を選びます。<br>「○」が表示されている時間が予約可能な枠です。
+          </div>
+          <div class="guide-step">
+            <strong>STEP 2</strong>
+            希望の「○」をタップし、お名前と電話番号を入力して「予約する」ボタンを押してください。
+          </div>
+          <div class="guide-step">
+            <strong>STEP 3</strong>
+            予約が完了すると、その枠がオレンジ色の「●」に変わります。<br>タップすると詳細確認やキャンセルが可能です。
+          </div>
+          <div class="guide-step" style="background:#FFF3E0; color:#E65100; border:1px solid #FFE0B2;">
+            <strong>※当日のキャンセルについて</strong>
+            システムからは行えません。お手数ですがお電話にてご連絡ください。
+          </div>
+        </div>
+
       </div>
       <button class="btn btn-full" onclick="closeAll()">閉じる</button>
     </div>
