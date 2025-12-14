@@ -15,7 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    /* --- 89CENTER ADMIN SYSTEM v19 (Refresh Logic Fix) --- */
+    /* --- 89CENTER ADMIN SYSTEM v20 (Japanese & Clean) --- */
     :root {
       --bg: #F9FAFB; --surface: #FFFFFF; --text: #111827; --sub: #6B7280; --line: #E5E7EB;
       --accent: #111827; --blue: #3B82F6; --red: #EF4444; --green: #10B981;
@@ -30,7 +30,7 @@
       font-family: var(--font-jp); font-size: 13px; -webkit-font-smoothing: antialiased;
     }
 
-    .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+    /* UTILS */
     .hidden { display: none !important; }
     .flex { display: flex; align-items: center; }
     .w-full { width: 100%; }
@@ -42,7 +42,7 @@
     .header-left { display: flex; align-items: center; gap: 40px; }
     
     h1 { font-family: var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
-    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.1em; }
+    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
     .tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -87,7 +87,7 @@
     /* DASHBOARD VIEW */
     .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
     .kpi-card { background: var(--surface); padding: 24px; border-radius: var(--radius-l); box-shadow: var(--shadow); border: 1px solid var(--line); }
-    .kpi-lbl { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-lbl { font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: 0.05em; }
     .kpi-val { font-size: 28px; font-weight: 800; font-family: var(--font-en); margin-top: 8px; color: var(--text); }
     .kpi-sub { font-size: 11px; color: var(--green); font-weight: 700; margin-top: 4px; }
 
@@ -101,7 +101,7 @@
     .staff-row:last-child { border-bottom: none; }
     .s-name { font-weight: 700; font-size: 13px; }
     .s-data { text-align: right; }
-    .s-cnt { font-size: 11px; color: var(--sub); margin-right: 8px; font-family: var(--font-en); }
+    .s-cnt { font-size: 11px; color: var(--sub); margin-right: 8px; }
     .s-amt { font-family: var(--font-en); font-weight: 700; font-size: 14px; }
 
     /* SEARCH VIEW */
@@ -126,12 +126,12 @@
     
     .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
     .info-lbl { color: var(--sub); font-weight: 700; font-size: 11px; }
-    .info-val { font-weight: 600; font-family: var(--font-en); }
+    .info-val { font-weight: 600; }
 
     .inp { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #FAFAFA; margin-bottom: 16px; }
     .inp:focus { border-color: var(--text); background: #fff; }
     textarea.inp { min-height: 80px; resize: vertical; }
-    .inp-row { display: flex; gap: 12px; } .inp-row .inp { margin-bottom: 0; }
+    .inp-row { display: flex; gap: 10px; } .inp-row .inp { margin-bottom: 0; }
 
     /* Spaced out Bulk Block Form */
     #bulkMod .inp-group { margin-bottom: 24px; }
@@ -142,7 +142,9 @@
     .s-chk:hover { background: #FAFAFA; }
     .s-chk input { accent-color: var(--text); }
 
-    .btns { display: flex; gap: 10px; margin-top: 24px; } .btns .btn { flex: 1; }
+    /* Buttons Container - Cleaned up */
+    .btns { display: flex; gap: 10px; margin-top: 24px; width: 100%; }
+    .btns .btn { flex: 1; }
 
     /* LOGIN */
     #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -167,8 +169,8 @@
   <div id="loginScreen">
     <div style="text-align:center; width:300px;">
       <h2 style="font-family:var(--font-en); font-weight:900; margin-bottom:32px;">89CENTER ADMIN</h2>
-      <input type="password" id="passcode" class="inp" placeholder="PASSWORD" style="text-align:center; letter-spacing:0.2em;">
-      <button class="btn btn-primary w-full" onclick="checkPass()">LOGIN</button>
+      <input type="password" id="passcode" class="inp" placeholder="パスワードを入力" style="text-align:center; letter-spacing:0.1em;">
+      <button class="btn btn-primary w-full" onclick="checkPass()">ログイン</button>
     </div>
   </div>
 
@@ -178,7 +180,7 @@
   <div class="wrap">
     <header>
       <div class="header-left">
-        <h1>89CENTER<span class="badge">ADMIN</span></h1>
+        <h1>89CENTER<span class="badge">管理画面</span></h1>
         <div class="tabs">
           <button class="tab active" onclick="switchTab('schedule')">予約管理</button>
           <button class="tab" onclick="switchTab('search')">患者検索</button>
@@ -186,9 +188,8 @@
         </div>
       </div>
       <div class="header-right">
-        <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック <span class="en">BLOCK</span></button>
-        <!-- Updated Refresh Button: Calls refreshData() instead of reload -->
-        <button class="btn btn-ghost" onclick="refreshData()">更新 <span class="en">REFRESH</span></button>
+        <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
+        <button class="btn btn-ghost" onclick="refreshData()">更新</button>
       </div>
     </header>
 
@@ -226,9 +227,9 @@
       </div>
 
       <div class="dash-grid">
-        <div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val" id="kpiSales">¥0</div><div class="kpi-sub">月間売上合計</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Total Bookings</div><div class="kpi-val" id="kpiCount">0</div><div class="kpi-sub">予約件数</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Avg. Price</div><div class="kpi-val" id="kpiAvg">¥0</div><div class="kpi-sub">平均客単価</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">売上合計</div><div class="kpi-val" id="kpiSales">¥0</div><div class="kpi-sub">月間合計</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">予約件数</div><div class="kpi-val" id="kpiCount">0</div><div class="kpi-sub">月間合計</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">平均単価</div><div class="kpi-val" id="kpiAvg">¥0</div><div class="kpi-sub">1予約あたり</div></div>
       </div>
 
       <div class="chart-row">
@@ -253,7 +254,10 @@
         <label class="inp-lbl">管理者メモ</label>
         <textarea id="memo" class="inp" placeholder="メモを入力（自動保存）"></textarea>
       </div>
-      <div class="btns"><button class="btn btn-danger" onclick="runCancel()">予約キャンセル</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
+      <div class="btns">
+        <button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button>
+        <button class="btn btn-ghost" onclick="closeAll()">閉じる</button>
+      </div>
     </div>
   </div>
 
@@ -263,19 +267,45 @@
       <div class="inp-group"><label class="inp-lbl">患者名</label><input id="cName" class="inp" placeholder="氏名"></div>
       <div class="inp-group"><label class="inp-lbl">電話番号</label><input id="cPhone" class="inp" placeholder="090-0000-0000"></div>
       <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考"></textarea></div>
-      <div class="btns"><button class="btn btn-ghost" onclick="closeAll()">キャンセル<button><button class="btn btn-primary" onclick="runCreate()">確定</button></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-primary" onclick="runCreate()">確定</button>
+      </div>
     </div>
   </div>
 
   <div class="overlay" id="bulkMod" onclick="if(event.target===this)closeAll()">
     <div class="box" style="width:520px;">
-      <div class="box-h"><h3 class="box-ttl">一括ブロック</h3></div>
-      <div class="inp-group"><label class="inp-lbl">期間</label><div class="inp-row"><input type="date" id="blkFrom" class="inp"><input type="date" id="blkTo" class="inp"></div></div>
-      <div class="inp-group"><label class="inp-lbl">時間帯</label><div class="inp-row"><select id="blkStart" class="inp"></select><span>〜</span><select id="blkEnd" class="inp"></select></div></div>
-      <div class="inp-group"><label class="inp-lbl">対象スタッフ</label><div class="staff-checks" id="blkStaff"></div></div>
-      <div class="inp-group"><label class="inp-lbl">理由</label><input id="blkReason" class="inp" placeholder="理由"></div>
-      <div class="btns"><button class="btn btn-ghost" onclick="runBulk(false)">解除</button><button class="btn btn-danger" onclick="runBulk(true)">ブロック実行</button></div>
-      <button class="btn btn-ghost w-full" style="margin-top:12px; border:none;" onclick="closeAll()">閉じる</button>
+      <div class="box-h"><h3 class="box-ttl">一括ブロック設定</h3></div>
+      <div class="inp-group">
+        <label class="inp-lbl">期間</label>
+        <div class="inp-row">
+          <input type="date" id="blkFrom" class="inp">
+          <span style="padding-top:10px;">〜</span>
+          <input type="date" id="blkTo" class="inp">
+        </div>
+      </div>
+      <div class="inp-group">
+        <label class="inp-lbl">時間帯</label>
+        <div class="inp-row">
+          <select id="blkStart" class="inp"></select>
+          <span style="padding-top:10px;">〜</span>
+          <select id="blkEnd" class="inp"></select>
+        </div>
+      </div>
+      <div class="inp-group">
+        <label class="inp-lbl">対象スタッフ</label>
+        <div class="staff-checks" id="blkStaff"></div>
+      </div>
+      <div class="inp-group">
+        <label class="inp-lbl">理由</label>
+        <input id="blkReason" class="inp" placeholder="理由を入力 (例: 研修)">
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="runBulk(false)">解除</button>
+        <button class="btn btn-danger" onclick="runBulk(true)">実行</button>
+      </div>
+      <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
     </div>
   </div>
 
@@ -291,10 +321,9 @@ const TIMES = []; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) TIMES.push(('0'+
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
 let chartInst = null;
-let currentTab = 'schedule'; // Track current tab for refresh
+let currentTab = 'schedule';
 
 window.onload = () => {
-  // Login Session Check
   if (sessionStorage.getItem('adminLogged') === 'true') {
     document.getElementById('loginScreen').style.display = 'none';
     renderHead(); load();
@@ -308,20 +337,20 @@ window.onload = () => {
   const dm=document.getElementById('dashMonth'), today=new Date();
   for(let i=0; i<12; i++) {
     const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
-    dm.add(new Option(`${d.getFullYear()}.${d.getMonth()+1}`, fmtLocal(d).substr(0,7)));
+    dm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
   }
 };
 
 function checkPass(){
   if(document.getElementById('passcode').value === PASS_CODE){
-    sessionStorage.setItem('adminLogged', 'true'); // Save session
+    sessionStorage.setItem('adminLogged', 'true');
     document.getElementById('loginScreen').style.display='none';
     renderHead(); load();
   } else { alert('パスワードが違います'); }
 }
 
 function switchTab(tab) {
-  currentTab = tab; // Update state
+  currentTab = tab;
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
   document.querySelectorAll('[onclick="switchTab(\''+tab+'\')"]').forEach(e => e.classList.add('active'));
   document.getElementById('viewSchedule').classList.toggle('hidden', tab!=='schedule');
@@ -377,13 +406,13 @@ function cellClick(nm, t) {
   if(c.status === 'booked') {
     const d = c.detail;
     document.getElementById('info').innerHTML = `
-      <div class="info-row"><span class="info-lbl">NAME</span><span class="info-val">${d.patient_name}</span></div>
-      <div class="info-row"><span class="info-lbl">PHONE</span><span class="info-val">${d.phone}</span></div>
-      <div class="info-row"><span class="info-lbl">NOTE</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
-      <div class="info-row"><span class="info-lbl">FEE</span><span class="info-val">¥${Number(d.fee).toLocaleString()}</span></div>`;
+      <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${d.patient_name}</span></div>
+      <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${d.phone}</span></div>
+      <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
+      <div class="info-row"><span class="info-lbl">料金</span><span class="info-val">¥${Number(d.fee).toLocaleString()}</span></div>`;
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
-    mEl.onchange = () => updateMemo(s.id, mEl.value); // Auto save
+    mEl.onchange = () => updateMemo(s.id, mEl.value);
     openMod('detailMod');
   } else if(c.status === 'free') {
     document.getElementById('cName').value = ''; document.getElementById('cPhone').value = ''; document.getElementById('cSym').value = '';
@@ -406,7 +435,7 @@ async function runCreate() {
 }
 
 async function runCancel() {
-  if(!confirm('Sure?')) return;
+  if(!confirm('キャンセルしますか？')) return;
   await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
   closeAll(); load();
 }
@@ -478,7 +507,7 @@ async function runSearch() {
 async function loadDashboard() {
   showLoad(true);
   const ym = document.getElementById('dashMonth').value;
-  const [y, m] = ym.split('-').map(Number);
+  const [y, m] = ym.split('-').map(Number); // YYYY, MM
   const start = `${ym}-01`;
   const lastDay = new Date(y, m, 0).getDate();
   const end = `${ym}-${lastDay}`;
@@ -486,7 +515,6 @@ async function loadDashboard() {
   const { data: books } = await db.from('bookings').select('staff, fee, date').gte('date', start).lte('date', end).neq('status', 'キャンセル');
   const list = books || [];
     
-  // KPI
   const totalSales = list.reduce((sum, b) => sum + Number(b.fee || 0), 0);
   const count = list.length;
   const avg = count ? Math.round(totalSales / count) : 0;
@@ -495,7 +523,6 @@ async function loadDashboard() {
   document.getElementById('kpiCount').textContent = count + '件';
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
   
-  // List: Staff Stats
   const stStats = {}; STAFFS.forEach(s => stStats[s] = {c:0, s:0});
   list.forEach(b => { if(stStats[b.staff]) { stStats[b.staff].c++; stStats[b.staff].s += Number(b.fee||0); } });
   
@@ -509,7 +536,6 @@ async function loadDashboard() {
   });
   document.getElementById('staffList').innerHTML = stHtml;
 
-  // Chart: Cumulative
   const daysInMonth = lastDay;
   const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
   const dailyData = new Array(daysInMonth).fill(0);
