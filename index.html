@@ -15,7 +15,7 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* --- 89CENTER MOBILE DESIGN v22 (Fixes & Polish) --- */
+    /* --- 89CENTER MOBILE DESIGN v23 (Fixed Width & Search) --- */
     :root {
       --bg: #FFFFFF;
       --text: #222222;
@@ -24,10 +24,9 @@
       --accent: #111111;
       --surface: #FAFAFA;
       
-      /* Status Colors */
-      --color-own: #E67E22; /* Vivid Orange */
+      --color-own: #E67E22;
       --bg-own: #FFF3E0;
-      --color-ng: #999999; /* Darker Gray */
+      --color-ng: #999999;
       --bg-ng: #F7F7F7;
       
       --font-jp: "Noto Sans JP", sans-serif;
@@ -49,28 +48,28 @@
     .hidden { display: none !important; }
 
     /* CONTAINER */
-    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 16px; }
 
     /* HEADER */
     header {
-      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      height: 60px; display: flex; align-items: center; justify-content: space-between;
       position: sticky; top: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
       z-index: 50; border-bottom: 1px solid transparent; transition: border-color 0.3s;
-      padding: 0 20px;
+      padding: 0 16px;
     }
     header.scrolled { border-color: var(--line); }
-    h1 { font-family: var(--font-en); font-size: 20px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
+    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
     
     .header-btn {
-      font-size: 11px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
-      padding: 6px 14px; border-radius: 99px; background: transparent; cursor: pointer;
+      font-size: 10px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
+      padding: 4px 10px; border-radius: 99px; background: transparent; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; line-height: 1; gap: 2px;
     }
 
     /* NAV */
-    .nav { display: flex; justify-content: space-between; align-items: center; margin: 32px 0; padding: 0 4px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; margin: 24px 0; padding: 0 4px; }
     .nav-btn {
-      width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 50%;
+      width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%;
       background: #fff; color: var(--text); font-size: 20px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -80,89 +79,78 @@
     
     .date-display { 
       text-align: center; cursor: pointer; position: relative; 
-      padding: 8px 24px; border-radius: 12px; transition: background 0.2s;
+      padding: 6px 16px; border-radius: 12px; transition: background 0.2s;
     }
     .date-display:active { background: var(--surface); }
     .date-main { 
-      font-size: 20px; font-weight: 700; font-feature-settings: "palt"; 
-      display: flex; align-items: center; justify-content: center; gap: 8px; 
+      font-size: 18px; font-weight: 700; font-feature-settings: "palt"; 
+      display: flex; align-items: center; justify-content: center; gap: 6px; 
     }
-    .date-sub { font-family: var(--font-en); font-size: 12px; color: var(--sub); letter-spacing: 0.05em; margin-top: 4px; }
-    .cal-icon { width: 18px; height: 18px; opacity: 0.4; }
+    .date-sub { font-family: var(--font-en); font-size: 11px; color: var(--sub); letter-spacing: 0.05em; margin-top: 2px; }
+    .cal-icon { width: 16px; height: 16px; opacity: 0.4; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-    /* LEGEND (凡例) */
+    /* LEGEND */
     .legend { 
-      display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; 
-      font-size: 12px; color: var(--text); font-weight: 700;
+      display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; 
+      font-size: 11px; color: var(--text); font-weight: 700;
     }
-    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
     
     .mark { display: flex; align-items: center; justify-content: center; font-family: var(--font-en); }
-    .mark.free { font-size: 20px; color: var(--sub); line-height: 1; } /* ○ */
-    .mark.own { width: 12px; height: 12px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); } /* ● */
-    .mark.ng { font-size: 22px; color: var(--color-ng); line-height: 1; } /* × */
+    .mark.free { font-size: 16px; color: #555; line-height: 1; } /* Darker Gray */
+    .mark.own { width: 10px; height: 10px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); }
+    .mark.ng { font-size: 18px; color: var(--color-ng); line-height: 1; }
 
-    /* TABLE */
+    /* TABLE - Fixed Width */
     .grid-wrapper {
-      position: relative; border-radius: 12px; overflow: hidden;
+      position: relative; border-radius: 8px; overflow: hidden;
       border: 1px solid var(--line); box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     }
     .grid-scroller { 
-      overflow-x: auto; -webkit-overflow-scrolling: touch; 
-      max-height: 70vh; scrollbar-width: none;
+      overflow: hidden; /* Scroll Disabled */
+      width: 100%;
     }
-    .grid-scroller::-webkit-scrollbar { display: none; }
-    
-    table { width: 100%; min-width: 360px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
     
     th {
-      font-size: 11px; font-weight: 700; color: var(--text); text-align: center;
-      padding: 16px 0; border-bottom: 2px solid var(--text);
-      position: sticky; top: 0; z-index: 10; background: var(--bg);
+      font-size: 10px; font-weight: 700; color: var(--text); text-align: center;
+      padding: 10px 2px; border-bottom: 2px solid var(--text);
+      background: var(--bg);
     }
-    th .en { font-size: 9px; font-weight: 400; color: var(--sub); display: block; margin-top: 2px; }
-    th:first-child { 
-      position: sticky; left: 0; z-index: 20; width: 50px; 
-      border-right: 1px solid var(--line); 
-    }
+    th .en { font-size: 8px; font-weight: 400; color: var(--sub); display: block; margin-top: 2px; transform: scale(0.9); }
+    th:first-child { width: 40px; border-right: 1px solid var(--line); } /* Time Column Width */
 
-    td { height: 64px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 4px; }
+    td { height: 50px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 2px; }
     td:first-child {
-      position: sticky; left: 0; z-index: 5; background: var(--bg);
-      border-right: 1px solid var(--line);
-      text-align: center; font-family: var(--font-en); font-size: 11px; font-weight: 500; color: var(--sub);
+      background: var(--bg); border-right: 1px solid var(--line);
+      text-align: center; font-family: var(--font-en); font-size: 10px; font-weight: 500; color: var(--sub);
     }
 
     /* CELLS */
     .cell {
-      width: 100%; height: 100%; border-radius: 6px;
+      width: 100%; height: 100%; border-radius: 4px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       cursor: pointer; position: relative; transition: all 0.1s;
     }
     
-    /* 空き: ○ */
+    /* 空き: 濃いめの丸 */
     .free::after { 
-      content: '○'; font-size: 18px; color: var(--line); font-weight: 400; line-height: 1;
+      content: '○'; font-size: 16px; color: #666; font-weight: 400; line-height: 1;
       font-family: var(--font-en);
     }
-    .free:hover::after { color: var(--sub); }
+    .free:hover::after { color: #333; }
     .free:active { background-color: var(--surface); transform: scale(0.95); }
     
-    /* NG: × */
+    /* NG */
     .booked, .blocked, .closed, .past { cursor: default; background: var(--bg-ng); }
     .booked::after, .blocked::after, .closed::after, .past::after { 
-      content: '×'; 
-      font-family: sans-serif; 
-      font-size: 24px; 
-      color: #999; 
-      font-weight: 400; 
-      line-height: 1;
-      margin-top: -2px;
+      content: '×'; font-family: sans-serif; font-size: 20px; 
+      color: #999; font-weight: 400; line-height: 1; margin-top: -2px;
     }
-    .blocked::after { content: '−'; font-size: 20px; font-weight: 700; }
+    .blocked::after { content: '−'; font-size: 18px; font-weight: 700; }
 
-    /* 自分の予約: ● (文字なし) */
+    /* Own Booking */
     .own { 
       background: var(--bg-own); color: var(--color-own); 
       border: 1px solid rgba(230, 126, 34, 0.2);
@@ -170,7 +158,7 @@
     .own::after { content: ''; } 
 
     /* FOOTER LINK */
-    .footer-link { text-align: center; margin-top: 40px; padding-bottom: 20px; }
+    .footer-link { text-align: center; margin-top: 32px; padding-bottom: 20px; }
 
     /* MODALS */
     .overlay {
@@ -182,61 +170,67 @@
     
     .sheet {
       width: 100%; max-width: 600px; background: #fff;
-      border-radius: 24px 24px 0 0; padding: 32px 24px calc(32px + var(--safe-bottom));
+      border-radius: 20px 20px 0 0; padding: 32px 24px calc(32px + var(--safe-bottom));
       transform: translateY(100%); transition: transform 0.4s var(--ease);
       max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     }
     .overlay.open .sheet { transform: translateY(0); }
 
-    .sheet-header { text-align: center; margin-bottom: 32px; }
-    .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .sheet-header { text-align: center; margin-bottom: 24px; }
+    .sheet-title { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
     .sheet-sub { font-size: 10px; color: var(--sub); font-family: var(--font-en); letter-spacing: 0.1em; }
 
-    .info-list { margin-bottom: 32px; border: 1px solid var(--line); border-radius: 12px; padding: 0 20px; }
-    .info-item { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .info-list { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+    .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-item:last-child { border-bottom: none; }
-    .info-label { font-size: 12px; color: var(--sub); font-weight: 700; }
+    .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
     .info-value { font-weight: 700; }
 
-    .form-group { margin-bottom: 32px; }
+    .form-group { margin-bottom: 24px; }
     .inp { 
-      width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid var(--line); 
-      border-radius: 12px; font-size: 16px; -webkit-appearance: none; background: #fff;
+      width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); 
+      border-radius: 8px; font-size: 15px; -webkit-appearance: none; background: #fff;
       transition: border-color 0.2s;
     }
     .inp:focus { outline: none; border-color: var(--text); }
     .inp::placeholder { color: var(--line); }
 
-    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
     .btn { 
-      height: 56px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
-      font-size: 14px; font-weight: 700; cursor: pointer; 
+      height: 48px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
+      font-size: 13px; font-weight: 700; cursor: pointer; 
       display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; 
       transition: opacity 0.2s;
     }
     .btn:active { opacity: 0.7; transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
     .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
-    .btn-full { width: 100%; margin-top: 16px; }
+    .btn-full { width: 100%; margin-top: 12px; }
 
-    .chk-wrap { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; padding: 8px; border-radius: 8px; background: var(--surface); }
-    .chk { width: 24px; height: 24px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
-    .chk-label { font-size: 13px; line-height: 1.5; color: var(--text); font-weight: 500; }
+    .chk-wrap { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; padding: 8px; border-radius: 8px; background: var(--surface); }
+    .chk { width: 20px; height: 20px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
+    .chk-label { font-size: 12px; line-height: 1.5; color: var(--text); font-weight: 500; }
     .link { color: var(--text); text-decoration: underline; cursor: pointer; }
 
     /* STAFF LIST */
-    .staff-list { display: grid; gap: 16px; }
-    .staff-card { border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-    .staff-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .staff-role { font-size: 10px; background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
-    .staff-desc { font-size: 13px; color: var(--sub); line-height: 1.6; }
-    .staff-intro { font-size: 12px; text-align: center; color: var(--sub); margin-bottom: 24px; line-height: 1.8; background: var(--surface); padding: 16px; border-radius: 12px; }
+    .staff-list { display: grid; gap: 12px; }
+    .staff-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .staff-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .staff-role { font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+    .staff-desc { font-size: 12px; color: var(--sub); line-height: 1.5; }
+    .staff-intro { font-size: 11px; text-align: center; color: var(--sub); margin-bottom: 20px; line-height: 1.7; background: var(--surface); padding: 12px; border-radius: 8px; }
 
+    /* WARNING MODAL */
+    #warnModal .sheet { text-align: center; }
+    .warn-icon { font-size: 32px; margin-bottom: 16px; display: block; }
+    .warn-text { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+    .warn-sub { font-size: 12px; color: var(--sub); line-height: 1.6; margin-bottom: 24px; }
+    
     /* LOADER */
     .loader-overlay { position: fixed; inset: 0; background: #fff; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s; }
-    .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--text); animation: spin 0.8s infinite linear; }
+    .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--text); animation: spin 0.8s infinite linear; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
-    .load-text { margin-top: 20px; font-family: var(--font-en); font-size: 11px; letter-spacing: 0.1em; color: var(--sub); }
+    .load-text { margin-top: 16px; font-family: var(--font-en); font-size: 10px; letter-spacing: 0.1em; color: var(--sub); }
     #loginOverlay { background: rgba(255,255,255,0.98); z-index: 2000; }
   </style>
 </head>
@@ -294,7 +288,6 @@
     </div>
   </div>
 
-  <!-- BOOKING MODAL -->
   <div class="overlay" id="modal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title" id="mTitle">予約確認</div><div class="sheet-sub" id="mSub">CONFIRMATION</div></div>
@@ -316,7 +309,6 @@
         </div>
         <div class="btn-group">
           <button class="btn" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
-          <!-- 修正済みの関数名 -->
           <button class="btn btn-primary" onclick="createBooking()">予約する<span class="en">BOOK</span></button>
         </div>
       </div>
@@ -326,14 +318,12 @@
         <p style="text-align:center; font-size:13px; color:var(--sub); margin-bottom:32px;">この予約をキャンセルしますか？</p>
         <div class="btn-group">
           <button class="btn" onclick="closeAll()">戻る<span class="en">BACK</span></button>
-          <!-- 修正済みの関数名 -->
           <button class="btn btn-danger" onclick="cancelBooking()">キャンセル実行<span class="en">EXECUTE</span></button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- STAFF MODAL -->
   <div class="overlay" id="staffModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">スタッフについて</div><div class="sheet-sub">ABOUT STAFF</div></div>
@@ -349,7 +339,6 @@
     </div>
   </div>
 
-  <!-- TERMS MODAL -->
   <div class="overlay" id="termsModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">規約・ポリシー</div><div class="sheet-sub">TERMS & PRIVACY</div></div>
@@ -358,6 +347,18 @@
         <h4>2. プライバシーポリシー</h4><p>収集する情報：氏名、電話番号、LINE ID、予約履歴。<br>利用目的：予約管理、施術連絡。<br>第三者提供：法令に基づく場合を除き行いません。</p>
       </div>
       <button class="btn btn-full" onclick="closeAll()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- WARNING MODAL -->
+  <div class="overlay" id="warnModal" onclick="if(event.target===this)closeAll()">
+    <div class="sheet" style="text-align:center;">
+      <span class="warn-icon" style="font-size:32px; display:block; margin-bottom:16px;">⚠️</span>
+      <div class="warn-text" style="font-size:16px; font-weight:700; margin-bottom:8px;">当日キャンセル不可</div>
+      <div class="warn-sub" style="font-size:13px; color:var(--sub); line-height:1.6; margin-bottom:24px;">
+        当日のキャンセルはシステムから行えません。<br>お手数ですが、お電話にてご連絡をお願いいたします。
+      </div>
+      <button class="btn btn-primary w-full" onclick="closeAll()">閉じる</button>
     </div>
   </div>
 
@@ -484,6 +485,16 @@ async function createBooking() {
 }
 
 async function cancelBooking() {
+  // 当日チェック
+  const now = new Date();
+  const targetDate = new Date(state.date); // 表示中の日付
+  
+  if (fmt(now) === fmt(targetDate)) {
+    closeAll();
+    document.getElementById('warnModal').classList.add('open');
+    return;
+  }
+
   loading(true);
   const { error } = await db.from('bookings').update({ status: 'キャンセル' }).eq('id', state.pending.id).eq('user_id', state.uid);
   if(error) alert('エラーが発生しました: ' + error.message); 
