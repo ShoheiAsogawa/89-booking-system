@@ -10,282 +10,257 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <!-- Supabase JS -->
+  <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    /* --- 89CENTER DESIGN SYSTEM v13 (Admin Variant) --- */
+    /* --- 89CENTER ADMIN SYSTEM v18 (Refined Layout) --- */
     :root {
-      --bg: #F5F5F7;
-      --surface: #FFFFFF;
-      --text: #111111;
-      --sub: #888888;
-      --line: #E5E5E5;
-      --accent: #000000;
-      --accent-light: #333333;
-      --error: #FF3B30;
-      --blue: #007AFF;
-      
-      --font-jp: "Noto Sans JP", sans-serif;
-      --font-en: "Roboto", sans-serif;
-      
-      --radius: 4px;
-      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --bg: #F9FAFB; --surface: #FFFFFF; --text: #111827; --sub: #6B7280; --line: #E5E7EB;
+      --accent: #111827; --blue: #3B82F6; --red: #EF4444; --green: #10B981;
+      --radius-l: 16px; --radius-m: 12px; --radius-s: 8px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      --font-jp: "Noto Sans JP", sans-serif; --font-en: "Roboto", sans-serif;
     }
 
     * { box-sizing: border-box; outline: none; }
     body {
-      margin: 0; padding: 20px;
-      background: var(--bg); color: var(--text);
-      font-family: var(--font-jp); font-size: 13px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
+      margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+      font-family: var(--font-jp); font-size: 13px; -webkit-font-smoothing: antialiased;
     }
 
-    /* UTILS */
-    .en { font-family: var(--font-en); font-weight: 400; font-size: 0.8em; opacity: 0.6; margin-left: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
     .hidden { display: none !important; }
+    .flex { display: flex; align-items: center; }
+    .w-full { width: 100%; }
 
     /* LAYOUT */
     .wrap { max-width: 1400px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; height: 48px; }
     
-    header { 
-      display: flex; justify-content: space-between; align-items: center; 
-      margin-bottom: 24px; padding: 0 8px;
-    }
-    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 800; letter-spacing: 0.05em; margin: 0; }
-    .badge { background: var(--text); color: #fff; padding: 2px 6px; border-radius: 2px; font-size: 10px; margin-left: 8px; vertical-align: middle; }
+    .header-left { display: flex; align-items: center; gap: 40px; /* LogoとMenuのマージン */ }
+    
+    h1 { font-family: var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
+    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.1em; }
 
-    /* CONTROLS */
-    .controls { display: flex; gap: 12px; }
-    .btn { 
-      height: 36px; padding: 0 16px; border: 1px solid var(--line); background: var(--surface);
-      border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    /* TABS (Oval) */
+    .tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .tab { 
+      padding: 8px 24px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 12px; 
+      color: var(--sub); border: none; background: transparent; transition: all 0.2s; 
     }
-    .btn:hover { border-color: var(--sub); }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--text); color: #fff; }
+
+    /* BUTTONS */
+    .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
     .btn:active { transform: scale(0.98); }
-    
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
-    .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
-    
-    /* DATE NAV */
-    .date-nav { 
-      display: flex; align-items: center; gap: 16px; 
-      background: var(--surface); padding: 6px 8px; border-radius: 99px; 
-      box-shadow: var(--shadow); width: fit-content; margin: 0 auto 24px;
-    }
-    .nav-btn {
-      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
-      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .date-disp { font-family: var(--font-en); font-weight: 700; font-size: 14px; min-width: 140px; text-align: center; }
+    .btn-danger { color: var(--red); background: #FEF2F2; border: 1px solid #FECACA; box-shadow: none; }
+    .btn-ghost { background: transparent; box-shadow: none; border: 1px solid var(--line); }
 
-    /* GRID */
-    .grid-wrap { 
-      background: var(--surface); border-radius: 8px; box-shadow: var(--shadow); 
-      overflow-x: auto; max-height: 80vh; 
-    }
-    table { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; }
-    
-    th { 
-      position: sticky; top: 0; background: rgba(255,255,255,0.98); z-index: 10;
-      padding: 16px 8px; border-bottom: 2px solid var(--text); border-right: 1px solid var(--line);
-      font-size: 11px; font-weight: 700; color: var(--text); text-align: center;
-    }
-    th:first-child { left: 0; z-index: 20; width: 60px; border-right: 2px solid var(--line); }
-    
-    td { 
-      height: 56px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); 
-      padding: 4px; vertical-align: middle; 
-    }
-    td:first-child { 
-      position: sticky; left: 0; background: var(--surface); z-index: 5; 
-      text-align: center; font-family: var(--font-en); font-weight: 600; color: var(--sub);
-      border-right: 2px solid var(--line);
-    }
+    /* SCHEDULE VIEW */
+    .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 0 auto 24px; }
+    .nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .nav-btn:hover { background: var(--text); color: #fff; }
+    .date-disp { font-family: var(--font-en); font-weight: 700; font-size: 16px; min-width: 140px; text-align: center; letter-spacing: 0.05em; }
+    .date-wrapper { display: flex; align-items: center; gap: 10px; position: relative; cursor: pointer; }
+    .cal-icon { width: 18px; height: 18px; opacity: 0.4; transition: opacity 0.2s; }
+    .date-wrapper:hover .cal-icon { opacity: 1; }
+    #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-    /* CELLS */
-    .cell { 
-      width: 100%; height: 100%; border-radius: 4px; 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      cursor: pointer; font-size: 11px; font-weight: 500; transition: background 0.1s;
-    }
-    .free:hover { background: #F5F5F5; }
-    .free::after { content: '+'; color: var(--line); font-size: 16px; font-weight: 300; }
-    
+    .grid-wrap { background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow); overflow-x: auto; max-height: 75vh; border: 1px solid var(--line); }
+    table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+    th { position: sticky; top: 0; background: rgba(255,255,255,0.98); z-index: 10; padding: 16px; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--sub); text-align: center; }
+    th:first-child { left: 0; z-index: 20; width: 80px; border-right: 1px solid var(--line); }
+    td { height: 60px; border-bottom: 1px solid var(--line); border-right: 1px dashed var(--line); padding: 4px; vertical-align: middle; }
+    td:last-child { border-right: none; }
+    td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 600; color: var(--sub); border-right: 1px solid var(--line); }
+
+    .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; overflow: hidden; }
+    .free:hover { background: #F3F4F6; }
     .booked { background: var(--text); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .booked .lbl { font-weight: 700; }
-    
-    .blocked { 
-      background: #EEE; color: var(--sub); 
-      background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, #FFF 4px, #FFF 6px);
-    }
-    .closed { background: #FAFAFA; pointer-events: none; }
-    .closed::after { content: '×'; font-family: var(--font-en); font-size: 16px; color: var(--line); }
+    .blocked { background: #F3F4F6; color: var(--sub); background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, #FFF 4px, #FFF 6px); }
+    .closed { background: #FAFAFA; pointer-events: none; opacity: 0.5; }
+
+    /* DASHBOARD VIEW */
+    .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    .kpi-card { background: var(--surface); padding: 24px; border-radius: var(--radius-l); box-shadow: var(--shadow); border: 1px solid var(--line); }
+    .kpi-lbl { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-val { font-size: 28px; font-weight: 800; font-family: var(--font-en); margin-top: 8px; color: var(--text); }
+    .kpi-sub { font-size: 11px; color: var(--green); font-weight: 700; margin-top: 4px; }
+
+    .chart-row { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+    .chart-box { background: var(--surface); padding: 24px; border-radius: var(--radius-l); box-shadow: var(--shadow); border: 1px solid var(--line); height: 400px; display: flex; flex-direction: column; }
+    .chart-ttl { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+    .chart-area { flex: 1; position: relative; }
+
+    /* Staff Stats List */
+    .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .staff-row:last-child { border-bottom: none; }
+    .s-name { font-weight: 700; font-size: 13px; }
+    .s-data { text-align: right; }
+    .s-cnt { font-size: 11px; color: var(--sub); margin-right: 8px; font-family: var(--font-en); }
+    .s-amt { font-family: var(--font-en); font-weight: 700; font-size: 14px; }
 
     /* MODAL */
-    .overlay { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
-      z-index: 100; display: none; align-items: center; justify-content: center;
-    }
-    .overlay.open { display: flex; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+    .overlay.open { display: flex; opacity: 1; }
+    .box { background: var(--surface); width: 440px; padding: 32px; border-radius: var(--radius-l); box-shadow: 0 20px 60px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; }
+    .overlay.open .box { transform: scale(1); }
+    .box-h { margin-bottom: 24px; text-align: center; }
+    .box-ttl { font-size: 16px; font-weight: 800; }
     
-    .box { 
-      background: var(--surface); width: 420px; padding: 32px; border-radius: 12px; 
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2); 
-    }
-    .box-h { margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--text); }
-    .box-ttl { font-size: 16px; font-weight: 800; margin: 0; }
-    .box-sub { font-size: 10px; font-family: var(--font-en); color: var(--sub); margin-top: 4px; }
-
     .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
     .info-lbl { color: var(--sub); font-weight: 700; font-size: 11px; }
-    .info-val { font-weight: 600; }
+    .info-val { font-weight: 600; font-family: var(--font-en); }
 
-    .inp-group { margin-top: 24px; }
-    .inp-lbl { display: block; font-size: 10px; font-weight: 700; color: var(--sub); margin-bottom: 6px; }
-    .inp { 
-      width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 4px; 
-      font-size: 14px; margin-bottom: 12px; font-family: inherit;
-    }
-    .inp:focus { border-color: var(--text); }
-    textarea.inp { resize: vertical; min-height: 80px; }
+    .inp { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #FAFAFA; margin-bottom: 16px; }
+    .inp:focus { border-color: var(--text); background: #fff; }
+    textarea.inp { min-height: 80px; resize: vertical; }
+    .inp-row { display: flex; gap: 10px; } .inp-row .inp { margin-bottom: 0; }
 
-    .btns { display: flex; gap: 10px; margin-top: 32px; }
-    .btns .btn { flex: 1; height: 44px; }
+    .staff-checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .s-chk { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+    .s-chk:hover { background: #FAFAFA; }
+    .s-chk input { accent-color: var(--text); }
+
+    .btns { display: flex; gap: 10px; margin-top: 24px; } .btns .btn { flex: 1; }
 
     /* LOGIN */
-    #loginScreen { 
-      position: fixed; inset: 0; background: var(--surface); z-index: 2000; 
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .login-box { width: 300px; text-align: center; }
-    
-    /* LOADER */
-    #loader { 
-      position: fixed; top: 20px; right: 20px; background: var(--text); color: #fff; 
-      padding: 6px 16px; border-radius: 99px; font-size: 10px; font-weight: 700; 
-      font-family: var(--font-en); letter-spacing: 0.1em; display: none; z-index: 3000;
-    }
+    #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); z-index: 3000; display: none; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.3s; }
+    #loader.show { opacity: 1; }
+    .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.1); border-top-color: var(--text); animation: spin 1s infinite; margin-bottom: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN -->
   <div id="loginScreen">
-    <div class="login-box">
-      <h2 style="font-family:var(--font-en); font-size:20px; font-weight:800; margin-bottom:32px;">89CENTER <span style="font-weight:300;">ADMIN</span></h2>
-      <input type="password" id="passcode" class="inp" placeholder="PASSWORD" style="text-align:center; font-family:var(--font-en); letter-spacing:0.2em;">
-      <button class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="checkPass()">LOGIN</button>
+    <div style="text-align:center; width:300px;">
+      <h2 style="font-family:var(--font-en); font-weight:900; margin-bottom:32px;">89CENTER ADMIN</h2>
+      <input type="password" id="passcode" class="inp" placeholder="PASSWORD" style="text-align:center; letter-spacing:0.2em;">
+      <button class="btn btn-primary w-full" onclick="checkPass()">LOGIN</button>
     </div>
   </div>
 
-  <div id="loader">PROCESSING...</div>
+  <div id="loader"><div class="spinner"></div><div style="font-family:var(--font-en); font-weight:700; font-size:10px; letter-spacing:0.2em;">LOADING</div></div>
 
   <div class="wrap">
     <header>
-      <div>
+      <div class="header-left">
         <h1>89CENTER<span class="badge">ADMIN</span></h1>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('schedule')">予約管理</button>
+          <button class="tab" onclick="switchTab('dashboard')">ダッシュボード</button>
+        </div>
       </div>
-      <div class="controls">
-        <button class="btn" onclick="openMod('blockMod')">一括ブロック<span class="en">BULK BLOCK</span></button>
-        <button class="btn" onclick="location.reload()">更新<span class="en">REFRESH</span></button>
+      <div class="header-right">
+        <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック <span class="en">BLOCK</span></button>
+        <button class="btn btn-ghost" onclick="location.reload()">更新 <span class="en">REFRESH</span></button>
       </div>
     </header>
 
-    <div class="date-nav">
-      <button class="nav-btn" onclick="move(-1)">‹</button>
-      <div class="date-disp" id="dDisp">YYYY.MM.DD</div>
-      <button class="nav-btn" onclick="move(1)">›</button>
+    <!-- SCHEDULE -->
+    <div id="viewSchedule">
+      <div class="date-nav">
+        <button class="nav-btn" onclick="move(-1)">‹</button>
+        <div class="date-wrapper" onclick="document.getElementById('datePicker').showPicker()">
+          <div class="date-disp" id="dDisp">YYYY.MM.DD</div>
+          <svg class="cal-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <input type="date" id="datePicker">
+        </div>
+        <button class="nav-btn" onclick="move(1)">›</button>
+      </div>
+      <div class="grid-wrap">
+        <table id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+      </div>
     </div>
 
-    <div class="grid-wrap">
-      <table id="tbl">
-        <thead id="thead"></thead>
-        <tbody id="tbody"></tbody>
-      </table>
+    <!-- DASHBOARD -->
+    <div id="viewDashboard" class="hidden">
+      <div style="margin-bottom:20px; text-align:right;">
+        <select id="dashMonth" class="inp" style="width:auto; margin:0;" onchange="loadDashboard()"></select>
+      </div>
+
+      <div class="dash-grid">
+        <div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val" id="kpiSales">¥0</div><div class="kpi-sub">月間売上合計</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Total Bookings</div><div class="kpi-val" id="kpiCount">0</div><div class="kpi-sub">予約件数</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Avg. Price</div><div class="kpi-val" id="kpiAvg">¥0</div><div class="kpi-sub">平均客単価</div></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-box">
+          <div class="chart-ttl">スタッフ別実績</div>
+          <div class="chart-area" style="overflow-y:auto;" id="staffList"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-ttl">月間売上推移 (累積)</div>
+          <div class="chart-area"><canvas id="chartLine"></canvas></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Detail Modal -->
-  <div class="overlay" id="detailMod">
+  <!-- MODALS -->
+  <div class="overlay" id="detailMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h">
-        <h3 class="box-ttl">予約詳細</h3>
-        <div class="box-sub">BOOKING DETAILS</div>
-      </div>
+      <div class="box-h"><h3 class="box-ttl">予約詳細</h3></div>
       <div id="info"></div>
-      <div class="inp-group">
-        <label class="inp-lbl">管理者メモ<span class="en">ADMIN MEMO</span></label>
-        <textarea id="memo" class="inp" placeholder="共有事項などを入力"></textarea>
-      </div>
-      <div class="btns">
-        <button class="btn btn-danger" onclick="runCancel()">キャンセル実行<span class="en">CANCEL</span></button>
-        <button class="btn" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
-      </div>
+      <textarea id="memo" class="inp" placeholder="管理者メモ"></textarea>
+      <div class="btns"><button class="btn btn-danger" onclick="runCancel()">キャンセル</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
     </div>
   </div>
 
-  <!-- Action Modal -->
-  <div class="overlay" id="actMod">
+  <div class="overlay" id="createMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h">
-        <h3 class="box-ttl">スロット操作</h3>
-        <div class="box-sub">SLOT ACTION</div>
-      </div>
-      <div style="text-align:center; margin-bottom:32px; font-weight:600; font-size:16px;" id="actTgt"></div>
-      <div class="btns">
-        <button class="btn" onclick="openMod('blockMod')">ブロック<span class="en">BLOCK</span></button>
-        <button class="btn btn-primary" onclick="openMod('createMod')">予約作成<span class="en">CREATE</span></button>
-      </div>
-      <button class="btn" style="width:100%; margin-top:12px;" onclick="closeAll()">閉じる</button>
-    </div>
-  </div>
-
-  <!-- Create Modal -->
-  <div class="overlay" id="createMod">
-    <div class="box">
-      <div class="box-h">
-        <h3 class="box-ttl">新規予約作成</h3>
-        <div class="box-sub">NEW BOOKING</div>
-      </div>
+      <div class="box-h"><h3 class="box-ttl">新規予約作成</h3></div>
       <input id="cName" class="inp" placeholder="氏名">
       <input id="cPhone" class="inp" placeholder="電話番号">
-      <div class="btns">
-        <button class="btn" onclick="closeAll()">中止</button>
-        <button class="btn btn-primary" onclick="runCreate()">確定</button>
-      </div>
+      <textarea id="cSym" class="inp" placeholder="症状・備考"></textarea>
+      <div class="btns"><button class="btn btn-ghost" onclick="closeAll()">中止</button><button class="btn btn-primary" onclick="runCreate()">確定</button></div>
     </div>
   </div>
 
-  <!-- Block Modal -->
-  <div class="overlay" id="blockMod">
-    <div class="box">
-      <div class="box-h">
-        <h3 class="box-ttl">ブロック設定</h3>
-        <div class="box-sub">BLOCK SETTING</div>
-      </div>
-      <input id="bReason" class="inp" placeholder="理由 (例: 休憩、外出)">
-      <div class="btns">
-        <button class="btn btn-danger" onclick="runBlock(false)">解除<span class="en">UNBLOCK</span></button>
-        <button class="btn btn-primary" onclick="runBlock(true)">実行<span class="en">BLOCK</span></button>
-      </div>
-      <button class="btn" style="width:100%; margin-top:12px;" onclick="closeAll()">閉じる</button>
+  <div class="overlay" id="bulkMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:520px;">
+      <div class="box-h"><h3 class="box-ttl">一括ブロック</h3></div>
+      <div class="inp-row"><input type="date" id="blkFrom" class="inp"><input type="date" id="blkTo" class="inp"></div>
+      <div class="inp-row"><select id="blkStart" class="inp"></select><span>〜</span><select id="blkEnd" class="inp"></select></div>
+      <div class="staff-checks" id="blkStaff"></div>
+      <input id="blkReason" class="inp" placeholder="理由">
+      <div class="btns"><button class="btn btn-ghost" onclick="runBulk(false)">解除</button><button class="btn btn-danger" onclick="runBulk(true)">ブロック実行</button></div>
+      <button class="btn btn-ghost w-full" style="margin-top:12px; border:none;" onclick="closeAll()">閉じる</button>
     </div>
   </div>
 
 <script>
-// ★ CONFIG ★
-const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co';
+// CONFIG
+const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
-const PASS_CODE = "admin89"; // Password
+const PASS_CODE = "admin89";
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
+const FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000};
+const TIMES = []; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) TIMES.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2));
 
-// Init Client
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
+let chartInst = null;
 
-window.onload = () => { /* Login Wait */ };
+window.onload = () => {
+  document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value); load(); } };
+  const ts=document.getElementById('blkStart'), te=document.getElementById('blkEnd');
+  TIMES.forEach(t => { ts.add(new Option(t, t)); te.add(new Option(t, t)); }); te.value = "20:30"; 
+  const sc=document.getElementById('blkStaff');
+  STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
+  const dm=document.getElementById('dashMonth'), today=new Date();
+  for(let i=0; i<12; i++) {
+    const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
+    dm.add(new Option(`${d.getFullYear()}.${d.getMonth()+1}`, fmtLocal(d).substr(0,7)));
+  }
+};
 
 function checkPass(){
   if(document.getElementById('passcode').value === PASS_CODE){
@@ -294,72 +269,63 @@ function checkPass(){
   } else { alert('パスワードが違います'); }
 }
 
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('[onclick="switchTab(\''+tab+'\')"]').forEach(e => e.classList.add('active'));
+  document.getElementById('viewSchedule').classList.toggle('hidden', tab!=='schedule');
+  document.getElementById('viewDashboard').classList.toggle('hidden', tab!=='dashboard');
+  document.getElementById('bulkBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
+  if(tab==='dashboard') loadDashboard();
+}
+
+// SCHEDULE
 async function load() {
-  document.getElementById('loader').style.display='block';
-  const dStr = fmt(s.date);
+  showLoad(true);
+  const dStr = fmtLocal(s.date);
   document.getElementById('dDisp').textContent = dStr;
   
   const { data: books } = await db.from('bookings').select('*').eq('date', dStr).neq('status','キャンセル');
   const { data: blocks } = await db.from('blocks').select('*').eq('date', dStr);
   
-  const res = {}; const times = genSlots();
-  STAFFS.forEach(nm => {
-    res[nm] = {}; times.forEach(t => res[nm][t] = { status:'free', label:'' });
-  });
+  const res = {}; 
+  STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
   
   if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' }; });
   if(books) books.forEach(b => {
     let t = b.start_time;
-    const endSlots = [t, addTime(t, 30)];
-    endSlots.forEach(slot => {
+    [t, addTime(t, 30)].forEach(slot => {
         if(res[b.staff] && res[b.staff][slot]) res[b.staff][slot] = { status:'booked', label:b.patient_name, id:b.id, detail:b };
     });
   });
-  
-  s.data = res; renderGrid();
-  document.getElementById('loader').style.display='none';
+  s.data = res; renderGrid(); showLoad(false);
 }
 
-function renderHead() {
-  let h='<tr><th>TIME</th>'; 
-  STAFFS.forEach(n=>h+=`<th>${n}<br><span style="font-size:9px; font-weight:400; color:#888;">${getEn(n)}</span></th>`); 
-  document.getElementById('thead').innerHTML=h+'</tr>';
-}
-function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MATSUDA','山口':'YAMAGUCHI'}; return m[n]||''; }
-
+function renderHead() { let h='<tr><th></th>'; STAFFS.forEach(n=>h+=`<th>${n}</th>`); document.getElementById('thead').innerHTML=h+'</tr>'; }
 function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
-  genSlots().forEach(t => {
+  TIMES.forEach(t => {
     const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
     STAFFS.forEach(nm => {
-      const c = s.data[nm][t];
-      h+=`<td><div class="cell ${c.status}" onclick="cellClick('${nm}','${t}')"><span class="lbl">${c.label}</span></div></td>`;
+      const c = s.data[nm][t], lbl = c.status === 'booked' ? c.label : (c.label || '');
+      h+=`<td><div class="cell ${c.status}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
     });
     tr.innerHTML=h; b.appendChild(tr);
   });
 }
 
 function cellClick(nm, t) {
-  const c = s.data[nm][t];
-  const st = c.status;
-  s.cur = { staff:nm, time:t }; s.id = c.id;
-  
-  if(st==='booked') {
+  const c = s.data[nm][t]; s.cur = { staff:nm, time:t }; s.id = c.id;
+  if(c.status === 'booked') {
     const d = c.detail;
     document.getElementById('info').innerHTML = `
-      <div class="info-row"><span class="info-lbl">氏名 <span class="en">NAME</span></span><span class="info-val" style="font-size:16px;">${d.patient_name}</span></div>
-      <div class="info-row"><span class="info-lbl">電話 <span class="en">PHONE</span></span><span class="info-val">${d.phone}</span></div>
-      <div class="info-row"><span class="info-lbl">症状 <span class="en">NOTE</span></span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
-    `;
-    // Admin Memo Logic (Simplified: Load/Save logic implies DB update needed if persist)
-    document.getElementById('memo').value = ""; 
+      <div class="info-row"><span class="info-lbl">NAME</span><span class="info-val">${d.patient_name}</span></div>
+      <div class="info-row"><span class="info-lbl">PHONE</span><span class="info-val">${d.phone}</span></div>
+      <div class="info-row"><span class="info-lbl">NOTE</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
+      <div class="info-row"><span class="info-lbl">FEE</span><span class="info-val">¥${Number(d.fee).toLocaleString()}</span></div>`;
     openMod('detailMod');
-  } else if(st==='blocked') {
-    document.getElementById('bReason').value = c.label === 'BLOCK' ? '' : c.label;
-    openMod('blockMod');
-  } else if(st==='free') {
-    document.getElementById('actTgt').innerHTML = `${nm}<br><span style="font-family:var(--font-en); font-weight:400; font-size:14px;">${t}</span>`;
-    openMod('actMod');
+  } else if(c.status === 'free') {
+    document.getElementById('cName').value = ''; document.getElementById('cPhone').value = ''; document.getElementById('cSym').value = '';
+    openMod('createMod');
   }
 }
 
@@ -367,33 +333,128 @@ async function runCreate() {
   const name = document.getElementById('cName').value;
   if(!name) return;
   const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const ph = document.getElementById('cPhone').value;
-  await db.from('bookings').insert({ id, date:fmt(s.date), start_time:s.cur.time, end_time:addTime(s.cur.time,60), staff:s.cur.staff, patient_name:name, phone:ph, status:'予約済み' });
-  closeAll(); load();
-}
-async function runCancel() {
-  if(!confirm('キャンセルしてよろしいですか？')) return;
-  await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
-  closeAll(); load();
-}
-async function runBlock(enable) {
-  if(enable) {
-    await db.from('blocks').insert({ date:fmt(s.date), time:s.cur.time, staff:s.cur.staff, reason:document.getElementById('bReason').value });
-  } else {
-    // 簡易的に時間とスタッフで解除 (ID特定していないため)
-    await db.from('blocks').delete().match({ date:fmt(s.date), time:s.cur.time, staff:s.cur.staff });
-  }
+  const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
+  
+  await db.from('bookings').insert({ 
+    id, date:fmtLocal(s.date), start_time:s.cur.time, end_time:addTime(s.cur.time,60), 
+    staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
+    symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
+  });
   closeAll(); load();
 }
 
-function move(n) { s.date.setDate(s.date.getDate()+n); load(); }
-function openMod(id) { 
-  document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open'));
-  document.getElementById(id).classList.add('open'); 
+async function runCancel() {
+  if(!confirm('Sure?')) return;
+  await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
+  closeAll(); load();
 }
+
+async function runBulk(enable) {
+  const from = document.getElementById('blkFrom').value, to = document.getElementById('blkTo').value;
+  if(!from || !to) return alert('期間を選択');
+  showLoad(true);
+  
+  const dStart=new Date(from), dEnd=new Date(to), dates=[];
+  for(let d=dStart; d<=dEnd; d.setDate(d.getDate()+1)) dates.push(fmtLocal(d));
+  
+  const tStart=document.getElementById('blkStart').value, tEnd=document.getElementById('blkEnd').value, tr=[];
+  let rec=false; TIMES.forEach(t=>{ if(t===tStart)rec=true; if(rec)tr.push(t); if(t===tEnd)rec=false; });
+  
+  const staffs=[]; document.querySelectorAll('#blkStaff input:checked').forEach(c=>staffs.push(c.value));
+  const reason=document.getElementById('blkReason').value, rows=[];
+  
+  dates.forEach(d => tr.forEach(t => staffs.forEach(st => rows.push({ date:d, time:t, staff:st, reason:reason }))));
+
+  if(enable) await db.from('blocks').insert(rows);
+  else for(const r of rows) await db.from('blocks').delete().match({ date:r.date, time:r.time, staff:r.staff });
+  
+  showLoad(false); closeAll(); load();
+}
+
+// DASHBOARD
+async function loadDashboard() {
+  showLoad(true);
+  const ym = document.getElementById('dashMonth').value;
+  const [y, m] = ym.split('-').map(Number);
+  const start = `${ym}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const end = `${ym}-${lastDay}`;
+  
+  const { data: books } = await db.from('bookings').select('staff, fee, date').gte('date', start).lte('date', end).neq('status', 'キャンセル');
+  const list = books || [];
+    
+  // KPI
+  const totalSales = list.reduce((sum, b) => sum + Number(b.fee || 0), 0);
+  const count = list.length;
+  const avg = count ? Math.round(totalSales / count) : 0;
+  
+  document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
+  document.getElementById('kpiCount').textContent = count + '件';
+  document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
+  
+  // List: Staff Stats
+  const stStats = {}; STAFFS.forEach(s => stStats[s] = {c:0, s:0});
+  list.forEach(b => { if(stStats[b.staff]) { stStats[b.staff].c++; stStats[b.staff].s += Number(b.fee||0); } });
+  
+  let stHtml = '';
+  STAFFS.forEach(s => {
+    stHtml += `
+      <div class="staff-row">
+        <div class="s-name">${s}</div>
+        <div class="s-data"><span class="s-cnt">${stStats[s].c}件</span><span class="s-amt">¥${stStats[s].s.toLocaleString()}</span></div>
+      </div>`;
+  });
+  document.getElementById('staffList').innerHTML = stHtml;
+
+  // Chart: Cumulative
+  const daysInMonth = lastDay;
+  const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+  const dailyData = new Array(daysInMonth).fill(0);
+  
+  list.forEach(b => {
+    const day = parseInt(b.date.split('-')[2]) - 1;
+    if(day >= 0 && day < daysInMonth) dailyData[day] += Number(b.fee || 0);
+  });
+  
+  let acc = 0;
+  const cumData = dailyData.map(v => { acc += v; return acc; });
+  
+  if(chartInst) chartInst.destroy();
+  const ctx = document.getElementById('chartLine').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '売上 (累積)', data: cumData,
+        borderColor: '#111827', backgroundColor: 'rgba(17, 24, 39, 0.05)',
+        tension: 0.3, fill: true, pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  showLoad(false);
+}
+
+// UTILS
+function move(n) { s.date.setDate(s.date.getDate()+n); load(); }
+function openMod(id) { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); document.getElementById(id).classList.add('open'); }
 function closeAll() { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
-function fmt(d) { return d.toISOString().split('T')[0]; }
-function genSlots() { const a=[]; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
+function showLoad(b){ 
+  const l = document.getElementById('loader');
+  if(b) { l.style.display='flex'; setTimeout(()=>l.classList.add('show'),10); } else { l.classList.remove('show'); setTimeout(()=>l.style.display='none',300); }
+}
+function fmtLocal(d) {
+  const y = d.getFullYear();
+  const m = ('0' + (d.getMonth() + 1)).slice(-2);
+  const day = ('0' + d.getDate()).slice(-2);
+  return `${y}-${m}-${day}`;
+}
 function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
 </script>
 </body>
