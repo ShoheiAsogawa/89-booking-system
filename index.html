@@ -209,17 +209,17 @@
     }
     .overlay.open .sheet { transform: translateY(0); }
 
-    .sheet-header { text-align: center; margin-bottom: 24px; }
+    .sheet-header { text-align: center; margin-bottom: 32px; }
     .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
     .sheet-sub { font-size: 10px; color: var(--sub); font-family: var(--font-en); letter-spacing: 0.1em; }
 
-    .info-list { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+    .info-list { margin-bottom: 32px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
     .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-item:last-child { border-bottom: none; }
     .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
     .info-value { font-weight: 700; }
 
-    .form-group { margin-bottom: 24px; }
+    .form-group { margin-bottom: 32px; }
     .inp { 
       width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); 
       border-radius: 8px; font-size: 15px; -webkit-appearance: none; background: #fff;
@@ -422,6 +422,18 @@
       <div class="modal-content-box">
         
         <div class="guide-section">
+          <div class="guide-ttl">⚠️ 注意事項・免責事項</div>
+          <p class="guide-txt">
+            1. <strong>予約の確定について</strong><br>
+            本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。急病や天災等により、店舗側の判断で予約をキャンセルさせていただく場合があります。<br><br>
+            2. <strong>システム障害について</strong><br>
+            通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。予約完了画面が表示されたことを必ずご確認ください。<br><br>
+            3. <strong>利用制限</strong><br>
+            無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
+          </p>
+        </div>
+
+        <div class="guide-section">
           <div class="guide-ttl">📱 アプリの使い方</div>
           <div class="step-list">
             <div class="step-item">
@@ -449,14 +461,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="guide-section">
-          <div class="guide-ttl">⚠️ 注意事項</div>
-          <div style="font-size:12px; color:var(--sub); line-height:1.7;">
-            <p>本システムは予約枠を確保するものであり、施術効果を保証するものではありません。<br>
-            急病や天災、システムの不具合等により、やむを得ず予約をキャンセルさせていただく場合がございます。</p>
           </div>
         </div>
 
@@ -543,13 +547,36 @@ window.onload = async () => {
   maxDate.setMonth(maxDate.getMonth() + MAX_MONTHS);
   
   const dp = document.getElementById('datePicker');
+  // Use fmt to set min/max for date input
   dp.min = fmt(today); 
   dp.max = fmt(maxDate);
   
   dp.onchange = (e) => { 
     if(e.target.value) { 
       const d = new Date(e.target.value);
-      if(d > maxDate) { alert('2ヶ月先以降の予約はできません'); return; }
+      // Reset time components for date comparison
+      const todayZero = new Date();
+      todayZero.setHours(0,0,0,0);
+      
+      if(d < todayZero) { 
+          alert('過去の日付は選択できません'); 
+          // Reset to today
+          e.target.value = fmt(today);
+          state.date = new Date();
+          renderDate();
+          loadData();
+          return; 
+      }
+
+      if(d > maxDate) { 
+          alert('2ヶ月先以降の予約はできません'); 
+          e.target.value = fmt(today); // Reset
+          state.date = new Date();
+          renderDate();
+          loadData();
+          return; 
+      }
+      
       state.date = d; renderDate(); loadData(); 
     } 
   };
@@ -726,7 +753,12 @@ function openTermsModal(){ document.getElementById('termsModal').classList.add('
 function closeAll(){ document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
 function loading(b){ const l=document.getElementById('loader'); if(b){l.style.display='flex';setTimeout(()=>l.style.opacity=1,10);}else{l.style.opacity=0;setTimeout(()=>l.style.display='none',400);} }
 
-function fmt(d) { return d.toISOString().split('T')[0]; }
+function fmt(d) { 
+  const y = d.getFullYear();
+  const m = ('0' + (d.getMonth() + 1)).slice(-2);
+  const day = ('0' + d.getDate()).slice(-2);
+  return `${y}-${m}-${day}`;
+}
 function pad(n) { return ('0'+n).slice(-2); }
 function genSlots() { const a=[]; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
 function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
