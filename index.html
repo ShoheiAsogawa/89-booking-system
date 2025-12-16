@@ -8,7 +8,8 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Added Noto Serif JP for the loading text -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
 
   <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -32,6 +33,7 @@
       
       --font-jp: "Noto Sans JP", sans-serif;
       --font-en: "Roboto", sans-serif;
+      --font-serif: "Noto Serif JP", serif;
       --radius: 8px;
       --ease: cubic-bezier(0.2, 0.9, 0.2, 1);
       --safe-bottom: env(safe-area-inset-bottom);
@@ -41,7 +43,7 @@
     body {
       margin: 0; padding: 0; background: var(--bg); color: var(--text);
       font-family: var(--font-jp); font-size: 14px; line-height: 1.5;
-      -webkit-font-smoothing: antialiased; padding-bottom: calc(60px + var(--safe-bottom));
+      -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + var(--safe-bottom));
     }
 
     /* UTILS */
@@ -202,17 +204,17 @@
     }
     .overlay.open .sheet { transform: translateY(0); }
 
-    .sheet-header { text-align: center; margin-bottom: 24px; }
+    .sheet-header { text-align: center; margin-bottom: 32px; }
     .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
     .sheet-sub { font-size: 10px; color: var(--sub); font-family: var(--font-en); letter-spacing: 0.1em; }
 
-    .info-list { margin-bottom: 24px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+    .info-list { margin-bottom: 32px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
     .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-item:last-child { border-bottom: none; }
     .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
     .info-value { font-weight: 700; }
 
-    .form-group { margin-bottom: 24px; }
+    .form-group { margin-bottom: 32px; }
     .inp { 
       width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); 
       border-radius: 8px; font-size: 15px; -webkit-appearance: none; background: #fff;
@@ -246,13 +248,6 @@
     .staff-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
     .staff-intro { font-size: 11px; text-align: center; color: var(--sub); margin-bottom: 20px; line-height: 1.7; background: var(--surface); padding: 12px; border-radius: 12px; }
 
-    /* GUIDANCE Styles (NEW) */
-    .guide-section { margin-bottom: 32px; }
-    .guide-ttl { font-size: 14px; font-weight: 700; border-left: 3px solid var(--text); padding-left: 10px; margin-bottom: 16px; }
-    .guide-txt { font-size: 13px; line-height: 1.8; color: var(--sub); }
-    .guide-step { background: var(--surface); padding: 16px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; color: var(--sub); }
-    .guide-step strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 12px; opacity: 0.8; }
-
     /* WARNING MODAL */
     #warnModal .sheet { text-align: center; }
     .warn-icon { font-size: 32px; margin-bottom: 16px; display: block; }
@@ -263,7 +258,14 @@
     .loader-overlay { position: fixed; inset: 0; background: #fff; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s; }
     .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--text); animation: spin 0.8s infinite linear; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
-    .load-text { margin-top: 20px; font-family: var(--font-en); font-size: 11px; letter-spacing: 0.1em; color: var(--sub); }
+    .load-text { 
+      margin-top: 24px; 
+      font-family: var(--font-serif); 
+      font-size: 16px; 
+      letter-spacing: 0.2em; 
+      color: var(--text);
+      font-weight: 700;
+    }
     #loginOverlay { background: rgba(255,255,255,0.98); z-index: 2000; }
   </style>
 </head>
