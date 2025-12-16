@@ -8,15 +8,14 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Added Noto Serif JP for the loading text -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
 
   <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    /* --- 89CENTER MOBILE DESIGN v26 (Guide Updated) --- */
+    /* --- 89CENTER MOBILE DESIGN v27 (Guide & Terms Update) --- */
     :root {
       --bg: #FFFFFF;
       --text: #222222;
@@ -27,13 +26,12 @@
       
       /* Status Colors */
       --color-own: #E65100;
-      --bg-own: #FFCC80;
+      --bg-own: #FFF3E0;
       --color-ng: #999999;
       --bg-ng: #F7F7F7;
       
       --font-jp: "Noto Sans JP", sans-serif;
       --font-en: "Roboto", sans-serif;
-      --font-serif: "Noto Serif JP", serif;
       --radius: 8px;
       --ease: cubic-bezier(0.2, 0.9, 0.2, 1);
       --safe-bottom: env(safe-area-inset-bottom);
@@ -51,132 +49,111 @@
     .hidden { display: none !important; }
 
     /* CONTAINER */
-    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 12px; }
+    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
 
     /* HEADER */
     header {
-      height: 56px; display: flex; align-items: center; justify-content: space-between;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
       position: sticky; top: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
       z-index: 50; border-bottom: 1px solid transparent; transition: border-color 0.3s;
-      padding: 0 16px; margin-bottom: 16px;
+      padding: 0 20px;
     }
     header.scrolled { border-color: var(--line); }
-    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
+    h1 { font-family: var(--font-en); font-size: 20px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
     
     .header-btn {
-      font-size: 10px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
-      padding: 4px 10px; border-radius: 99px; background: transparent; cursor: pointer;
+      font-size: 11px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
+      padding: 6px 14px; border-radius: 99px; background: transparent; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; line-height: 1; gap: 2px;
     }
 
     /* NAV */
-    .nav { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; padding: 0; }
+    .nav { display: flex; justify-content: space-between; align-items: center; margin: 32px 0; padding: 0 4px; }
     .nav-btn {
-      width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%;
-      background: #fff; color: var(--text); font-size: 18px; cursor: pointer;
+      width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 50%;
+      background: #fff; color: var(--text); font-size: 20px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .nav-btn:active { background: var(--text); color: #fff; transform: scale(0.95); }
     .nav-btn:disabled { opacity: 0.3; pointer-events: none; border-color: var(--line); box-shadow: none; }
     
     .date-display { 
-      flex-grow: 1; margin: 0 12px;
       text-align: center; cursor: pointer; position: relative; 
-      padding: 6px 0; border-radius: 8px; transition: background 0.2s;
+      padding: 8px 24px; border-radius: 12px; transition: background 0.2s;
     }
     .date-display:active { background: var(--surface); }
     .date-main { 
-      font-size: 18px; font-weight: 700; font-feature-settings: "palt"; 
+      font-size: 20px; font-weight: 700; font-feature-settings: "palt"; 
       display: flex; align-items: center; justify-content: center; gap: 8px; 
     }
-    .date-sub { font-family: var(--font-en); font-size: 11px; color: var(--sub); letter-spacing: 0.05em; margin-top: 2px; }
-    
-    /* Calendar Button */
-    .cal-btn {
-      width: 24px; height: 24px; border-radius: 50%; background: var(--text); color: #fff;
-      display: flex; align-items: center; justify-content: center; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .cal-icon { width: 12px; height: 12px; }
+    .date-sub { font-family: var(--font-en); font-size: 12px; color: var(--sub); letter-spacing: 0.05em; margin-top: 4px; }
+    .cal-icon { width: 18px; height: 18px; opacity: 0.4; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 10; }
 
-    /* LEGEND (凡例) */
+    /* LEGEND */
     .legend { 
-      display: flex; justify-content: center; gap: 16px; margin-bottom: 16px; 
-      font-size: 11px; color: var(--text); font-weight: 700;
+      display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; 
+      font-size: 12px; color: var(--text); font-weight: 700;
     }
-    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
     
     .mark { display: flex; align-items: center; justify-content: center; font-family: var(--font-en); }
-    .mark.free { font-size: 16px; color: #444; line-height: 1; } /* ○ */
-    .mark.own { width: 10px; height: 10px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); } /* ● */
-    .mark.ng { font-size: 20px; color: var(--color-ng); line-height: 1; } /* × */
+    .mark.free { font-size: 20px; color: var(--sub); line-height: 1; }
+    .mark.own { width: 12px; height: 12px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); }
+    .mark.ng { font-size: 22px; color: var(--color-ng); line-height: 1; }
 
-    /* TABLE (Fixed Layout) */
+    /* TABLE */
     .grid-wrapper {
-      position: relative; border-radius: 8px; overflow: hidden;
+      position: relative; border-radius: 12px; overflow: hidden;
       border: 1px solid var(--line); box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     }
-    
-    /* 横スクロールなしで画面に収める設定 */
-    table { 
-      width: 100%; min-width: 0; /* min-width削除 */
-      border-collapse: separate; border-spacing: 0; 
-      table-layout: fixed; 
+    .grid-scroller { 
+      overflow-x: auto; -webkit-overflow-scrolling: touch; 
+      max-height: 70vh; scrollbar-width: none;
     }
+    .grid-scroller::-webkit-scrollbar { display: none; }
+    
+    table { width: 100%; min-width: 360px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
     
     th {
-      font-size: 10px; font-weight: 700; color: var(--text); text-align: center;
-      padding: 10px 0; border-bottom: 2px solid var(--text);
+      font-size: 11px; font-weight: 700; color: var(--text); text-align: center;
+      padding: 16px 0; border-bottom: 2px solid var(--text);
       position: sticky; top: 0; z-index: 10; background: var(--bg);
-      line-height: 1.2;
     }
-    th .en { font-size: 8px; font-weight: 400; color: var(--sub); display: block; transform: scale(0.9); margin-left: 0; }
-    
-    /* Time Column Width */
+    th .en { font-size: 9px; font-weight: 400; color: var(--sub); display: block; margin-top: 2px; }
     th:first-child { 
-      position: sticky; left: 0; z-index: 20; width: 36px; /* 時間列を細く */
+      position: sticky; left: 0; z-index: 20; width: 50px; 
       border-right: 1px solid var(--line); 
     }
 
-    td { height: 52px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 0; }
+    td { height: 64px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 4px; }
     td:first-child {
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
-      text-align: center; font-family: var(--font-en); font-size: 10px; font-weight: 500; color: var(--sub);
+      text-align: center; font-family: var(--font-en); font-size: 11px; font-weight: 500; color: var(--sub);
     }
 
-    /* CELLS */
     .cell {
-      width: 100%; height: 100%; border-radius: 0;
+      width: 100%; height: 100%; border-radius: 6px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      cursor: pointer; position: relative; transition: background 0.1s;
+      cursor: pointer; position: relative; transition: all 0.1s;
     }
     
-    /* 空き: ○ */
-    /* .cell.free::after とすることで凡例への影響を回避 */
     .cell.free::after { 
-      content: '○'; font-size: 16px; color: #333; /* 濃いグレー */
-      font-weight: 400; line-height: 1;
+      content: '○'; font-size: 18px; color: var(--line); font-weight: 400; line-height: 1;
       font-family: var(--font-en);
     }
-    .cell.free:active { background-color: var(--surface); }
+    .free:hover::after { color: var(--sub); }
+    .free:active { background-color: var(--surface); transform: scale(0.95); }
     
-    /* NG: × */
     .booked, .blocked, .closed, .past { cursor: default; background: var(--bg-ng); }
     .booked::after, .blocked::after, .closed::after, .past::after { 
-      content: '×'; 
-      font-family: sans-serif; 
-      font-size: 22px; 
-      color: #999; 
-      font-weight: 400; 
-      line-height: 1;
-      margin-top: -2px;
+      content: '×'; font-family: sans-serif; font-size: 24px; 
+      color: #999; font-weight: 400; line-height: 1; margin-top: -2px;
     }
-    .blocked::after { content: '−'; font-size: 18px; font-weight: 700; }
+    .blocked::after { content: '−'; font-size: 20px; font-weight: 700; }
 
-    /* 自分の予約: ● */
     .own { 
       background: var(--bg-own); color: var(--color-own); 
       border: 1px solid rgba(230, 126, 34, 0.2);
@@ -198,7 +175,7 @@
     
     .sheet {
       width: 100%; max-width: 600px; background: #fff;
-      border-radius: 20px 20px 0 0; padding: 24px 20px calc(24px + var(--safe-bottom));
+      border-radius: 24px 24px 0 0; padding: 32px 24px calc(32px + var(--safe-bottom));
       transform: translateY(100%); transition: transform 0.4s var(--ease);
       max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     }
@@ -211,21 +188,21 @@
     .info-list { margin-bottom: 32px; border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
     .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-item:last-child { border-bottom: none; }
-    .info-label { font-size: 11px; color: var(--sub); font-weight: 700; }
+    .info-label { font-size: 12px; color: var(--sub); font-weight: 700; }
     .info-value { font-weight: 700; }
 
     .form-group { margin-bottom: 32px; }
     .inp { 
-      width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); 
-      border-radius: 8px; font-size: 15px; -webkit-appearance: none; background: #fff;
+      width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid var(--line); 
+      border-radius: 12px; font-size: 16px; -webkit-appearance: none; background: #fff;
       transition: border-color 0.2s;
     }
     .inp:focus { outline: none; border-color: var(--text); }
     .inp::placeholder { color: #BBB; }
 
-    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
     .btn { 
-      height: 48px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
+      height: 56px; border: 1px solid var(--line); background: #fff; border-radius: 99px; 
       font-size: 13px; font-weight: 700; cursor: pointer; 
       display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; 
       transition: opacity 0.2s;
@@ -233,10 +210,10 @@
     .btn:active { opacity: 0.7; transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
     .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
-    .btn-full { width: 100%; margin-top: 12px; }
+    .btn-full { width: 100%; margin-top: 16px; }
 
     .chk-wrap { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; padding: 8px; border-radius: 8px; background: var(--surface); }
-    .chk { width: 20px; height: 20px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
+    .chk { width: 24px; height: 24px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
     .chk-label { font-size: 12px; line-height: 1.5; color: var(--text); font-weight: 500; }
     .link { color: var(--text); text-decoration: underline; cursor: pointer; }
 
@@ -248,6 +225,44 @@
     .staff-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
     .staff-intro { font-size: 11px; text-align: center; color: var(--sub); margin-bottom: 20px; line-height: 1.7; background: var(--surface); padding: 12px; border-radius: 12px; }
 
+    /* GUIDE & TERMS Styles (Updated) */
+    .modal-content-box { height: 360px; overflow-y: auto; padding-right: 4px; -webkit-overflow-scrolling: touch; }
+    
+    .guide-section { margin-bottom: 32px; }
+    .guide-ttl { 
+      font-size: 13px; font-weight: 700; color: var(--text); 
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    }
+    
+    .step-list { display: flex; flex-direction: column; gap: 16px; }
+    .step-item { 
+      display: flex; gap: 12px; align-items: flex-start; 
+      background: var(--surface); padding: 16px; border-radius: 12px;
+    }
+    .step-num {
+      background: var(--text); color: #fff; width: 24px; height: 24px; 
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; flex-shrink: 0; font-family: var(--font-en);
+    }
+    .step-content { flex-grow: 1; }
+    .step-head { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .step-desc { font-size: 12px; color: var(--sub); line-height: 1.5; }
+
+    .note-box {
+      background: #FFF8E1; border: 1px solid #FFECB3; border-radius: 8px; padding: 12px;
+      display: flex; gap: 10px; margin-top: 8px;
+    }
+    .note-icon { color: #F57F17; font-size: 16px; }
+    .note-text { font-size: 11px; color: #5D4037; line-height: 1.6; }
+
+    .terms-body { font-size: 12px; color: var(--sub); line-height: 1.8; }
+    .terms-body h4 { color: var(--text); font-size: 13px; margin: 24px 0 8px; font-weight: 700; }
+    .terms-body h4:first-child { margin-top: 0; }
+    .terms-body p { margin: 0 0 12px; }
+    .terms-body ul { padding-left: 1.5em; margin: 0 0 12px; }
+    .terms-body li { margin-bottom: 4px; }
+
     /* WARNING MODAL */
     #warnModal .sheet { text-align: center; }
     .warn-icon { font-size: 32px; margin-bottom: 16px; display: block; }
@@ -258,14 +273,7 @@
     .loader-overlay { position: fixed; inset: 0; background: #fff; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s; }
     .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--text); animation: spin 0.8s infinite linear; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
-    .load-text { 
-      margin-top: 24px; 
-      font-family: var(--font-serif); 
-      font-size: 16px; 
-      letter-spacing: 0.2em; 
-      color: var(--text);
-      font-weight: 700;
-    }
+    .load-text { margin-top: 24px; font-family: var(--font-serif); font-size: 16px; letter-spacing: 0.2em; color: var(--text); font-weight: 700; }
     #loginOverlay { background: rgba(255,255,255,0.98); z-index: 2000; }
   </style>
 </head>
@@ -383,37 +391,44 @@
   <div class="overlay" id="guideModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">注意事項・使い方</div><div class="sheet-sub">GUIDE</div></div>
-      <div style="height:400px; overflow-y:auto; padding-right:4px;">
+      <div class="modal-content-box">
         
         <div class="guide-section">
-          <div class="guide-ttl">⚠️ 注意事項・免責事項</div>
-          <p class="guide-txt">
-            1. <strong>予約の確定について</strong><br>
-            本システムによる予約は、枠を確保するものであり、施術効果を保証するものではありません。急病や天災等により、店舗側の判断で予約をキャンセルさせていただく場合があります。<br><br>
-            2. <strong>システム障害について</strong><br>
-            通信環境の不具合等により予約が正常に完了しなかった場合、当院は責任を負いかねます。予約完了画面が表示されたことを必ずご確認ください。<br><br>
-            3. <strong>利用制限</strong><br>
-            無断キャンセルや直前のキャンセルが繰り返される場合、本システムの利用を制限させていただくことがあります。
-          </p>
+          <div class="guide-ttl">📱 アプリの使い方</div>
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <div class="step-head">希望の日時を選ぶ</div>
+                <div class="step-desc">カレンダーから日付を選びます。時間の横に「○」が表示されている枠が予約可能です。</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <div class="step-head">情報を入力して予約</div>
+                <div class="step-desc">希望の枠をタップし、お名前と電話番号を入力して「予約する」ボタンを押すと確定します。</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-head">予約の確認・キャンセル</div>
+                <div class="step-desc">予約済みの枠はオレンジ色になります。タップすると内容の確認やキャンセルが可能です。</div>
+                <div class="note-box">
+                  <span class="note-icon">⚠️</span>
+                  <span class="note-text">当日のキャンセルはシステムからは行えません。お手数ですがお電話にてご連絡ください。</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="guide-section">
-          <div class="guide-ttl">📱 アプリの使い方</div>
-          <div class="guide-step">
-            <strong>STEP 1</strong>
-            カレンダーから希望の日付を選びます。<br>「○」が表示されている時間が予約可能な枠です。
-          </div>
-          <div class="guide-step">
-            <strong>STEP 2</strong>
-            希望の「○」をタップし、お名前と電話番号を入力して「予約する」ボタンを押してください。
-          </div>
-          <div class="guide-step">
-            <strong>STEP 3</strong>
-            予約が完了すると、その枠がオレンジ色の「●」に変わります。<br>タップすると詳細確認やキャンセルが可能です。
-          </div>
-          <div class="guide-step" style="background:#FFF3E0; color:#E65100; border:1px solid #FFE0B2;">
-            <strong>※当日のキャンセルについて</strong>
-            システムからは行えません。お手数ですがお電話にてご連絡ください。
+          <div class="guide-ttl">⚠️ 注意事項</div>
+          <div style="font-size:12px; color:var(--sub); line-height:1.7;">
+            <p>本システムは予約枠を確保するものであり、施術効果を保証するものではありません。<br>
+            急病や天災、システムの不具合等により、やむを得ず予約をキャンセルさせていただく場合がございます。</p>
           </div>
         </div>
 
@@ -422,13 +437,44 @@
     </div>
   </div>
 
-  <!-- TERMS MODAL -->
+  <!-- TERMS MODAL (Updated Content) -->
   <div class="overlay" id="termsModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">規約・ポリシー</div><div class="sheet-sub">TERMS & PRIVACY</div></div>
-      <div style="height:300px; overflow-y:auto; font-size:13px; color:var(--sub); line-height:1.8; margin-bottom:24px; border:1px solid var(--line); padding:16px; border-radius:12px; background:#FAFAFA;">
-        <h4>1. 利用規約</h4><p>本システムを利用することで本規約に同意したものとみなします。予約確定時点で枠が確保されます。</p>
-        <h4>2. プライバシーポリシー</h4><p>収集する情報：氏名、電話番号、LINE ID、予約履歴。<br>利用目的：予約管理、施術連絡。<br>第三者提供：法令に基づく場合を除き行いません。</p>
+      <div class="modal-content-box">
+        <div class="terms-body">
+          <h4>第1条（適用範囲）</h4>
+          <p>本規約は、当治療院（以下「当院」）が提供する予約システム（以下「本システム」）の利用者全てに適用されます。</p>
+
+          <h4>第2条（予約の成立）</h4>
+          <p>予約は、利用者が本システム上で予約手続きを完了し、システム画面上に予約完了の旨が表示された時点で成立するものとします。</p>
+
+          <h4>第3条（キャンセル・変更）</h4>
+          <ul>
+            <li>予約のキャンセル・変更は、原則として本システム上で行ってください。</li>
+            <li><strong>予約当日のキャンセルは、本システムでは行えません。</strong>必ず当院へ直接お電話にてご連絡ください。</li>
+            <li>無断キャンセルや直前のキャンセルが度重なる場合、以後のご予約をお断りする場合がございます。</li>
+          </ul>
+
+          <h4>第4条（施術の受療拒否）</h4>
+          <p>当院は、利用者が以下のいずれかに該当する場合、施術をお断りすることがあります。</p>
+          <ul>
+            <li>飲酒状態、または泥酔状態にある場合</li>
+            <li>他の患者様やスタッフへの迷惑行為を行った場合</li>
+            <li>その他、当院が施術不適当と判断した場合</li>
+          </ul>
+
+          <h4>第5条（免責事項）</h4>
+          <p>通信回線の障害、システムトラブル、天災地変等の不可抗力により、予約が成立しなかった場合や予約データが消失した場合、当院はそれにより生じた損害について一切の責任を負いません。</p>
+
+          <h4>第6条（個人情報の取扱い）</h4>
+          <p>当院は、本システムを通じて取得した利用者の個人情報（氏名、電話番号、LINEユーザーID、予約履歴等）を以下の目的でのみ利用し、法令に基づく場合を除き、第三者に提供しません。</p>
+          <ul>
+            <li>施術の予約管理および実施</li>
+            <li>予約確認や緊急時のご連絡</li>
+            <li>当院のサービス向上のための統計分析（個人を特定できない形での利用）</li>
+          </ul>
+        </div>
       </div>
       <button class="btn btn-full" onclick="closeAll()">閉じる</button>
     </div>
