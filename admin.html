@@ -15,7 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    /* --- 89CENTER ADMIN SYSTEM v20 (Supabase Auth) --- */
+    /* --- 89CENTER ADMIN SYSTEM v21 (Auth Fixed) --- */
     :root {
       --bg: #F9FAFB; --surface: #FFFFFF; --text: #111827; --sub: #6B7280; --line: #E5E7EB;
       --accent: #111827; --blue: #3B82F6; --red: #EF4444; --green: #10B981;
@@ -42,7 +42,7 @@
     .header-left { display: flex; align-items: center; gap: 40px; }
     
     h1 { font-family: var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
-    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.1em; }
+    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
     .tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -133,12 +133,17 @@
     textarea.inp { min-height: 80px; resize: vertical; }
     .inp-row { display: flex; gap: 10px; } .inp-row .inp { margin-bottom: 0; }
 
+    /* Spaced out Bulk Block Form */
+    #bulkMod .inp-group { margin-bottom: 24px; }
+    #bulkMod .inp-lbl { margin-bottom: 8px; }
+
     .staff-checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
     .s-chk { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
     .s-chk:hover { background: #FAFAFA; }
     .s-chk input { accent-color: var(--text); }
 
-    .btns { display: flex; gap: 10px; margin-top: 24px; } .btns .btn { flex: 1; }
+    .btns { display: flex; gap: 10px; margin-top: 24px; width: 100%; }
+    .btns .btn { flex: 1; }
 
     /* LOGIN */
     #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -163,9 +168,9 @@
   <div id="loginScreen">
     <div style="text-align:center; width:320px;">
       <h2 style="font-family:var(--font-en); font-weight:900; margin-bottom:32px;">89CENTER ADMIN</h2>
-      <input type="email" id="email" class="inp" placeholder="Email" style="text-align:center;">
-      <input type="password" id="password" class="inp" placeholder="Password" style="text-align:center;">
-      <button class="btn btn-primary w-full" onclick="handleLogin()">LOGIN</button>
+      <input type="email" id="email" class="inp" placeholder="メールアドレス" style="text-align:center; letter-spacing:0.05em; margin-bottom:12px;">
+      <input type="password" id="password" class="inp" placeholder="パスワード" style="text-align:center; letter-spacing:0.1em;">
+      <button class="btn btn-primary w-full" style="margin-top:12px;" onclick="handleLogin()">ログイン</button>
       <p id="loginError" style="color:var(--red); font-size:12px; margin-top:16px; display:none;"></p>
     </div>
   </div>
@@ -255,15 +260,56 @@
     </div>
   </div>
 
+  <!-- Action Modal -->
+  <div class="overlay" id="actionMod" onclick="if(event.target===this)closeAll()">
+    <div class="box">
+      <div class="box-h"><h3 class="box-ttl">スロット操作</h3></div>
+      <div style="text-align:center; margin-bottom:24px; font-weight:700;" id="actTarget"></div>
+      <div class="btns">
+        <button class="btn" onclick="openMod('blockMod')">ブロック</button>
+        <button class="btn btn-primary" onclick="openMod('createMod')">予約作成</button>
+      </div>
+      <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
+    </div>
+  </div>
+
   <div class="overlay" id="createMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
       <div class="box-h"><h3 class="box-ttl">新規予約作成</h3></div>
-      <div class="inp-group"><label class="inp-lbl">患者名</label><input id="cName" class="inp" placeholder="氏名"></div>
+      <div class="inp-group"><label class="inp-lbl">氏名</label><input id="cName" class="inp" placeholder="氏名を入力"></div>
       <div class="inp-group"><label class="inp-lbl">電話番号</label><input id="cPhone" class="inp" placeholder="090-0000-0000"></div>
-      <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考"></textarea></div>
+      <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考を入力"></textarea></div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
         <button class="btn btn-primary" onclick="runCreate()">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Single Block Modal -->
+  <div class="overlay" id="blockMod" onclick="if(event.target===this)closeAll()">
+    <div class="box">
+      <div class="box-h"><h3 class="box-ttl">ブロック設定</h3></div>
+      <div class="inp-group">
+        <label class="inp-lbl">理由</label>
+        <input id="sBlkReason" class="inp" placeholder="理由 (例: 休憩)">
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-danger" onclick="runSingleBlock()">実行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unblock Modal -->
+  <div class="overlay" id="unblockMod" onclick="if(event.target===this)closeAll()">
+    <div class="box">
+      <div class="box-h"><h3 class="box-ttl">ブロック解除</h3></div>
+      <p style="text-align:center; margin-bottom:24px; color:var(--text);">このブロックを解除しますか？</p>
+      <div style="text-align:center; margin-bottom:24px; font-weight:700; color:var(--sub);" id="unblkTarget"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-danger" onclick="runSingleUnblock()">解除実行</button>
       </div>
     </div>
   </div>
@@ -317,7 +363,7 @@ let chartInst = null;
 let currentTab = 'schedule';
 
 window.onload = async () => {
-  // Check Supabase Session
+  // Session Check
   const { data: { session } } = await db.auth.getSession();
   if (session) {
     showMain();
@@ -325,7 +371,6 @@ window.onload = async () => {
     document.getElementById('loginScreen').style.display = 'flex';
   }
 
-  // Init UI
   document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value); load(); } };
   const ts=document.getElementById('blkStart'), te=document.getElementById('blkEnd');
   TIMES.forEach(t => { ts.add(new Option(t, t)); te.add(new Option(t, t)); }); te.value = "20:30"; 
@@ -344,8 +389,12 @@ async function handleLogin() {
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
 
-  const { data, error } = await db.auth.signInWithPassword({ email, password });
+  if(!email || !password) return;
   
+  showLoad(true);
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
+  showLoad(false);
+
   if (error) {
     errEl.textContent = 'ログインに失敗しました: ' + error.message;
     errEl.style.display = 'block';
@@ -395,7 +444,11 @@ async function load() {
   const res = {}; 
   STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
   
-  if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' }; });
+  if(blocks) blocks.forEach(b => { 
+    if(res[b.staff] && res[b.staff][b.time]) {
+        res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' }; 
+    }
+  });
   if(books) books.forEach(b => {
     let t = b.start_time;
     [t, addTime(t, 30)].forEach(slot => {
@@ -432,8 +485,15 @@ function cellClick(nm, t) {
     mEl.onchange = () => updateMemo(s.id, mEl.value);
     openMod('detailMod');
   } else if(c.status === 'free') {
-    document.getElementById('cName').value = ''; document.getElementById('cPhone').value = ''; document.getElementById('cSym').value = '';
-    openMod('createMod');
+    document.getElementById('actTarget').textContent = `${nm} ${t}`;
+    openMod('actionMod');
+    // Clear create form
+    document.getElementById('cName').value = '';
+    document.getElementById('cPhone').value = '';
+    document.getElementById('cSym').value = '';
+  } else if(c.status === 'blocked') {
+    document.getElementById('unblkTarget').textContent = `${nm} ${t} (${c.label})`;
+    openMod('unblockMod');
   }
 }
 
@@ -452,7 +512,7 @@ async function runCreate() {
 }
 
 async function runCancel() {
-  if(!confirm('Sure?')) return;
+  if(!confirm('キャンセルしますか？')) return;
   await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
   closeAll(); load();
 }
@@ -460,6 +520,17 @@ async function runCancel() {
 async function updateMemo(id, val) {
   const { error } = await db.from('bookings').update({ admin_memo: val }).eq('id', id);
   if(!error) showToast('メモを保存しました');
+}
+
+async function runSingleBlock() {
+  const r = document.getElementById('sBlkReason').value;
+  await db.from('blocks').insert({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff, reason:r });
+  closeAll(); load();
+}
+
+async function runSingleUnblock() {
+  await db.from('blocks').delete().match({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff });
+  closeAll(); load();
 }
 
 async function runBulk(enable) {
