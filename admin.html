@@ -362,6 +362,52 @@ let s = { date: new Date(), data: {}, cur: null, id: null };
 let chartInst = null;
 let currentTab = 'schedule';
 
+// メモ更新のデバウンス処理（1秒待ってから保存）
+let memoUpdateTimer = null;
+const MEMO_DEBOUNCE_MS = 1000;
+
+// キャッシュ管理
+const ADMIN_CACHE_PREFIX = '89admin_';
+const ADMIN_CACHE_EXPIRY = 3 * 60 * 1000; // 3分間キャッシュ
+
+function getAdminCacheKey(dateStr) {
+  return ADMIN_CACHE_PREFIX + dateStr;
+}
+
+function getAdminCachedData(dateStr) {
+  try {
+    const cached = localStorage.getItem(getAdminCacheKey(dateStr));
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp > ADMIN_CACHE_EXPIRY) {
+      localStorage.removeItem(getAdminCacheKey(dateStr));
+      return null;
+    }
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setAdminCachedData(dateStr, data) {
+  try {
+    localStorage.setItem(getAdminCacheKey(dateStr), JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {}
+}
+
+function clearAdminCache() {
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith(ADMIN_CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {}
+}
+
 window.onload = async () => {
   // Session Check
   const { data: { session } } = await db.auth.getSession();
@@ -427,6 +473,8 @@ function switchTab(tab) {
 }
 
 function refreshData() {
+  // キャッシュをクリアして最新データを取得
+  clearAdminCache();
   if(currentTab === 'dashboard') loadDashboard();
   else if(currentTab === 'search') runSearch();
   else load();
@@ -438,8 +486,23 @@ async function load() {
   const dStr = fmtLocal(s.date);
   document.getElementById('dDisp').textContent = dStr;
   
-  const { data: books } = await db.from('bookings').select('*').eq('date', dStr).neq('status','キャンセル');
-  const { data: blocks } = await db.from('blocks').select('*').eq('date', dStr);
+  // キャッシュチェック
+  const cached = getAdminCachedData(dStr);
+  if (cached) {
+    s.data = cached;
+    renderGrid();
+    showLoad(false);
+    return;
+  }
+  
+  // 必要なカラムのみ取得（コスト削減）
+  const { data: books } = await db.from('bookings')
+    .select('id, start_time, staff, patient_name, admin_memo')
+    .eq('date', dStr)
+    .neq('status','キャンセル');
+  const { data: blocks } = await db.from('blocks')
+    .select('staff, time, reason')
+    .eq('date', dStr);
   
   const res = {}; 
   STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
@@ -452,10 +515,20 @@ async function load() {
   if(books) books.forEach(b => {
     let t = b.start_time;
     [t, addTime(t, 30)].forEach(slot => {
-        if(res[b.staff] && res[b.staff][slot]) res[b.staff][slot] = { status:'booked', label:b.patient_name, id:b.id, detail:b };
+        if(res[b.staff] && res[b.staff][slot]) {
+          res[b.staff][slot] = { 
+            status:'booked', 
+            label:b.patient_name, 
+            id:b.id, 
+            detail:b 
+          };
+        }
     });
   });
-  s.data = res; renderGrid(); showLoad(false);
+  s.data = res; 
+  setAdminCachedData(dStr, res);
+  renderGrid(); 
+  showLoad(false);
 }
 
 function renderHead() { let h='<tr><th></th>'; STAFFS.forEach(n=>h+=`<th>${n}</th>`); document.getElementById('thead').innerHTML=h+'</tr>'; }
@@ -471,18 +544,30 @@ function renderGrid() {
   });
 }
 
-function cellClick(nm, t) {
+async function cellClick(nm, t) {
   const c = s.data[nm][t]; s.cur = { staff:nm, time:t }; s.id = c.id;
   if(c.status === 'booked') {
-    const d = c.detail;
+    // 詳細情報を取得（必要な場合のみ）
+    const { data: detail } = await db.from('bookings')
+      .select('patient_name, phone, symptoms, fee, admin_memo')
+      .eq('id', c.id)
+      .single();
+    
+    const d = detail || c.detail || {};
     document.getElementById('info').innerHTML = `
-      <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${d.patient_name}</span></div>
-      <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${d.phone}</span></div>
+      <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${d.patient_name||'-'}</span></div>
+      <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${d.phone||'-'}</span></div>
       <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
-      <div class="info-row"><span class="info-lbl">料金</span><span class="info-val">¥${Number(d.fee).toLocaleString()}</span></div>`;
+      <div class="info-row"><span class="info-lbl">料金</span><span class="info-val">¥${Number(d.fee||0).toLocaleString()}</span></div>`;
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
-    mEl.onchange = () => updateMemo(s.id, mEl.value);
+    // デバウンス処理でメモ更新
+    mEl.oninput = () => {
+      clearTimeout(memoUpdateTimer);
+      memoUpdateTimer = setTimeout(() => {
+        updateMemo(s.id, mEl.value);
+      }, MEMO_DEBOUNCE_MS);
+    };
     openMod('detailMod');
   } else if(c.status === 'free') {
     document.getElementById('actTarget').textContent = `${nm} ${t}`;
@@ -508,12 +593,14 @@ async function runCreate() {
     staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
     symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
   });
+  clearAdminCache();
   closeAll(); load();
 }
 
 async function runCancel() {
   if(!confirm('キャンセルしますか？')) return;
   await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
+  clearAdminCache();
   closeAll(); load();
 }
 
@@ -525,11 +612,13 @@ async function updateMemo(id, val) {
 async function runSingleBlock() {
   const r = document.getElementById('sBlkReason').value;
   await db.from('blocks').insert({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff, reason:r });
+  clearAdminCache();
   closeAll(); load();
 }
 
 async function runSingleUnblock() {
   await db.from('blocks').delete().match({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff });
+  clearAdminCache();
   closeAll(); load();
 }
 
@@ -552,6 +641,7 @@ async function runBulk(enable) {
   if(enable) await db.from('blocks').insert(rows);
   else for(const r of rows) await db.from('blocks').delete().match({ date:r.date, time:r.time, staff:r.staff });
   
+  clearAdminCache();
   showLoad(false); closeAll(); load();
 }
 
@@ -561,7 +651,9 @@ async function runSearch() {
   if(!kw) return;
   showLoad(true);
   
-  const { data } = await db.from('bookings').select('*')
+  // 必要なカラムのみ取得（コスト削減）
+  const { data } = await db.from('bookings')
+    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo')
     .or(`patient_name.ilike.%${kw}%,phone.ilike.%${kw}%`)
     .order('date', { ascending: false });
     
@@ -600,7 +692,12 @@ async function loadDashboard() {
   const lastDay = new Date(y, m, 0).getDate();
   const end = `${ym}-${lastDay}`;
   
-  const { data: books } = await db.from('bookings').select('staff, fee, date').gte('date', start).lte('date', end).neq('status', 'キャンセル');
+  // 必要なカラムのみ取得（既に最適化済み）
+  const { data: books } = await db.from('bookings')
+    .select('staff, fee, date')
+    .gte('date', start)
+    .lte('date', end)
+    .neq('status', 'キャンセル');
   const list = books || [];
     
   // KPI
