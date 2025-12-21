@@ -214,12 +214,37 @@
 
     <!-- SEARCH -->
     <div id="viewSearch" class="hidden">
-      <div class="search-box">
-        <input id="sKeyword" class="inp-search" placeholder="名前 または 電話番号 で検索...">
-        <button class="btn btn-primary" style="margin-left:8px;" onclick="runSearch()">検索</button>
+      <div class="search-box" style="display:grid; grid-template-columns: 1fr auto; gap:10px; margin-bottom:16px;">
+        <input id="sKeyword" class="inp-search" placeholder="名前 または 電話番号 で検索..." onkeypress="if(event.key==='Enter')runSearch()">
+        <button class="btn btn-primary" onclick="runSearch()">検索</button>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:16px;">
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">スタッフ</label>
+          <select id="sStaff" class="inp" style="margin:0;">
+            <option value="">すべて</option>
+            <option value="麻生川">麻生川</option>
+            <option value="岡野">岡野</option>
+            <option value="堀江">堀江</option>
+            <option value="松田">松田</option>
+            <option value="山口">山口</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">月</label>
+          <select id="sMonth" class="inp" style="margin:0;"></select>
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">ステータス</label>
+          <select id="sStatus" class="inp" style="margin:0;">
+            <option value="">すべて</option>
+            <option value="予約済み">予約済み</option>
+            <option value="キャンセル">キャンセル</option>
+          </select>
+        </div>
       </div>
       <div id="sResult" class="result-list">
-        <div style="text-align:center; color:var(--sub); padding:40px;">検索キーワードを入力してください</div>
+        <div style="text-align:center; color:var(--sub); padding:40px;">検索条件を設定して検索してください</div>
       </div>
     </div>
 
@@ -280,6 +305,15 @@
       <div class="inp-group"><label class="inp-lbl">氏名</label><input id="cName" class="inp" placeholder="氏名を入力"></div>
       <div class="inp-group"><label class="inp-lbl">電話番号</label><input id="cPhone" class="inp" placeholder="090-0000-0000"></div>
       <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考を入力"></textarea></div>
+      <div class="inp-group">
+        <label class="inp-lbl">施術時間</label>
+        <select id="cDuration" class="inp" style="margin:0;">
+          <option value="30">30分</option>
+          <option value="60" selected>60分</option>
+          <option value="90">90分</option>
+          <option value="120">120分</option>
+        </select>
+      </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
         <button class="btn btn-primary" onclick="runCreate()">確定</button>
@@ -468,6 +502,14 @@ window.onload = async () => {
   for(let i=0; i<12; i++) {
     const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
     dm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
+  }
+  
+  // 検索画面の月選択の設定
+  const sm=document.getElementById('sMonth');
+  sm.add(new Option('すべて', ''));
+  for(let i=0; i<12; i++) {
+    const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
+    sm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
   }
   
   // Enterキーでログイン
@@ -681,6 +723,7 @@ async function cellClick(nm, t) {
     document.getElementById('cName').value = '';
     document.getElementById('cPhone').value = '';
     document.getElementById('cSym').value = '';
+    document.getElementById('cDuration').value = '60'; // デフォルトを60分に戻す
   } else if(c.status === 'blocked') {
     document.getElementById('unblkTarget').textContent = `${nm} ${t} (${c.label})`;
     openMod('unblockMod');
@@ -693,8 +736,12 @@ async function runCreate() {
   const id = Math.random().toString(36).substr(2, 9).toUpperCase();
   const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
   
+  // 選択された時間（分）を取得
+  const duration = parseInt(document.getElementById('cDuration').value) || 60;
+  const endTime = addTime(s.cur.time, duration);
+  
   await db.from('bookings').insert({ 
-    id, date:fmtLocal(s.date), start_time:s.cur.time, end_time:addTime(s.cur.time,60), 
+    id, date:fmtLocal(s.date), start_time:s.cur.time, end_time:endTime, 
     staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
     symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
   });
@@ -894,15 +941,49 @@ async function runBulk(enable) {
 
 // SEARCH
 async function runSearch() {
-  const kw = document.getElementById('sKeyword').value.trim();
-  if(!kw) return;
   showLoad(true);
   
-  // 必要なカラムのみ取得（コスト削減）
-  const { data } = await db.from('bookings')
-    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo, fee')
-    .or(`patient_name.ilike.%${kw}%,phone.ilike.%${kw}%`)
-    .order('date', { ascending: false });
+  const kw = document.getElementById('sKeyword').value.trim();
+  const staff = document.getElementById('sStaff').value;
+  const month = document.getElementById('sMonth').value;
+  const status = document.getElementById('sStatus').value;
+  
+  // 検索条件が何もない場合は警告
+  if(!kw && !staff && !month && !status) {
+    showLoad(false);
+    showToast('検索条件を1つ以上入力してください');
+    return;
+  }
+  
+  let query = db.from('bookings')
+    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo, fee');
+  
+  // キーワード検索（名前または電話番号）- キーワードがある場合のみ
+  if(kw) {
+    query = query.or(`patient_name.ilike.%${kw}%,phone.ilike.%${kw}%`);
+  }
+  
+  // スタッフフィルター
+  if(staff) {
+    query = query.eq('staff', staff);
+  }
+  
+  // 月フィルター
+  if(month) {
+    const [y, m] = month.split('-').map(Number);
+    const start = `${month}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const end = `${month}-${lastDay}`;
+    query = query.gte('date', start).lte('date', end);
+  }
+  
+  // ステータスフィルター
+  if(status) {
+    query = query.eq('status', status);
+  }
+  
+  // ソート: ステータスでソート（予約済み→キャンセル）、その後日付で降順
+  const { data } = await query.order('date', { ascending: false });
     
   const list = document.getElementById('sResult');
   list.innerHTML = '';
@@ -910,7 +991,14 @@ async function runSearch() {
   if(!data || data.length === 0) {
     list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当なし</div>';
   } else {
-    data.forEach(b => {
+    // ステータスでソート（予約済みを先に、キャンセルを後に）
+    const sortedData = [...data].sort((a, b) => {
+      if(a.status === '予約済み' && b.status === 'キャンセル') return -1;
+      if(a.status === 'キャンセル' && b.status === '予約済み') return 1;
+      return 0;
+    });
+    
+    sortedData.forEach(b => {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
       list.innerHTML += `
