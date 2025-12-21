@@ -423,44 +423,108 @@ function clearAdminCache() {
 }
 
 window.onload = async () => {
-  // Session Check
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    await loadFees(); // 料金をDBから読み込む
-    showMain();
-  } else {
+  // Supabase接続確認
+  try {
+    console.log('Supabase URL:', SUPABASE_URL);
+    console.log('Supabase接続確認中...');
+    
+    // Session Check
+    const { data: { session }, error: sessionError } = await db.auth.getSession();
+    
+    if (sessionError) {
+      console.error('セッション取得エラー:', sessionError);
+    }
+    
+    if (session) {
+      console.log('既存のセッションが見つかりました');
+      await loadFees(); // 料金をDBから読み込む
+      showMain();
+    } else {
+      console.log('セッションが見つかりません。ログイン画面を表示します');
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+  } catch (e) {
+    console.error('初期化エラー:', e);
     document.getElementById('loginScreen').style.display = 'flex';
+    const errEl = document.getElementById('loginError');
+    if (errEl) {
+      errEl.textContent = '初期化エラー: ' + e.message;
+      errEl.style.display = 'block';
+    }
   }
 
+  // 日付ピッカーの設定
   document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value); load(); } };
+  
+  // 時間選択の設定
   const ts=document.getElementById('blkStart'), te=document.getElementById('blkEnd');
   TIMES.forEach(t => { ts.add(new Option(t, t)); te.add(new Option(t, t)); }); te.value = "20:30"; 
+  
+  // スタッフチェックボックスの設定
   const sc=document.getElementById('blkStaff');
   STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
+  
+  // ダッシュボード月選択の設定
   const dm=document.getElementById('dashMonth'), today=new Date();
   for(let i=0; i<12; i++) {
     const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
     dm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
   }
+  
+  // Enterキーでログイン
+  document.getElementById('email').addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') document.getElementById('password').focus();
+  });
+  document.getElementById('password').addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') handleLogin();
+  });
 };
 
 async function handleLogin() {
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
 
-  if(!email || !password) return;
+  if(!email || !password) {
+    errEl.textContent = 'メールアドレスとパスワードを入力してください';
+    errEl.style.display = 'block';
+    return;
+  }
   
   showLoad(true);
-  const { data, error } = await db.auth.signInWithPassword({ email, password });
-  showLoad(false);
-
-  if (error) {
-    errEl.textContent = 'ログインに失敗しました: ' + error.message;
+  try {
+    console.log('ログイン試行:', email);
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      console.error('ログインエラー:', error);
+      let errorMsg = 'ログインに失敗しました: ';
+      
+      // エラーメッセージを日本語化
+      if (error.message.includes('Invalid login credentials')) {
+        errorMsg += 'メールアドレスまたはパスワードが正しくありません';
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMsg += 'メールアドレスが確認されていません。メールを確認してください';
+      } else if (error.message.includes('Too many requests')) {
+        errorMsg += 'リクエストが多すぎます。しばらく待ってから再試行してください';
+      } else {
+        errorMsg += error.message;
+      }
+      
+      errEl.textContent = errorMsg;
+      errEl.style.display = 'block';
+    } else {
+      console.log('ログイン成功:', data);
+      await loadFees(); // 料金を読み込む
+      showMain();
+    }
+  } catch (e) {
+    console.error('予期しないエラー:', e);
+    errEl.textContent = '予期しないエラーが発生しました: ' + e.message;
     errEl.style.display = 'block';
-  } else {
-    showMain();
+  } finally {
+    showLoad(false);
   }
 }
 
