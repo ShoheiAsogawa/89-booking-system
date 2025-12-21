@@ -246,11 +246,30 @@
     .link { color: var(--text); text-decoration: underline; cursor: pointer; }
 
     /* STAFF LIST */
-    .staff-list { display: grid; gap: 12px; }
-    .staff-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-    .staff-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-    .staff-role { font-size: 10px; background: var(--text); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
-    .staff-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
+    .staff-list { display: grid; gap: 16px; }
+    .staff-card { 
+      border: 1px solid var(--line); border-radius: 12px; padding: 20px; 
+      background: var(--surface); transition: all 0.2s;
+    }
+    .staff-card:hover { border-color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .staff-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .staff-name { font-size: 18px; font-weight: 700; color: var(--text); }
+    .staff-role { 
+      font-size: 11px; background: var(--text); color: #fff; 
+      padding: 6px 12px; border-radius: 6px; font-weight: 700; 
+      letter-spacing: 0.05em; text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .staff-fee { 
+      display: flex; align-items: baseline; gap: 4px; 
+      margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line);
+    }
+    .staff-fee-label { font-size: 11px; color: var(--sub); font-weight: 500; }
+    .staff-fee-value { 
+      font-size: 20px; font-weight: 800; color: var(--text); 
+      font-family: var(--font-en); letter-spacing: 0.02em;
+    }
+    .staff-fee-unit { font-size: 12px; color: var(--sub); margin-left: 2px; }
     .staff-intro { font-size: 11px; text-align: center; color: var(--sub); margin-bottom: 20px; line-height: 1.7; background: var(--surface); padding: 12px; border-radius: 12px; }
 
     /* GUIDE & TERMS Styles */
@@ -404,12 +423,8 @@
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title">スタッフについて</div><div class="sheet-sub">ABOUT STAFF</div></div>
       <div class="staff-intro">当院のスタッフは全員、国家資格を保有しており、<br><strong>どのような症状・治療にも基本的に対応可能</strong>です。<br>下記はそれぞれの得意分野・専門領域のご案内です。</div>
-      <div class="staff-list">
-        <div class="staff-card"><div class="staff-name">麻生川<span class="staff-role">頭痛専門</span></div><div class="staff-desc">頭痛治療に特化。</div></div>
-        <div class="staff-card"><div class="staff-name">岡野<span class="staff-role">膝専門</span></div><div class="staff-desc">膝の痛みを専門的に治療。</div></div>
-        <div class="staff-card"><div class="staff-name">堀江<span class="staff-role">耳鳴り専門</span></div><div class="staff-desc">耳鳴りの改善に定評あり。</div></div>
-        <div class="staff-card"><div class="staff-name">松田<span class="staff-role">五十肩専門</span></div><div class="staff-desc">五十肩の可動域改善。</div></div>
-        <div class="staff-card"><div class="staff-name">山口<span class="staff-role">しびれ専門</span></div><div class="staff-desc">しびれ・坐骨神経痛の専門家。</div></div>
+      <div class="staff-list" id="staffListContainer">
+        <!-- 動的に生成されます -->
       </div>
       <button class="btn btn-full" onclick="closeAll()">閉じる</button>
     </div>
@@ -868,7 +883,43 @@ function addDay(n) {
   loadData();
 }
 
-function openStaffModal(){ document.getElementById('staffModal').classList.add('open'); }
+// スタッフ情報の定義
+const STAFF_ROLES = {
+  '麻生川': '頭痛専門',
+  '岡野': '膝専門',
+  '堀江': '耳鳴り専門',
+  '松田': '五十肩専門',
+  '山口': 'しびれ専門'
+};
+
+function renderStaffList() {
+  const container = document.getElementById('staffListContainer');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  STAFFS.forEach(staff => {
+    const role = STAFF_ROLES[staff] || '';
+    const fee = FEES[staff] || 0;
+    container.innerHTML += `
+      <div class="staff-card">
+        <div class="staff-header">
+          <div class="staff-name">${staff}</div>
+          <span class="staff-role">${role}</span>
+        </div>
+        <div class="staff-fee">
+          <span class="staff-fee-label">料金</span>
+          <span class="staff-fee-value">¥${fee.toLocaleString()}</span>
+          <span class="staff-fee-unit">/ 1時間</span>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function openStaffModal(){ 
+  renderStaffList(); // 料金を最新の状態で表示
+  document.getElementById('staffModal').classList.add('open'); 
+}
 function openGuideModal(){ document.getElementById('guideModal').classList.add('open'); }
 function openTermsModal(){ document.getElementById('termsModal').classList.add('open'); }
 function closeAll(){ document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
