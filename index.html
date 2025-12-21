@@ -394,7 +394,7 @@
       <div id="formCreate" class="hidden">
         <div class="form-group">
           <input class="inp" id="pName" placeholder="お名前 (必須)">
-          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須、-なし)" maxlength="15" pattern="[0-9]*" inputmode="numeric">
+          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須、ハイフンなし)" maxlength="15" pattern="[0-9]*" inputmode="numeric">
           <input class="inp" id="pSym" placeholder="症状・ご要望 (任意)">
         </div>
         <div class="chk-wrap">
@@ -835,7 +835,7 @@ function validatePhone(phone) {
   // 数字のみ、10-15桁
   const phoneRegex = /^[0-9]{10,15}$/;
   if (!phoneRegex.test(phone)) {
-    return { valid: false, message: '電話番号は数字のみ10-15桁で入力してください（-なし）' };
+    return { valid: false, message: '電話番号は数字のみ10-15桁で入力してください（ハイフンなし）' };
   }
   return { valid: true };
 }
