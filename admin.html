@@ -78,23 +78,22 @@
     td:last-child { border-right: none; }
     td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 600; color: var(--sub); border-right: 1px solid var(--line); }
     
-    /* スタッフごとの列の背景色（白黒グラデーション - より明確な差） */
-    td.staff-0 { background: #FFFFFF; } /* 麻生川 - 白 */
-    td.staff-1 { background: #D5D5D5; } /* 岡野 */
-    td.staff-2 { background: #AAAAAA; } /* 堀江 */
-    td.staff-3 { background: #7F7F7F; } /* 松田 */
-    td.staff-4 { background: #555555; } /* 山口 - 濃いグレー */
-    
-    /* ヘッダーも同様の色を適用 */
-    th.staff-0 { background: #FFFFFF; }
-    th.staff-1 { background: #D5D5D5; }
-    th.staff-2 { background: #AAAAAA; color: #fff; }
-    th.staff-3 { background: #7F7F7F; color: #fff; }
-    th.staff-4 { background: #555555; color: #fff; } /* 濃い色の場合は文字色を白に */
+    /* スタッフごとの予約済みセルの背景色（白黒グラデーション） */
+    .cell.booked.staff-0 { background: #FAFAFA; color: var(--text); } /* 麻生川 - 最も白 */
+    .cell.booked.staff-1 { background: #E8E8E8; color: var(--text); } /* 岡野 */
+    .cell.booked.staff-2 { background: #D0D0D0; color: var(--text); } /* 堀江 */
+    .cell.booked.staff-3 { background: #B8B8B8; color: var(--text); } /* 松田 */
+    .cell.booked.staff-4 { background: #A0A0A0; color: #fff; } /* 山口 - 最も黒に近い */
 
     .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; overflow: hidden; }
     .free:hover { background: #F3F4F6; }
     .booked { background: var(--text); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    /* スタッフごとの色が指定されている場合は上書き */
+    .cell.booked.staff-0,
+    .cell.booked.staff-1,
+    .cell.booked.staff-2,
+    .cell.booked.staff-3,
+    .cell.booked.staff-4 { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .blocked { background: #F3F4F6; color: var(--sub); background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, #FFF 4px, #FFF 6px); }
     .closed { background: #FAFAFA; pointer-events: none; opacity: 0.5; }
 
@@ -680,7 +679,7 @@ async function load() {
 
 function renderHead() { 
   let h='<tr><th></th>'; 
-  STAFFS.forEach((n, idx)=>h+=`<th class="staff-${idx}">${n}</th>`); 
+  STAFFS.forEach(n=>h+=`<th>${n}</th>`); 
   document.getElementById('thead').innerHTML=h+'</tr>'; 
 }
 function renderGrid() {
@@ -689,7 +688,9 @@ function renderGrid() {
     const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
     STAFFS.forEach((nm, idx) => {
       const c = s.data[nm][t], lbl = c.status === 'booked' ? c.label : (c.label || '');
-      h+=`<td class="staff-${idx}"><div class="cell ${c.status}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
+      // 予約済みの場合はスタッフインデックスのクラスを追加
+      const staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
+      h+=`<td><div class="cell ${c.status}${staffClass}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
     });
     tr.innerHTML=h; b.appendChild(tr);
   });
