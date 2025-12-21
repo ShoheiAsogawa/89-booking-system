@@ -190,6 +190,7 @@
       </div>
       <div class="header-right" style="display:flex; gap:12px;">
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
+        <button class="btn btn-ghost" onclick="openFeeModal()">料金設定</button>
         <button class="btn btn-ghost" onclick="refreshData()">更新</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -349,6 +350,18 @@
     </div>
   </div>
 
+  <!-- Fee Setting Modal -->
+  <div class="overlay" id="feeMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:420px;">
+      <div class="box-h"><h3 class="box-ttl">スタッフ料金設定</h3></div>
+      <div id="feeList" style="display:grid; gap:12px; margin-bottom:24px;"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">閉じる</button>
+        <button class="btn btn-primary" onclick="saveFees()">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 // CONFIG
 const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; 
@@ -361,6 +374,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
 let chartInst = null;
 let currentTab = 'schedule';
+let FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000}; // 動的に更新される
 
 // メモ更新のデバウンス処理（1秒待ってから保存）
 let memoUpdateTimer = null;
@@ -412,6 +426,7 @@ window.onload = async () => {
   // Session Check
   const { data: { session } } = await db.auth.getSession();
   if (session) {
+    await loadFees(); // 料金をDBから読み込む
     showMain();
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
@@ -558,7 +573,13 @@ async function cellClick(nm, t) {
       <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${d.patient_name||'-'}</span></div>
       <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${d.phone||'-'}</span></div>
       <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
-      <div class="info-row"><span class="info-lbl">料金</span><span class="info-val">¥${Number(d.fee||0).toLocaleString()}</span></div>`;
+      <div class="info-row" style="align-items:center;">
+        <span class="info-lbl">料金</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" id="editFee" class="inp" value="${Number(d.fee||0)}" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
+          <span style="font-size:11px; color:var(--sub);">円</span>
+        </div>
+      </div>`;
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
     // デバウンス処理でメモ更新
@@ -568,6 +589,16 @@ async function cellClick(nm, t) {
         updateMemo(s.id, mEl.value);
       }, MEMO_DEBOUNCE_MS);
     };
+    // 料金編集のイベント
+    const feeEl = document.getElementById('editFee');
+    if(feeEl) {
+      feeEl.onchange = () => {
+        const newFee = Number(feeEl.value);
+        if(newFee >= 0) {
+          updateBookingFee(s.id, newFee);
+        }
+      };
+    }
     openMod('detailMod');
   } else if(c.status === 'free') {
     document.getElementById('actTarget').textContent = `${nm} ${t}`;
@@ -607,6 +638,148 @@ async function runCancel() {
 async function updateMemo(id, val) {
   const { error } = await db.from('bookings').update({ admin_memo: val }).eq('id', id);
   if(!error) showToast('メモを保存しました');
+}
+
+async function updateBookingFee(id, fee) {
+  const { error } = await db.from('bookings').update({ fee: fee }).eq('id', id);
+  if(!error) {
+    showToast('料金を更新しました');
+    clearAdminCache();
+    if(currentTab === 'schedule') load();
+  } else {
+    showToast('料金の更新に失敗しました');
+  }
+}
+
+// 料金設定関連
+async function loadFees() {
+  try {
+    // staffsテーブルから料金を取得（テーブルが存在しない場合はデフォルト値を使用）
+    const { data, error } = await db.from('staffs').select('name, fee');
+    if(!error && data && data.length > 0) {
+      data.forEach(staff => {
+        if(STAFFS.includes(staff.name)) {
+          FEES[staff.name] = Number(staff.fee) || FEES[staff.name];
+        }
+      });
+    } else {
+      // テーブルが存在しない場合はローカルストレージから読み込む
+      const saved = localStorage.getItem('89admin_fees');
+      if(saved) {
+        try {
+          const savedFees = JSON.parse(saved);
+          STAFFS.forEach(staff => {
+            if(savedFees[staff]) FEES[staff] = Number(savedFees[staff]);
+          });
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    // テーブルが存在しない場合はローカルストレージから読み込む
+    const saved = localStorage.getItem('89admin_fees');
+    if(saved) {
+      try {
+        const savedFees = JSON.parse(saved);
+        STAFFS.forEach(staff => {
+          if(savedFees[staff]) FEES[staff] = Number(savedFees[staff]);
+        });
+      } catch(e) {}
+    }
+  }
+}
+
+function openFeeModal() {
+  const list = document.getElementById('feeList');
+  list.innerHTML = '';
+  STAFFS.forEach(staff => {
+    const currentFee = FEES[staff] || 0;
+    list.innerHTML += `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border:1px solid var(--line); border-radius:8px;">
+        <span style="font-weight:700; font-size:14px;">${staff}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" id="fee_${staff}" class="inp" value="${currentFee}" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
+          <span style="font-size:11px; color:var(--sub);">円</span>
+        </div>
+      </div>
+    `;
+  });
+  openMod('feeMod');
+}
+
+async function saveFees() {
+  showLoad(true);
+  const updates = [];
+  STAFFS.forEach(staff => {
+    const feeEl = document.getElementById(`fee_${staff}`);
+    if(feeEl) {
+      const newFee = Number(feeEl.value);
+      if(newFee >= 0) {
+        FEES[staff] = newFee;
+        updates.push({ name: staff, fee: newFee });
+      }
+    }
+  });
+  
+  // staffsテーブルに保存（upsert）
+  try {
+    for(const update of updates) {
+      await db.from('staffs').upsert({ name: update.name, fee: update.fee }, { onConflict: 'name' });
+    }
+    showToast('料金を保存しました');
+    closeAll();
+  } catch(e) {
+    // テーブルが存在しない場合はローカルストレージに保存
+    localStorage.setItem('89admin_fees', JSON.stringify(FEES));
+    showToast('料金を保存しました（ローカル）');
+    closeAll();
+  }
+  showLoad(false);
+}
+
+// 患者検索の詳細を開く
+async function openSearchDetail(bookingId) {
+  s.id = bookingId;
+  const { data: detail } = await db.from('bookings')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff')
+    .eq('id', bookingId)
+    .single();
+  
+  if(!detail) return;
+  
+  document.getElementById('info').innerHTML = `
+    <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${detail.patient_name||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${detail.phone||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">日時</span><span class="info-val">${detail.date} ${detail.start_time}</span></div>
+    <div class="info-row"><span class="info-lbl">スタッフ</span><span class="info-val">${detail.staff||'-'}</span></div>
+    <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${detail.symptoms||'-'}</span></div>
+    <div class="info-row" style="align-items:center;">
+      <span class="info-lbl">料金</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="number" id="editFee" class="inp" value="${Number(detail.fee||0)}" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
+        <span style="font-size:11px; color:var(--sub);">円</span>
+      </div>
+    </div>`;
+  
+  const mEl = document.getElementById('memo');
+  mEl.value = detail.admin_memo || '';
+  mEl.oninput = () => {
+    clearTimeout(memoUpdateTimer);
+    memoUpdateTimer = setTimeout(() => {
+      updateMemo(s.id, mEl.value);
+    }, MEMO_DEBOUNCE_MS);
+  };
+  
+  const feeEl = document.getElementById('editFee');
+  if(feeEl) {
+    feeEl.onchange = () => {
+      const newFee = Number(feeEl.value);
+      if(newFee >= 0) {
+        updateBookingFee(s.id, newFee);
+      }
+    };
+  }
+  
+  openMod('detailMod');
 }
 
 async function runSingleBlock() {
@@ -653,7 +826,7 @@ async function runSearch() {
   
   // 必要なカラムのみ取得（コスト削減）
   const { data } = await db.from('bookings')
-    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo')
+    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo, fee')
     .or(`patient_name.ilike.%${kw}%,phone.ilike.%${kw}%`)
     .order('date', { ascending: false });
     
@@ -667,7 +840,7 @@ async function runSearch() {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
       list.innerHTML += `
-        <div class="res-card">
+        <div class="res-card" onclick="openSearchDetail('${b.id}')" style="cursor:pointer;">
           <div class="res-header">
             <div class="res-name">${b.patient_name} <span style="font-weight:400; font-size:12px; margin-left:8px; ${stClass}">${b.status}</span></div>
             <div class="res-date">${b.date} ${b.start_time}</div>
