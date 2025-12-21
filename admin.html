@@ -367,7 +367,6 @@
 const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
-const FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000};
 const TIMES = []; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) TIMES.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2));
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -480,11 +479,13 @@ window.onload = async () => {
   });
 };
 
-async function handleLogin() {
+// グローバルスコープに明示的に設定
+window.handleLogin = async function() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
+  errEl.textContent = '';
 
   if(!email || !password) {
     errEl.textContent = 'メールアドレスとパスワードを入力してください';
@@ -499,21 +500,27 @@ async function handleLogin() {
     
     if (error) {
       console.error('ログインエラー:', error);
-      let errorMsg = 'ログインに失敗しました: ';
+      let errorMsg = '';
       
       // エラーメッセージを日本語化
-      if (error.message.includes('Invalid login credentials')) {
-        errorMsg += 'メールアドレスまたはパスワードが正しくありません';
-      } else if (error.message.includes('Email not confirmed')) {
-        errorMsg += 'メールアドレスが確認されていません。メールを確認してください';
-      } else if (error.message.includes('Too many requests')) {
-        errorMsg += 'リクエストが多すぎます。しばらく待ってから再試行してください';
+      const errMsg = error.message || '';
+      if (errMsg.includes('Invalid login credentials') || errMsg.includes('invalid_credentials')) {
+        errorMsg = 'メールアドレスまたはパスワードが正しくありません';
+      } else if (errMsg.includes('Email not confirmed') || errMsg.includes('email_not_confirmed')) {
+        errorMsg = 'メールアドレスが確認されていません。メールを確認してください';
+      } else if (errMsg.includes('Too many requests') || errMsg.includes('too_many_requests')) {
+        errorMsg = 'リクエストが多すぎます。しばらく待ってから再試行してください';
+      } else if (errMsg.includes('User not found') || errMsg.includes('user_not_found')) {
+        errorMsg = 'このメールアドレスは登録されていません';
       } else {
-        errorMsg += error.message;
+        errorMsg = 'ログインに失敗しました: ' + errMsg;
       }
       
       errEl.textContent = errorMsg;
       errEl.style.display = 'block';
+      errEl.style.color = 'var(--red)';
+      errEl.style.fontSize = '13px';
+      errEl.style.fontWeight = '600';
     } else {
       console.log('ログイン成功:', data);
       await loadFees(); // 料金を読み込む
@@ -521,12 +528,15 @@ async function handleLogin() {
     }
   } catch (e) {
     console.error('予期しないエラー:', e);
-    errEl.textContent = '予期しないエラーが発生しました: ' + e.message;
+    errEl.textContent = '予期しないエラーが発生しました: ' + (e.message || '不明なエラー');
     errEl.style.display = 'block';
+    errEl.style.color = 'var(--red)';
+    errEl.style.fontSize = '13px';
+    errEl.style.fontWeight = '600';
   } finally {
     showLoad(false);
   }
-}
+};
 
 async function handleLogout() {
   await db.auth.signOut();
