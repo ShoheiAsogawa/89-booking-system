@@ -77,6 +77,20 @@
     td { height: 60px; border-bottom: 1px solid var(--line); border-right: 1px dashed var(--line); padding: 4px; vertical-align: middle; }
     td:last-child { border-right: none; }
     td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 600; color: var(--sub); border-right: 1px solid var(--line); }
+    
+    /* スタッフごとの列の背景色（白黒グラデーション - より明確な差） */
+    td.staff-0 { background: #FFFFFF; } /* 麻生川 - 白 */
+    td.staff-1 { background: #D5D5D5; } /* 岡野 */
+    td.staff-2 { background: #AAAAAA; } /* 堀江 */
+    td.staff-3 { background: #7F7F7F; } /* 松田 */
+    td.staff-4 { background: #555555; } /* 山口 - 濃いグレー */
+    
+    /* ヘッダーも同様の色を適用 */
+    th.staff-0 { background: #FFFFFF; }
+    th.staff-1 { background: #D5D5D5; }
+    th.staff-2 { background: #AAAAAA; color: #fff; }
+    th.staff-3 { background: #7F7F7F; color: #fff; }
+    th.staff-4 { background: #555555; color: #fff; } /* 濃い色の場合は文字色を白に */
 
     .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; overflow: hidden; }
     .free:hover { background: #F3F4F6; }
@@ -664,14 +678,18 @@ async function load() {
   showLoad(false);
 }
 
-function renderHead() { let h='<tr><th></th>'; STAFFS.forEach(n=>h+=`<th>${n}</th>`); document.getElementById('thead').innerHTML=h+'</tr>'; }
+function renderHead() { 
+  let h='<tr><th></th>'; 
+  STAFFS.forEach((n, idx)=>h+=`<th class="staff-${idx}">${n}</th>`); 
+  document.getElementById('thead').innerHTML=h+'</tr>'; 
+}
 function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   TIMES.forEach(t => {
     const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
-    STAFFS.forEach(nm => {
+    STAFFS.forEach((nm, idx) => {
       const c = s.data[nm][t], lbl = c.status === 'booked' ? c.label : (c.label || '');
-      h+=`<td><div class="cell ${c.status}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
+      h+=`<td class="staff-${idx}"><div class="cell ${c.status}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
     });
     tr.innerHTML=h; b.appendChild(tr);
   });
