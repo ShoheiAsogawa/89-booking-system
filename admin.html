@@ -190,7 +190,6 @@
       </div>
       <div class="header-right" style="display:flex; gap:12px;">
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
-        <button class="btn btn-ghost" onclick="openFeeModal()">料金設定</button>
         <button class="btn btn-ghost" onclick="refreshData()">更新</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -628,7 +627,7 @@ async function load() {
   
   // 必要なカラムのみ取得（コスト削減）
   const { data: books } = await db.from('bookings')
-    .select('id, start_time, staff, patient_name, admin_memo')
+    .select('id, start_time, end_time, staff, patient_name, admin_memo')
     .eq('date', dStr)
     .neq('status','キャンセル');
   const { data: blocks } = await db.from('blocks')
@@ -644,16 +643,19 @@ async function load() {
     }
   });
   if(books) books.forEach(b => {
-    let t = b.start_time;
-    [t, addTime(t, 30)].forEach(slot => {
-        if(res[b.staff] && res[b.staff][slot]) {
-          res[b.staff][slot] = { 
-            status:'booked', 
-            label:b.patient_name, 
-            id:b.id, 
-            detail:b 
-          };
-        }
+    // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
+    const startTime = b.start_time;
+    const endTime = b.end_time;
+    const slots = getTimeSlots(startTime, endTime);
+    slots.forEach(slot => {
+      if(res[b.staff] && res[b.staff][slot]) {
+        res[b.staff][slot] = { 
+          status:'booked', 
+          label:b.patient_name, 
+          id:b.id, 
+          detail:b 
+        };
+      }
     });
   });
   s.data = res; 
@@ -733,20 +735,55 @@ async function cellClick(nm, t) {
 async function runCreate() {
   const name = document.getElementById('cName').value;
   if(!name) return;
-  const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
   
   // 選択された時間（分）を取得
   const duration = parseInt(document.getElementById('cDuration').value) || 60;
   const endTime = addTime(s.cur.time, duration);
   
-  await db.from('bookings').insert({ 
-    id, date:fmtLocal(s.date), start_time:s.cur.time, end_time:endTime, 
+  // 重複チェック: 選択した時間帯に既存の予約がないか確認
+  const requiredSlots = getTimeSlots(s.cur.time, endTime);
+  const dStr = fmtLocal(s.date);
+  
+  // 該当日付の既存予約を取得
+  const { data: existingBookings } = await db.from('bookings')
+    .select('id, start_time, end_time, staff, patient_name')
+    .eq('date', dStr)
+    .eq('staff', s.cur.staff)
+    .neq('status', 'キャンセル');
+  
+  // 各スロットが既存予約と重複していないかチェック
+  if(existingBookings) {
+    for(const slot of requiredSlots) {
+      for(const booking of existingBookings) {
+        const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+        if(bookingSlots.includes(slot)) {
+          showLoad(false);
+          alert(`申し訳ございません。選択した時間帯（${s.cur.time}〜${endTime}）は既に「${booking.patient_name}」様の予約が入っています。別の時間を選択してください。`);
+          return;
+        }
+      }
+    }
+  }
+  
+  const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+  const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
+  
+  const { error } = await db.from('bookings').insert({ 
+    id, date:dStr, start_time:s.cur.time, end_time:endTime, 
     staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
     symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
   });
+  
+  if(error) {
+    showLoad(false);
+    alert('エラーが発生しました: ' + error.message);
+    return;
+  }
+  
   clearAdminCache();
-  closeAll(); load();
+  closeAll(); 
+  load();
+  showToast('予約を作成しました');
 }
 
 async function runCancel() {
@@ -1112,6 +1149,17 @@ function fmtLocal(d) {
   return `${y}-${m}-${day}`;
 }
 function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
+
+// 開始時間と終了時間から、30分刻みのスロット配列を取得
+function getTimeSlots(startTime, endTime) {
+  const slots = [];
+  let current = startTime;
+  while(current < endTime) {
+    slots.push(current);
+    current = addTime(current, 30);
+  }
+  return slots;
+}
 </script>
 </body>
 </html>

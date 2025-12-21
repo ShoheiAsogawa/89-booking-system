@@ -785,7 +785,7 @@ async function loadData() {
   
   // 必要なカラムのみ取得（コスト削減）
   const { data: books } = await db.from('bookings')
-    .select('id, start_time, staff, user_id')
+    .select('id, start_time, end_time, staff, user_id')
     .eq('date', dStr)
     .neq('status', 'キャンセル');
   const { data: blocks } = await db.from('blocks')
@@ -812,12 +812,15 @@ async function loadData() {
 
   if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time].status = 'blocked'; });
   if(books) books.forEach(b => {
-    let t = b.start_time;
-    [t, addTime(t, 30)].forEach(slot => {
-        if(res[b.staff] && res[b.staff][slot]) {
-            res[b.staff][slot].status = (b.user_id === state.uid) ? 'own' : 'booked';
-            res[b.staff][slot].id = b.id;
-        }
+    // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
+    const startTime = b.start_time;
+    const endTime = b.end_time;
+    const bookingSlots = getTimeSlots(startTime, endTime);
+    bookingSlots.forEach(slot => {
+      if(res[b.staff] && res[b.staff][slot]) {
+        res[b.staff][slot].status = (b.user_id === state.uid) ? 'own' : 'booked';
+        res[b.staff][slot].id = b.id;
+      }
     });
   });
 
@@ -877,12 +880,38 @@ async function createBooking() {
   // Validate Past Time
   if(isPast(state.date, p.time)) { loading(false); return alert('過去の時間は予約できません'); }
 
-  const { data: exists } = await db.from('bookings').select('id').eq('date', fmt(state.date)).eq('staff', p.staff).eq('start_time', p.time).neq('status', 'キャンセル');
-  if(exists && exists.length > 0) { loading(false); return alert('申し訳ありません、予約が埋まりました'); }
+  // クライアント画面は60分固定
+  const duration = 60;
+  const endTime = addTime(p.time, duration);
+  const dStr = fmt(state.date);
+  
+  // 重複チェック: 選択した時間帯に既存の予約がないか確認
+  const requiredSlots = getTimeSlots(p.time, endTime);
+  
+  // 該当日付の既存予約を取得
+  const { data: existingBookings } = await db.from('bookings')
+    .select('id, start_time, end_time, staff, patient_name')
+    .eq('date', dStr)
+    .eq('staff', p.staff)
+    .neq('status', 'キャンセル');
+  
+  // 各スロットが既存予約と重複していないかチェック
+  if(existingBookings && existingBookings.length > 0) {
+    for(const slot of requiredSlots) {
+      for(const booking of existingBookings) {
+        const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+        if(bookingSlots.includes(slot)) {
+          loading(false);
+          alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っています。別の時間を選択してください。`);
+          return;
+        }
+      }
+    }
+  }
 
   const id = Math.random().toString(36).substr(2, 9).toUpperCase();
   const { error } = await db.from('bookings').insert({
-    id: id, date: fmt(state.date), start_time: p.time, end_time: addTime(p.time, 60),
+    id: id, date: dStr, start_time: p.time, end_time: endTime,
     staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
     fee: FEES[p.staff], user_id: state.uid
   });
@@ -1055,6 +1084,18 @@ function fmt(d) {
 function pad(n) { return ('0'+n).slice(-2); }
 function genSlots() { const a=[]; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) a.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2)); return a; }
 function addTime(t, m) { let [hh,mm]=t.split(':').map(Number); mm+=m; while(mm>=60){hh++;mm-=60;} return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2); }
+
+// 開始時間と終了時間から、30分刻みのスロット配列を取得
+function getTimeSlots(startTime, endTime) {
+  const slots = [];
+  let current = startTime;
+  while(current < endTime) {
+    slots.push(current);
+    current = addTime(current, 30);
+  }
+  return slots;
+}
+
 function isPast(d, t) {
   const now = new Date();
   const target = new Date(d);
