@@ -331,7 +331,7 @@
   <header id="header">
     <h1>89CENTER</h1>
     <button class="header-btn" onclick="openStaffModal()">
-      スタッフについて<span class="en">ABOUT STAFF</span>
+      料金とスタッフについて<span class="en">FEES & STAFF</span>
     </button>
   </header>
 
@@ -394,7 +394,7 @@
       <div id="formCreate" class="hidden">
         <div class="form-group">
           <input class="inp" id="pName" placeholder="お名前 (必須)">
-          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須)">
+          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須、-なし)" maxlength="15" pattern="[0-9]*" inputmode="numeric">
           <input class="inp" id="pSym" placeholder="症状・ご要望 (任意)">
         </div>
         <div class="chk-wrap">
@@ -654,6 +654,71 @@ window.onload = async () => {
 const CACHE_PREFIX = '89booking_';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5分間キャッシュ有効
 
+// レート制限管理（無料枠50,000リクエスト/月を超えないように）
+const RATE_LIMIT_KEY = '89booking_rate_limit';
+const MAX_REQUESTS_PER_HOUR = 100; // 1時間あたりの最大リクエスト数
+const MAX_REQUESTS_PER_DAY = 2000; // 1日あたりの最大リクエスト数（月間60,000を下回るように）
+
+function checkRateLimit() {
+  try {
+    const stored = localStorage.getItem(RATE_LIMIT_KEY);
+    const now = Date.now();
+    
+    if (!stored) {
+      // 初回アクセス
+      localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({
+        hour: { count: 1, resetAt: now + 60 * 60 * 1000 },
+        day: { count: 1, resetAt: now + 24 * 60 * 60 * 1000 }
+      }));
+      return { allowed: true };
+    }
+    
+    const limits = JSON.parse(stored);
+    
+    // 時間制限のチェック
+    if (now > limits.hour.resetAt) {
+      limits.hour = { count: 1, resetAt: now + 60 * 60 * 1000 };
+    } else {
+      limits.hour.count++;
+      if (limits.hour.count > MAX_REQUESTS_PER_HOUR) {
+        return { 
+          allowed: false, 
+          message: 'リクエストが多すぎます。しばらく待ってから再試行してください。',
+          retryAfter: Math.ceil((limits.hour.resetAt - now) / 1000 / 60) // 分
+        };
+      }
+    }
+    
+    // 日次制限のチェック
+    if (now > limits.day.resetAt) {
+      limits.day = { count: 1, resetAt: now + 24 * 60 * 60 * 1000 };
+    } else {
+      limits.day.count++;
+      if (limits.day.count > MAX_REQUESTS_PER_DAY) {
+        return { 
+          allowed: false, 
+          message: '1日のリクエスト上限に達しました。明日再度お試しください。',
+          retryAfter: Math.ceil((limits.day.resetAt - now) / 1000 / 60 / 60) // 時間
+        };
+      }
+    }
+    
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(limits));
+    return { allowed: true };
+  } catch (e) {
+    // エラー時は許可（フォールバック）
+    return { allowed: true };
+  }
+}
+
+// XSS対策: HTMLエスケープ関数
+function escapeHtml(text) {
+  if (text == null) return '';
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+
 function getCacheKey(dateStr) {
   return CACHE_PREFIX + dateStr;
 }
@@ -695,6 +760,13 @@ function clearCache() {
 }
 
 async function loadData() {
+  // レート制限チェック
+  const rateLimit = checkRateLimit();
+  if (!rateLimit.allowed) {
+    alert(rateLimit.message);
+    return;
+  }
+  
   loading(true);
   const dStr = fmt(state.date);
   
@@ -757,12 +829,42 @@ async function loadData() {
   renderBody(); loading(false);
 }
 
+// 電話番号の検証
+function validatePhone(phone) {
+  if (!phone) return { valid: false, message: '電話番号を入力してください' };
+  // 数字のみ、10-15桁
+  const phoneRegex = /^[0-9]{10,15}$/;
+  if (!phoneRegex.test(phone)) {
+    return { valid: false, message: '電話番号は数字のみ10-15桁で入力してください（-なし）' };
+  }
+  return { valid: true };
+}
+
 async function createBooking() {
-  const name = document.getElementById('pName').value;
-  const phone = document.getElementById('pPhone').value;
+  // レート制限チェック
+  const rateLimit = checkRateLimit();
+  if (!rateLimit.allowed) {
+    alert(rateLimit.message);
+    return;
+  }
+  
+  const name = document.getElementById('pName').value.trim();
+  const phone = document.getElementById('pPhone').value.replace(/[^0-9]/g, ''); // 数字のみ抽出
   const term = document.getElementById('inTerm').checked;
 
   if(!name || !phone) return alert('お名前と電話番号を入力してください');
+  
+  // 電話番号の検証
+  const phoneValidation = validatePhone(phone);
+  if (!phoneValidation.valid) {
+    return alert(phoneValidation.message);
+  }
+  
+  // 名前の長さチェック
+  if (name.length > 50) {
+    return alert('お名前は50文字以内で入力してください');
+  }
+  
   if(!term) return alert('利用規約・プライバシーポリシーへの同意が必要です');
   
   loading(true);
@@ -797,6 +899,13 @@ async function createBooking() {
 }
 
 async function cancelBooking() {
+  // レート制限チェック
+  const rateLimit = checkRateLimit();
+  if (!rateLimit.allowed) {
+    alert(rateLimit.message);
+    return;
+  }
+  
   // 当日チェック
   const now = new Date();
   const targetDate = new Date(state.date); // 表示中の日付
@@ -822,7 +931,7 @@ async function cancelBooking() {
 
 // UI
 function renderHead() {
-  let h='<tr><th></th>'; STAFFS.forEach(s=>h+=`<th>${s}<span class="en">${getEn(s)}</span></th>`); 
+  let h='<tr><th></th>'; STAFFS.forEach(s=>h+=`<th>${escapeHtml(s)}<span class="en">${escapeHtml(getEn(s))}</span></th>`); 
   document.getElementById('thead').innerHTML = h+'</tr>';
 }
 function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MATSUDA','山口':'YAMAGUCHI'}; return m[n]||''; }
@@ -845,10 +954,16 @@ function renderDate() {
 function renderBody() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   genSlots().forEach(t => {
-    const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
+    const tr=document.createElement('tr'); let h=`<td>${escapeHtml(t)}</td>`;
     STAFFS.forEach(s => {
       const st=state.data[s][t].status;
-      h+=`<td><div class="cell ${st}" onclick="tap('${s}','${t}','${st}','${state.data[s][t].id}')"></div></td>`;
+      const id = state.data[s][t].id || '';
+      // XSS対策: すべての値をエスケープ
+      const escapedStaff = escapeHtml(s);
+      const escapedTime = escapeHtml(t);
+      const escapedStatus = escapeHtml(st);
+      const escapedId = escapeHtml(id);
+      h+=`<td><div class="cell ${escapedStatus}" onclick="tap('${escapedStaff}','${escapedTime}','${escapedStatus}','${escapedId}')"></div></td>`;
     });
     tr.innerHTML=h; b.appendChild(tr);
   });
@@ -859,6 +974,7 @@ function tap(s, t, st, id) {
   state.pending = { staff:s, time:t, id:id };
   document.getElementById('mTitle').textContent = st==='own' ? 'ご予約内容' : '予約確認';
   document.getElementById('mSub').textContent = st==='own' ? 'YOUR BOOKING' : 'CONFIRMATION';
+  // XSS対策: textContentを使用（既に安全）
   document.getElementById('mDate').textContent = `${document.getElementById('dMain').textContent} ${t}`;
   document.getElementById('mStaff').textContent = s;
   
@@ -900,15 +1016,20 @@ function renderStaffList() {
   STAFFS.forEach(staff => {
     const role = STAFF_ROLES[staff] || '';
     const fee = FEES[staff] || 0;
+    // XSS対策: すべてのユーザー入力値をエスケープ
+    const escapedStaff = escapeHtml(staff);
+    const escapedRole = escapeHtml(role);
+    const escapedFee = fee.toLocaleString(); // 数値なのでエスケープ不要
+    
     container.innerHTML += `
       <div class="staff-card">
         <div class="staff-header">
-          <div class="staff-name">${staff}</div>
-          <span class="staff-role">${role}</span>
+          <div class="staff-name">${escapedStaff}</div>
+          <span class="staff-role">${escapedRole}</span>
         </div>
         <div class="staff-fee">
           <span class="staff-fee-label">料金</span>
-          <span class="staff-fee-value">¥${fee.toLocaleString()}</span>
+          <span class="staff-fee-value">¥${escapedFee}</span>
           <span class="staff-fee-unit">/ 1時間</span>
         </div>
       </div>
