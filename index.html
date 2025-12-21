@@ -534,7 +534,12 @@
       <div class="warn-sub" style="font-size:13px; color:var(--sub); line-height:1.6; margin-bottom:24px;">
         当日のキャンセルはシステムから行えません。<br>お手数ですが、お電話にてご連絡をお願いいたします。
       </div>
-      <button class="btn btn-primary w-full" onclick="closeAll()">閉じる</button>
+      <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+        <a href="tel:072-469-0333" class="btn btn-primary" style="width:100%; max-width:280px; border-radius:99px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+          📞 072-469-0333
+        </a>
+        <button class="btn" onclick="closeAll()" style="width:100%; max-width:280px; border-radius:8px;">閉じる</button>
+      </div>
     </div>
   </div>
 
