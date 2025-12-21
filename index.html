@@ -25,8 +25,8 @@
       --surface: #FAFAFA;
       
       /* Status Colors */
-      --color-own: #E65100;
-      --bg-own: #FFF3E0;
+      --color-own: #BF360C;
+      --bg-own: #FFE0B2;
       --color-ng: #999999;
       --bg-ng: #F7F7F7;
       
@@ -71,7 +71,7 @@
     .nav { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; padding: 0 4px; }
     .nav-btn {
       width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%;
-      background: #fff; color: var(--text); font-size: 20px; cursor: pointer;
+      background: #fff; color: var(--text); font-size: 20px; font-weight: 900; cursor: pointer;
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0;
     }
@@ -131,7 +131,7 @@
     }
     
     th {
-      font-size: 9px; /* 小さめに調整 */
+      font-size: 11px; /* スタッフ名を大きく */
       font-weight: 700; color: var(--text); text-align: center;
       padding: 12px 0; border-bottom: 2px solid var(--text);
       position: sticky; top: 0; z-index: 10; background: var(--bg);
@@ -421,7 +421,7 @@
   <!-- STAFF MODAL -->
   <div class="overlay" id="staffModal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
-      <div class="sheet-header"><div class="sheet-title">スタッフについて</div><div class="sheet-sub">ABOUT STAFF</div></div>
+      <div class="sheet-header"><div class="sheet-title">料金とスタッフについて</div><div class="sheet-sub">FEES & STAFF</div></div>
       <div class="staff-intro">当院のスタッフは全員、国家資格を保有しており、<br><strong>どのような症状・治療にも基本的に対応可能</strong>です。<br>下記はそれぞれの得意分野・専門領域のご案内です。</div>
       <div class="staff-list" id="staffListContainer">
         <!-- 動的に生成されます -->
