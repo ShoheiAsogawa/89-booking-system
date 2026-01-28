@@ -38,6 +38,7 @@
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    body.modal-open { overflow: hidden; position: fixed; width: 100%; }
     body {
       margin: 0; padding: 0; background: var(--bg); color: var(--text);
       font-family: var(--font-jp); font-size: 14px; line-height: 1.5;
@@ -226,6 +227,14 @@
     }
     .inp:focus { outline: none; border-color: var(--text); }
     .inp::placeholder { color: #BBB; }
+    
+    .form-label { 
+      display: block; font-size: 13px; font-weight: 700; color: var(--text); 
+      margin-bottom: 6px; margin-top: 8px;
+    }
+    .form-label:first-child { margin-top: 0; }
+    .required { font-size: 10px; color: #E53935; margin-left: 4px; }
+    .optional { font-size: 10px; color: var(--sub); margin-left: 4px; }
 
     .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
     .btn { 
@@ -392,9 +401,16 @@
       <!-- Create Form -->
       <div id="formCreate" class="hidden">
         <div class="form-group">
-          <input class="inp" id="pName" placeholder="お名前 (必須)">
-          <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須、ハイフンなし)" maxlength="15" pattern="[0-9]*" inputmode="numeric">
-          <input class="inp" id="pSym" placeholder="症状・ご要望 (任意)">
+          <label class="form-label">👤 お名前 <span class="required">必須</span></label>
+          <input class="inp" id="pName" placeholder="例：山田 太郎">
+          
+          <label class="form-label">📞 電話番号 <span class="required">必須</span></label>
+          <input class="inp" id="pPhone" type="tel" placeholder="例：09012345678（ハイフンなし）" maxlength="15" pattern="[0-9]*" inputmode="numeric">
+          
+          <label class="form-label">🩺 症状・ご要望 <span class="optional">任意</span></label>
+          <input class="inp" id="pSym" placeholder="例：肩こり、腰痛など">
+          
+          <label class="form-label">⏱️ 施術時間</label>
           <select class="inp" id="pDuration">
             <option value="30">30分</option>
             <option value="60" selected>60分（標準）</option>
@@ -557,7 +573,16 @@ const LIFF_ID = '2007980232-dK2Dp84Y';
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 let FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000}; // 動的に更新される
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 };
-const MAX_MONTHS = 2; 
+const MAX_MONTHS = 2;
+
+// スタッフごとの診療時間（時間外はclosedとして表示）
+const WORK_HOURS = {
+  '麻生川': { start: '12:00', end: '21:00' },
+  '松田': { start: '11:00', end: '21:00' },
+  '山口': { start: '09:00', end: '19:00' },
+  '岡野': { start: '09:00', end: '21:00' },
+  '堀江': { start: '09:00', end: '21:00' }
+}; 
 
 // Init
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -807,6 +832,7 @@ async function loadData() {
 
   STAFFS.forEach(s => {
     res[s] = {}; 
+    const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
     slots.forEach(t => {
       let st = 'free';
       // Past time logic
@@ -814,6 +840,10 @@ async function loadData() {
         const [h, m] = t.split(':');
         const timeDate = new Date(); timeDate.setHours(h, m, 0, 0);
         if (timeDate < now) st = 'past';
+      }
+      // 診療時間外チェック
+      if (t < workHours.start || t >= workHours.end) {
+        st = 'closed';
       }
       res[s][t] = { status: st, id:'' };
     });
@@ -950,7 +980,8 @@ async function cancelBooking() {
   const targetDate = new Date(state.date); // 表示中の日付
   
   if (fmt(now) === fmt(targetDate)) {
-    closeAll();
+    // モーダル切り替え（スクロール位置は保持）
+    document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open'));
     document.getElementById('warnModal').classList.add('open');
     return;
   }
@@ -1024,7 +1055,7 @@ function tap(s, t, st, id) {
     document.getElementById('pName').value=''; document.getElementById('pPhone').value='';
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
   }
-  document.getElementById('modal').classList.add('open');
+  openModal('modal');
 }
 
 function addDay(n) {
@@ -1076,13 +1107,31 @@ function renderStaffList() {
   });
 }
 
+// スクロール位置を保持
+let scrollPos = 0;
+
+function openModal(id) {
+  // 既にモーダルが開いている場合はスクロール位置を保持したまま
+  if (!document.body.classList.contains('modal-open')) {
+    scrollPos = window.scrollY;
+    document.body.classList.add('modal-open');
+    document.body.style.top = `-${scrollPos}px`;
+  }
+  document.getElementById(id).classList.add('open');
+}
+
 function openStaffModal(){ 
   renderStaffList(); // 料金を最新の状態で表示
-  document.getElementById('staffModal').classList.add('open'); 
+  openModal('staffModal');
 }
-function openGuideModal(){ document.getElementById('guideModal').classList.add('open'); }
-function openTermsModal(){ document.getElementById('termsModal').classList.add('open'); }
-function closeAll(){ document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
+function openGuideModal(){ openModal('guideModal'); }
+function openTermsModal(){ openModal('termsModal'); }
+function closeAll(){ 
+  document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); 
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, scrollPos);
+}
 function loading(b){ const l=document.getElementById('loader'); if(b){l.style.display='flex';setTimeout(()=>l.style.opacity=1,10);}else{l.style.opacity=0;setTimeout(()=>l.style.display='none',400);} }
 
 function fmt(d) { 
