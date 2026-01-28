@@ -235,6 +235,11 @@
     .form-label:first-child { margin-top: 0; }
     .required { font-size: 10px; color: #E53935; margin-left: 4px; }
     .optional { font-size: 10px; color: var(--sub); margin-left: 4px; }
+    .time-notice {
+      margin-top: 8px; padding: 10px 12px; border-radius: 8px;
+      background: #FFF3E0; border: 1px solid #FFE0B2;
+      font-size: 12px; color: #E65100; font-weight: 600;
+    }
 
     .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
     .btn { 
@@ -417,6 +422,9 @@
             <option value="90">90分</option>
             <option value="120">120分</option>
           </select>
+          <div id="timeNotice" class="time-notice hidden">
+            ⚠️ この時間帯は30分のみの施術となります
+          </div>
         </div>
         <div class="chk-wrap">
           <input type="checkbox" id="inTerm" class="chk">
@@ -1054,6 +1062,24 @@ function tap(s, t, st, id) {
   if(!isOwn) { 
     document.getElementById('pName').value=''; document.getElementById('pPhone').value='';
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
+    
+    // 20:30の場合は30分のみ選択可能
+    const durationSelect = document.getElementById('pDuration');
+    const timeNotice = document.getElementById('timeNotice');
+    if(t === '20:30') {
+      durationSelect.innerHTML = '<option value="30" selected>30分</option>';
+      durationSelect.disabled = true;
+      timeNotice.classList.remove('hidden');
+    } else {
+      durationSelect.innerHTML = `
+        <option value="30">30分</option>
+        <option value="60" selected>60分（標準）</option>
+        <option value="90">90分</option>
+        <option value="120">120分</option>
+      `;
+      durationSelect.disabled = false;
+      timeNotice.classList.add('hidden');
+    }
   }
   openModal('modal');
 }
