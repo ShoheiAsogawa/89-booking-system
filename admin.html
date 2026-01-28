@@ -72,11 +72,13 @@
 
     .grid-wrap { background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow); overflow-x: auto; max-height: 75vh; border: 1px solid var(--line); }
     table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
-    th { position: sticky; top: 0; background: rgba(255,255,255,0.98); z-index: 10; padding: 16px; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--sub); text-align: center; }
-    th:first-child { left: 0; z-index: 20; width: 80px; border-right: 1px solid var(--line); }
+    th { position: sticky; top: 0; background: rgba(255,255,255,0.98); z-index: 10; padding: 16px; border-bottom: 1px solid var(--line); font-size: 18px; font-weight: 700; color: var(--text); text-align: center; }
+    th:first-child { left: 0; z-index: 20; width: 90px; border-right: 1px solid var(--line); }
     td { height: 60px; border-bottom: 1px solid var(--line); border-right: 1px dashed var(--line); padding: 4px; vertical-align: middle; }
     td:last-child { border-right: none; }
-    td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 600; color: var(--sub); border-right: 1px solid var(--line); }
+    td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 700; font-size: 16px; color: var(--text); border-right: 1px solid var(--line); }
+    /* 1時間ごとの区切り線を太くする */
+    tr.hour-start td { border-top: 2px solid var(--text); }
     
     /* スタッフごとの予約済みセルの背景色（白黒グラデーション） */
     .cell.booked.staff-0 { background: #FAFAFA; color: var(--text); } /* 麻生川 - 最も白 */
@@ -85,7 +87,9 @@
     .cell.booked.staff-3 { background: #B8B8B8; color: var(--text); } /* 松田 */
     .cell.booked.staff-4 { background: #A0A0A0; color: #fff; } /* 山口 - 最も黒に近い */
 
-    .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s; overflow: hidden; }
+    .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
+    .cell.name-long { font-size: 12px; }
+    .cell.name-very-long { font-size: 10px; }
     .free:hover { background: #F3F4F6; }
     .booked { background: var(--text); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     /* スタッフごとの色が指定されている場合は上書き */
@@ -95,6 +99,8 @@
     .cell.booked.staff-3,
     .cell.booked.staff-4 { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .blocked { background: #F3F4F6; color: var(--sub); background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, #FFF 4px, #FFF 6px); }
+    .outside { background: #FAFAFA; color: #BDBDBD; font-size: 10px; }
+    .outside:hover { background: #F0F0F0; }
     .closed { background: #FAFAFA; pointer-events: none; opacity: 0.5; }
 
     /* DASHBOARD VIEW */
@@ -117,6 +123,19 @@
     .s-cnt { font-size: 11px; color: var(--sub); margin-right: 8px; font-family: var(--font-en); }
     .s-amt { font-family: var(--font-en); font-weight: 700; font-size: 14px; }
 
+    /* 決済方法カード */
+    .payment-stat-card { background: var(--bg); padding: 16px; border-radius: 10px; text-align: center; }
+    .payment-stat-card .pay-icon { font-size: 24px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; }
+    .payment-stat-card .pay-name { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
+    .payment-stat-card .pay-count { font-size: 18px; font-weight: 800; color: var(--text); }
+    .payment-stat-card .pay-amount { font-size: 13px; color: var(--sub); margin-top: 4px; }
+    .payment-stat-card .pay-fee { font-size: 12px; color: var(--red); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+    .payment-stat-card .pay-fee-rate { font-size: 10px; color: var(--sub); }
+    
+    /* PayPayロゴ */
+    .paypay-logo { width: 32px; height: 32px; background: #FF0033; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+    .paypay-logo svg { width: 22px; height: 22px; }
+
     /* SEARCH VIEW */
     .search-box { display: flex; gap: 10px; margin-bottom: 24px; }
     .inp-search { flex: 1; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #fff; }
@@ -132,19 +151,47 @@
     /* MODAL */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
     .overlay.open { display: flex; opacity: 1; }
-    .box { background: var(--surface); width: 440px; padding: 32px; border-radius: var(--radius-l); box-shadow: 0 20px 60px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; }
+    .box { background: var(--surface); width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 28px; border-radius: var(--radius-l); box-shadow: 0 20px 60px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; }
     .overlay.open .box { transform: scale(1); }
-    .box-h { margin-bottom: 24px; text-align: center; }
-    .box-ttl { font-size: 16px; font-weight: 800; }
+    .box-h { margin-bottom: 20px; text-align: center; padding-bottom: 16px; border-bottom: 2px solid var(--line); }
+    .box-ttl { font-size: 20px; font-weight: 800; }
     
-    .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
-    .info-lbl { color: var(--sub); font-weight: 700; font-size: 11px; }
-    .info-val { font-weight: 600; font-family: var(--font-en); }
+    /* 予約詳細モーダル専用スタイル */
+    #detailMod .box { width: 520px; }
+    #detailMod .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    #detailMod .info-item { background: var(--bg); padding: 14px 16px; border-radius: 10px; }
+    #detailMod .info-lbl { color: var(--sub); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: block; }
+    #detailMod .info-val { font-weight: 700; font-size: 16px; color: var(--text); display: block; }
+    #detailMod .info-item.full { grid-column: 1 / -1; }
+    #detailMod .info-item.fee-item { display: flex; align-items: center; justify-content: space-between; }
+    #detailMod .info-item.fee-item .fee-input-wrap { display: flex; align-items: center; gap: 8px; }
+    #detailMod .info-item.fee-item .inp { width: 120px; margin: 0; padding: 8px 12px; font-size: 16px; font-weight: 700; }
+    
+    /* 決済方法選択 */
+    .payment-section { background: var(--bg); padding: 16px; border-radius: 10px; margin-bottom: 16px; }
+    .payment-section .inp-lbl { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 12px; display: block; }
+    .payment-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .payment-btn { padding: 10px 6px; border: 2px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-size: 11px; font-weight: 700; transition: all 0.2s; text-align: center; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .payment-btn:hover { border-color: var(--text); background: #F9FAFB; }
+    .payment-btn.selected { background: #FFF3E0; border-color: #FF9800; color: #E65100; }
+    .payment-btn img { width: 24px; height: 24px; object-fit: contain; }
+    
+    /* 決済済みの予約セル（薄いオレンジ背景） */
+    .cell.booked.paid { background: #FFF3E0 !important; color: #E65100 !important; }
 
-    .inp { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #FAFAFA; margin-bottom: 16px; }
+    .inp { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #FAFAFA; margin-bottom: 12px; }
     .inp:focus { border-color: var(--text); background: #fff; }
-    textarea.inp { min-height: 80px; resize: vertical; }
+    textarea.inp { min-height: 70px; resize: vertical; }
     .inp-row { display: flex; gap: 10px; } .inp-row .inp { margin-bottom: 0; }
+    .inp-lbl { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 6px; display: block; }
+    .inp-group { margin-bottom: 12px; }
+    
+    /* 繰り返し予約モーダル専用スタイル */
+    #repeatMod .box { width: 600px; }
+    #repeatMod .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    #repeatMod .form-grid .inp-group { margin-bottom: 0; }
+    #repeatMod .form-grid .inp { margin-bottom: 0; }
+    #repeatMod .form-grid .full { grid-column: 1 / -1; }
 
     /* Spaced out Bulk Block Form */
     #bulkMod .inp-group { margin-bottom: 24px; }
@@ -202,6 +249,7 @@
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px;">
+        <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
         <button class="btn btn-ghost" onclick="refreshData()">更新</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
@@ -230,7 +278,7 @@
         <input id="sKeyword" class="inp-search" placeholder="名前 または 電話番号 で検索..." onkeypress="if(event.key==='Enter')runSearch()">
         <button class="btn btn-primary" onclick="runSearch()">検索</button>
       </div>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:16px;">
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:16px;">
         <div>
           <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">スタッフ</label>
           <select id="sStaff" class="inp" style="margin:0;">
@@ -254,6 +302,33 @@
             <option value="キャンセル">キャンセル</option>
           </select>
         </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">決済方法</label>
+          <select id="sPayment" class="inp" style="margin:0;">
+            <option value="">すべて</option>
+            <option value="現金">現金</option>
+            <option value="商品券">商品券</option>
+            <option value="クレジット">クレジット</option>
+            <option value="ペイペイ">PayPay</option>
+            <option value="未選択">未選択</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">時間帯（開始）</label>
+          <select id="sTimeFrom" class="inp" style="margin:0;">
+            <option value="">すべて</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">時間帯（終了）</label>
+          <select id="sTimeTo" class="inp" style="margin:0;">
+            <option value="">すべて</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:11px; font-weight:700; color:var(--sub); margin-bottom:6px;">メモ検索</label>
+        <input id="sMemo" class="inp" style="margin:0;" placeholder="メモ内のキーワードで検索...">
       </div>
       <div id="sResult" class="result-list">
         <div style="text-align:center; color:var(--sub); padding:40px;">検索条件を設定して検索してください</div>
@@ -262,14 +337,30 @@
 
     <!-- DASHBOARD -->
     <div id="viewDashboard" class="hidden">
-      <div style="margin-bottom:20px; text-align:right;">
-        <select id="dashMonth" class="inp" style="width:auto; margin:0;" onchange="loadDashboard()"></select>
+      <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <button class="btn btn-primary" onclick="exportToExcel()">📥 Excelエクスポート</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <select id="dashMonthFrom" class="inp" style="width:auto; margin:0;"></select>
+          <span style="font-weight:700;">〜</span>
+          <select id="dashMonthTo" class="inp" style="width:auto; margin:0;"></select>
+          <button class="btn" onclick="loadDashboard()">検索</button>
+        </div>
       </div>
 
       <div class="dash-grid">
         <div class="kpi-card"><div class="kpi-lbl">Total Sales</div><div class="kpi-val" id="kpiSales">¥0</div><div class="kpi-sub">月間売上合計</div></div>
         <div class="kpi-card"><div class="kpi-lbl">Total Bookings</div><div class="kpi-val" id="kpiCount">0</div><div class="kpi-sub">予約件数</div></div>
         <div class="kpi-card"><div class="kpi-lbl">Avg. Price</div><div class="kpi-val" id="kpiAvg">¥0</div><div class="kpi-sub">平均客単価</div></div>
+      </div>
+
+      <!-- 決済方法別集計 -->
+      <div class="chart-box" style="height:auto; margin-bottom:20px;">
+        <div class="chart-ttl">💳 決済方法別集計</div>
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;" id="paymentStats"></div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:13px; color:var(--sub);">手数料合計</div>
+          <div style="font-size:20px; font-weight:800; color:var(--red);" id="totalFees">¥0</div>
+        </div>
       </div>
 
       <div class="chart-row">
@@ -288,10 +379,19 @@
   <!-- MODALS -->
   <div class="overlay" id="detailMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h"><h3 class="box-ttl">予約詳細</h3></div>
-      <div id="info"></div>
+      <div class="box-h"><h3 class="box-ttl">📋 予約詳細</h3></div>
+      <div id="info" class="info-grid"></div>
+      <div class="payment-section">
+        <label class="inp-lbl">💳 決済方法</label>
+        <div class="payment-options" id="paymentOptions">
+          <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
+          <button class="payment-btn" data-method="商品券" onclick="selectPayment('商品券')"><span style="font-size:20px;">🎫</span>商品券</button>
+          <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
+          <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
+        </div>
+      </div>
       <div class="inp-group">
-        <label class="inp-lbl">管理者メモ</label>
+        <label class="inp-lbl">📝 管理者メモ</label>
         <textarea id="memo" class="inp" placeholder="メモを入力（自動保存）"></textarea>
       </div>
       <div class="btns"><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
@@ -312,19 +412,30 @@
   </div>
 
   <div class="overlay" id="createMod" onclick="if(event.target===this)closeAll()">
-    <div class="box">
-      <div class="box-h"><h3 class="box-ttl">新規予約作成</h3></div>
-      <div class="inp-group"><label class="inp-lbl">氏名</label><input id="cName" class="inp" placeholder="氏名を入力"></div>
-      <div class="inp-group"><label class="inp-lbl">電話番号</label><input id="cPhone" class="inp" placeholder="090-0000-0000"></div>
-      <div class="inp-group"><label class="inp-lbl">症状・備考</label><textarea id="cSym" class="inp" placeholder="症状・備考を入力"></textarea></div>
-      <div class="inp-group">
-        <label class="inp-lbl">施術時間</label>
-        <select id="cDuration" class="inp" style="margin:0;">
-          <option value="30">30分</option>
-          <option value="60" selected>60分</option>
-          <option value="90">90分</option>
-          <option value="120">120分</option>
-        </select>
+    <div class="box" style="width:500px;">
+      <div class="box-h"><h3 class="box-ttl">➕ 新規予約作成</h3></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+        <div class="inp-group">
+          <label class="inp-lbl">👤 氏名</label>
+          <input id="cName" class="inp" placeholder="氏名を入力" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">📞 電話番号</label>
+          <input id="cPhone" class="inp" placeholder="090-0000-0000" style="margin:0;">
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">🩺 症状・備考</label>
+          <textarea id="cSym" class="inp" placeholder="症状・備考を入力" style="margin:0; min-height:60px;"></textarea>
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">⏱️ 施術時間</label>
+          <select id="cDuration" class="inp" style="margin:0;">
+            <option value="30">30分</option>
+            <option value="60" selected>60分</option>
+            <option value="90">90分</option>
+            <option value="120">120分</option>
+          </select>
+        </div>
       </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
@@ -362,31 +473,33 @@
   </div>
 
   <div class="overlay" id="bulkMod" onclick="if(event.target===this)closeAll()">
-    <div class="box" style="width:520px;">
-      <div class="box-h"><h3 class="box-ttl">一括ブロック設定</h3></div>
-      <div class="inp-group">
-        <label class="inp-lbl">期間</label>
-        <div class="inp-row">
-          <input type="date" id="blkFrom" class="inp">
-          <span style="padding-top:10px;">〜</span>
-          <input type="date" id="blkTo" class="inp">
+    <div class="box" style="width:560px;">
+      <div class="box-h"><h3 class="box-ttl">🚫 一括ブロック設定</h3></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">📅 期間</label>
+          <div class="inp-row">
+            <input type="date" id="blkFrom" class="inp" style="margin:0;">
+            <span style="padding:8px 0; font-weight:700;">〜</span>
+            <input type="date" id="blkTo" class="inp" style="margin:0;">
+          </div>
         </div>
-      </div>
-      <div class="inp-group">
-        <label class="inp-lbl">時間帯</label>
-        <div class="inp-row">
-          <select id="blkStart" class="inp"></select>
-          <span style="padding-top:10px;">〜</span>
-          <select id="blkEnd" class="inp"></select>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">⏰ 時間帯</label>
+          <div class="inp-row">
+            <select id="blkStart" class="inp" style="margin:0;"></select>
+            <span style="padding:8px 0; font-weight:700;">〜</span>
+            <select id="blkEnd" class="inp" style="margin:0;"></select>
+          </div>
         </div>
-      </div>
-      <div class="inp-group">
-        <label class="inp-lbl">対象スタッフ</label>
-        <div class="staff-checks" id="blkStaff"></div>
-      </div>
-      <div class="inp-group">
-        <label class="inp-lbl">理由</label>
-        <input id="blkReason" class="inp" placeholder="理由を入力 (例: 研修)">
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">👥 対象スタッフ</label>
+          <div class="staff-checks" id="blkStaff"></div>
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">📝 理由</label>
+          <input id="blkReason" class="inp" placeholder="理由を入力 (例: 研修)" style="margin:0;">
+        </div>
       </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="runBulk(false)">解除</button>
@@ -408,12 +521,90 @@
     </div>
   </div>
 
+  <!-- 繰り返し予約モーダル -->
+  <div class="overlay" id="repeatMod" onclick="if(event.target===this)closeAll()">
+    <div class="box">
+      <div class="box-h"><h3 class="box-ttl">🔄 繰り返し予約設定</h3></div>
+      <div class="form-grid">
+        <div class="inp-group">
+          <label class="inp-lbl">曜日</label>
+          <select id="repeatDay" class="inp">
+            <option value="0">日曜日</option>
+            <option value="1">月曜日</option>
+            <option value="2">火曜日</option>
+            <option value="3">水曜日</option>
+            <option value="4">木曜日</option>
+            <option value="5">金曜日</option>
+            <option value="6">土曜日</option>
+          </select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">スタッフ</label>
+          <select id="repeatStaff" class="inp"></select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">開始時間</label>
+          <select id="repeatTime" class="inp"></select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">施術時間</label>
+          <select id="repeatDuration" class="inp">
+            <option value="30">30分</option>
+            <option value="60" selected>60分</option>
+            <option value="90">90分</option>
+            <option value="120">120分</option>
+          </select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">患者名</label>
+          <input id="repeatName" class="inp" placeholder="患者名を入力">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">電話番号</label>
+          <input id="repeatPhone" class="inp" placeholder="090-0000-0000">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">症状</label>
+          <input id="repeatSymptoms" class="inp" placeholder="症状を入力">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">作成期間</label>
+          <select id="repeatWeeks" class="inp">
+            <option value="1">1週間先まで</option>
+            <option value="2">2週間先まで</option>
+            <option value="3">3週間先まで</option>
+            <option value="4" selected>4週間先まで</option>
+            <option value="8">8週間先まで</option>
+            <option value="12">12週間先まで</option>
+          </select>
+        </div>
+        <div class="inp-group full">
+          <label class="inp-lbl">メモ</label>
+          <textarea id="repeatMemo" class="inp" placeholder="メモを入力" style="min-height:50px;"></textarea>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-primary" onclick="createRepeatBookings()">作成</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 // CONFIG
 const SUPABASE_URL = 'https://zzezehgnzeneueklxduy.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ';
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 const TIMES = []; for(let h=9;h<21;h++) for(let m=0;m<60;m+=30) TIMES.push(('0'+h).slice(-2)+':'+('0'+m).slice(-2));
+
+// スタッフ別診療時間（診療時間外はブロック）
+const STAFF_HOURS = {
+  '麻生川': { start: '12:00', end: '21:00' },
+  '松田': { start: '11:00', end: '21:00' },
+  '山口': { start: '09:00', end: '19:00' },
+  '岡野': { start: '09:00', end: '21:00' },
+  '堀江': { start: '09:00', end: '21:00' }
+};
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
@@ -509,12 +700,18 @@ window.onload = async () => {
   const sc=document.getElementById('blkStaff');
   STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
   
-  // ダッシュボード月選択の設定
-  const dm=document.getElementById('dashMonth'), today=new Date();
-  for(let i=0; i<12; i++) {
+  // ダッシュボード期間選択の設定（過去24ヶ月）
+  const dmFrom=document.getElementById('dashMonthFrom'), dmTo=document.getElementById('dashMonthTo'), today=new Date();
+  for(let i=0; i<24; i++) {
     const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
-    dm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
+    const optText = `${d.getFullYear()}年 ${d.getMonth()+1}月`;
+    const optValue = fmtLocal(d).substr(0,7);
+    dmFrom.add(new Option(optText, optValue));
+    dmTo.add(new Option(optText, optValue));
   }
+  // デフォルトは今月のみ
+  dmFrom.value = fmtLocal(today).substr(0,7);
+  dmTo.value = fmtLocal(today).substr(0,7);
   
   // 検索画面の月選択の設定
   const sm=document.getElementById('sMonth');
@@ -523,6 +720,15 @@ window.onload = async () => {
     const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
     sm.add(new Option(`${d.getFullYear()}年 ${d.getMonth()+1}月`, fmtLocal(d).substr(0,7)));
   }
+  
+  // 検索画面の時間帯フィルター設定
+  const stf=document.getElementById('sTimeFrom'), stt=document.getElementById('sTimeTo');
+  TIMES.forEach(t => { stf.add(new Option(t, t)); stt.add(new Option(t, t)); });
+  
+  // 繰り返し予約モーダルの設定
+  const rt=document.getElementById('repeatTime'), rs=document.getElementById('repeatStaff');
+  TIMES.forEach(t => rt.add(new Option(t, t)));
+  STAFFS.forEach(st => rs.add(new Option(st, st)));
   
   // Enterキーでログイン
   document.getElementById('email').addEventListener('keypress', (e) => {
@@ -640,7 +846,7 @@ async function load() {
   
   // 必要なカラムのみ取得（コスト削減）
   const { data: books } = await db.from('bookings')
-    .select('id, start_time, end_time, staff, patient_name, admin_memo')
+    .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
     .eq('date', dStr)
     .neq('status','キャンセル');
   const { data: blocks } = await db.from('blocks')
@@ -684,13 +890,34 @@ function renderHead() {
 }
 function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
-  TIMES.forEach(t => {
-    const tr=document.createElement('tr'); let h=`<td>${t}</td>`;
+  TIMES.forEach((t, tIdx) => {
+    const tr=document.createElement('tr');
+    // 1時間の区切り（:00で始まる行）に太い線を追加
+    if(t.endsWith(':00')) tr.classList.add('hour-start');
+    let h=`<td>${t}</td>`;
     STAFFS.forEach((nm, idx) => {
-      const c = s.data[nm][t], lbl = c.status === 'booked' ? c.label : (c.label || '');
+      let c = s.data[nm][t];
+      let isOutOfHours = false;
+      
+      // 診療時間外チェック（予約がない場合のみ時間外表示、ただしクリックは可能）
+      const hours = STAFF_HOURS[nm];
+      if(hours && (t < hours.start || t >= hours.end) && c.status !== 'booked') {
+        c = { status: 'outside', label: '時間外' };
+        isOutOfHours = true;
+      }
+      
+      const lbl = c.status === 'booked' ? c.label : (c.label || '');
       // 予約済みの場合はスタッフインデックスのクラスを追加
-      const staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
-      h+=`<td><div class="cell ${c.status}${staffClass}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
+      let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
+      // 決済選択済みの予約は薄いオレンジで表示
+      if(c.status === 'booked' && c.detail && c.detail.payment_method) {
+        staffClass += ' paid';
+      }
+      // 名前の長さに応じてフォントサイズを調整
+      let nameClass = '';
+      if(lbl.length > 5) nameClass = ' name-long';
+      if(lbl.length > 7) nameClass = ' name-very-long';
+      h+=`<td><div class="cell ${c.status}${staffClass}${nameClass}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
     });
     tr.innerHTML=h; b.appendChild(tr);
   });
@@ -701,22 +928,38 @@ async function cellClick(nm, t) {
   if(c.status === 'booked') {
     // 詳細情報を取得（必要な場合のみ）
     const { data: detail } = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method')
       .eq('id', c.id)
       .single();
     
     const d = detail || c.detail || {};
+    s.currentPaymentMethod = d.payment_method || '';
     document.getElementById('info').innerHTML = `
-      <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${d.patient_name||'-'}</span></div>
-      <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${d.phone||'-'}</span></div>
-      <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${d.symptoms||'-'}</span></div>
-      <div class="info-row" style="align-items:center;">
-        <span class="info-lbl">料金</span>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input type="number" id="editFee" class="inp" value="${Number(d.fee||0)}" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
-          <span style="font-size:11px; color:var(--sub);">円</span>
+      <div class="info-item">
+        <span class="info-lbl">👤 氏名</span>
+        <span class="info-val">${d.patient_name||'-'}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-lbl">📞 電話</span>
+        <span class="info-val">${d.phone||'-'}</span>
+      </div>
+      <div class="info-item full">
+        <span class="info-lbl">🩺 症状</span>
+        <span class="info-val" style="font-weight:500;">${d.symptoms||'-'}</span>
+      </div>
+      <div class="info-item fee-item full">
+        <div>
+          <span class="info-lbl">💰 料金</span>
+        </div>
+        <div class="fee-input-wrap">
+          <input type="number" id="editFee" class="inp" value="${Number(d.fee||0)}">
+          <span style="font-size:14px; color:var(--sub); font-weight:700;">円</span>
         </div>
       </div>`;
+    
+    // 決済方法のボタンを更新
+    updatePaymentButtons(d.payment_method);
+    
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
     // デバウンス処理でメモ更新
@@ -737,8 +980,8 @@ async function cellClick(nm, t) {
       };
     }
     openMod('detailMod');
-  } else if(c.status === 'free') {
-    document.getElementById('actTarget').textContent = `${nm} ${t}`;
+  } else if(c.status === 'free' || c.status === 'outside') {
+    document.getElementById('actTarget').textContent = `${nm} ${t}${c.status === 'outside' ? ' (時間外)' : ''}`;
     openMod('actionMod');
     // Clear create form
     document.getElementById('cName').value = '';
@@ -917,25 +1160,46 @@ async function saveFees() {
 async function openSearchDetail(bookingId) {
   s.id = bookingId;
   const { data: detail } = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff, payment_method')
     .eq('id', bookingId)
     .single();
   
   if(!detail) return;
   
+  s.currentPaymentMethod = detail.payment_method || '';
   document.getElementById('info').innerHTML = `
-    <div class="info-row"><span class="info-lbl">氏名</span><span class="info-val">${detail.patient_name||'-'}</span></div>
-    <div class="info-row"><span class="info-lbl">電話</span><span class="info-val">${detail.phone||'-'}</span></div>
-    <div class="info-row"><span class="info-lbl">日時</span><span class="info-val">${detail.date} ${detail.start_time}</span></div>
-    <div class="info-row"><span class="info-lbl">スタッフ</span><span class="info-val">${detail.staff||'-'}</span></div>
-    <div class="info-row"><span class="info-lbl">症状</span><span class="info-val" style="font-weight:400;">${detail.symptoms||'-'}</span></div>
-    <div class="info-row" style="align-items:center;">
-      <span class="info-lbl">料金</span>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <input type="number" id="editFee" class="inp" value="${Number(detail.fee||0)}" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
-        <span style="font-size:11px; color:var(--sub);">円</span>
+    <div class="info-item">
+      <span class="info-lbl">👤 氏名</span>
+      <span class="info-val">${detail.patient_name||'-'}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-lbl">📞 電話</span>
+      <span class="info-val">${detail.phone||'-'}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-lbl">📅 日時</span>
+      <span class="info-val">${detail.date} ${detail.start_time}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-lbl">👨‍⚕️ スタッフ</span>
+      <span class="info-val">${detail.staff||'-'}</span>
+    </div>
+    <div class="info-item full">
+      <span class="info-lbl">🩺 症状</span>
+      <span class="info-val" style="font-weight:500;">${detail.symptoms||'-'}</span>
+    </div>
+    <div class="info-item fee-item full">
+      <div>
+        <span class="info-lbl">💰 料金</span>
+      </div>
+      <div class="fee-input-wrap">
+        <input type="number" id="editFee" class="inp" value="${Number(detail.fee||0)}">
+        <span style="font-size:14px; color:var(--sub); font-weight:700;">円</span>
       </div>
     </div>`;
+  
+  // 決済方法のボタンを更新
+  updatePaymentButtons(detail.payment_method);
   
   const mEl = document.getElementById('memo');
   mEl.value = detail.admin_memo || '';
@@ -1003,16 +1267,20 @@ async function runSearch() {
   const staff = document.getElementById('sStaff').value;
   const month = document.getElementById('sMonth').value;
   const status = document.getElementById('sStatus').value;
+  const payment = document.getElementById('sPayment').value;
+  const timeFrom = document.getElementById('sTimeFrom').value;
+  const timeTo = document.getElementById('sTimeTo').value;
+  const memo = document.getElementById('sMemo').value.trim();
   
   // 検索条件が何もない場合は警告
-  if(!kw && !staff && !month && !status) {
+  if(!kw && !staff && !month && !status && !payment && !timeFrom && !timeTo && !memo) {
     showLoad(false);
     showToast('検索条件を1つ以上入力してください');
     return;
   }
   
   let query = db.from('bookings')
-    .select('id, date, start_time, staff, patient_name, phone, symptoms, status, admin_memo, fee');
+    .select('id, date, start_time, end_time, staff, patient_name, phone, symptoms, status, admin_memo, fee, payment_method');
   
   // キーワード検索（名前または電話番号）- キーワードがある場合のみ
   if(kw) {
@@ -1038,6 +1306,28 @@ async function runSearch() {
     query = query.eq('status', status);
   }
   
+  // 決済方法フィルター
+  if(payment) {
+    if(payment === '未選択') {
+      query = query.is('payment_method', null);
+    } else {
+      query = query.eq('payment_method', payment);
+    }
+  }
+  
+  // 時間帯フィルター
+  if(timeFrom) {
+    query = query.gte('start_time', timeFrom);
+  }
+  if(timeTo) {
+    query = query.lte('start_time', timeTo);
+  }
+  
+  // メモ検索
+  if(memo) {
+    query = query.ilike('admin_memo', `%${memo}%`);
+  }
+  
   // ソート: ステータスでソート（予約済み→キャンセル）、その後日付で降順
   const { data } = await query.order('date', { ascending: false });
     
@@ -1057,11 +1347,15 @@ async function runSearch() {
     sortedData.forEach(b => {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
+      const paymentHtml = b.payment_method 
+        ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${b.payment_method}</span>` 
+        : `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">未決済</span>`;
+      const endTime = b.end_time || addTime(b.start_time, 60);
       list.innerHTML += `
         <div class="res-card" onclick="openSearchDetail('${b.id}')" style="cursor:pointer;">
           <div class="res-header">
-            <div class="res-name">${b.patient_name} <span style="font-weight:400; font-size:12px; margin-left:8px; ${stClass}">${b.status}</span></div>
-            <div class="res-date">${b.date} ${b.start_time}</div>
+            <div class="res-name">${b.patient_name} <span style="font-weight:400; font-size:12px; margin-left:8px; ${stClass}">${b.status}</span>${paymentHtml}</div>
+            <div class="res-date">${b.date} ${b.start_time}〜${endTime}</div>
           </div>
           <div class="res-detail">
             <div><span class="res-tag">${b.staff}</span> 症状: ${b.symptoms || 'なし'}</div>
@@ -1075,21 +1369,38 @@ async function runSearch() {
 }
 
 // DASHBOARD
+// 決済手数料率
+const PAYMENT_FEES = {
+  '現金': 0,
+  'ペイペイ': 0.018,  // 1.8%
+  'クレジット': 0.0325, // 3.25%
+  '商品券': 0
+};
+
+// ダッシュボード用データ保存
+let dashboardData = [];
+
 async function loadDashboard() {
   showLoad(true);
-  const ym = document.getElementById('dashMonth').value;
-  const [y, m] = ym.split('-').map(Number);
-  const start = `${ym}-01`;
-  const lastDay = new Date(y, m, 0).getDate();
-  const end = `${ym}-${lastDay}`;
+  const ymFrom = document.getElementById('dashMonthFrom').value;
+  const ymTo = document.getElementById('dashMonthTo').value;
   
-  // 必要なカラムのみ取得（既に最適化済み）
+  // 開始日と終了日を計算
+  const [yFrom, mFrom] = ymFrom.split('-').map(Number);
+  const [yTo, mTo] = ymTo.split('-').map(Number);
+  const start = `${ymFrom}-01`;
+  const lastDay = new Date(yTo, mTo, 0).getDate();
+  const end = `${ymTo}-${lastDay}`;
+  
+  // エクスポート用に全カラム取得
   const { data: books } = await db.from('bookings')
-    .select('staff, fee, date')
+    .select('id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo')
     .gte('date', start)
     .lte('date', end)
-    .neq('status', 'キャンセル');
+    .neq('status', 'キャンセル')
+    .order('date', { ascending: true });
   const list = books || [];
+  dashboardData = list; // エクスポート用に保存
     
   // KPI
   const totalSales = list.reduce((sum, b) => sum + Number(b.fee || 0), 0);
@@ -1099,6 +1410,67 @@ async function loadDashboard() {
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
   document.getElementById('kpiCount').textContent = count + '件';
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
+  
+  // 決済方法別集計
+  const payStats = {
+    '現金': { count: 0, amount: 0, fee: 0 },
+    'ペイペイ': { count: 0, amount: 0, fee: 0 },
+    'クレジット': { count: 0, amount: 0, fee: 0 },
+    '商品券': { count: 0, amount: 0, fee: 0 },
+    '未選択': { count: 0, amount: 0, fee: 0 }
+  };
+  
+  list.forEach(b => {
+    const method = b.payment_method || '未選択';
+    const amount = Number(b.fee || 0);
+    const feeRate = PAYMENT_FEES[method] || 0;
+    const fee = Math.round(amount * feeRate);
+    
+    if(payStats[method]) {
+      payStats[method].count++;
+      payStats[method].amount += amount;
+      payStats[method].fee += fee;
+    } else {
+      payStats['未選択'].count++;
+      payStats['未選択'].amount += amount;
+    }
+  });
+  
+  // 決済方法別カードを表示（並び順：現金→商品券→クレジット→PAYPAY）
+  // PayPayロゴ画像
+  const paypayLogoImg = `<img src="paypay.png" alt="PayPay" style="width:32px; height:32px; object-fit:contain;">`;
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', '商品券': '🎫', '未選択': '❓' };
+  const payColors = { '現金': '#4CAF50', 'ペイペイ': '#FF0033', 'クレジット': '#2196F3', '商品券': '#9C27B0', '未選択': '#9E9E9E' };
+  let payHtml = '';
+  let totalFees = 0;
+  
+  // 各決済方法の薄い背景色
+  const payBgColors = { '現金': '#E8F5E9', 'ペイペイ': '#FFEBEE', 'クレジット': '#E3F2FD', '商品券': '#F3E5F5' };
+  
+  ['現金', '商品券', 'クレジット', 'ペイペイ'].forEach(method => {
+    const stat = payStats[method];
+    const feeRate = PAYMENT_FEES[method] * 100;
+    totalFees += stat.fee;
+    
+    // 手数料が0%の場合は手数料欄を非表示
+    const feeHtml = feeRate > 0 ? `
+        <div class="pay-fee">
+          手数料: ¥${stat.fee.toLocaleString()}
+          <div class="pay-fee-rate">(${feeRate % 1 === 0 ? feeRate : feeRate.toFixed(2)}%)</div>
+        </div>` : '';
+    
+    payHtml += `
+      <div class="payment-stat-card" style="border-left:4px solid ${payColors[method]}; background:${payBgColors[method]};">
+        <div class="pay-icon">${payIcons[method]}</div>
+        <div class="pay-name">${method === 'ペイペイ' ? 'PayPay' : method}</div>
+        <div class="pay-count">${stat.count}件</div>
+        <div class="pay-amount">¥${stat.amount.toLocaleString()}</div>
+        ${feeHtml}
+      </div>`;
+  });
+  
+  document.getElementById('paymentStats').innerHTML = payHtml;
+  document.getElementById('totalFees').textContent = '¥' + totalFees.toLocaleString();
   
   // List: Staff Stats
   const stStats = {}; STAFFS.forEach(s => stStats[s] = {c:0, s:0});
@@ -1114,34 +1486,53 @@ async function loadDashboard() {
   });
   document.getElementById('staffList').innerHTML = stHtml;
 
-  // Chart: Cumulative
-  const daysInMonth = lastDay;
-  const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
-  const dailyData = new Array(daysInMonth).fill(0);
+  // Chart: Cumulative（日付ベース）
+  // 期間内の全日付を生成
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const dateLabels = [];
+  const dailyData = {};
+  
+  for(let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = fmtLocal(d);
+    dateLabels.push(dateStr);
+    dailyData[dateStr] = 0;
+  }
   
   list.forEach(b => {
-    const day = parseInt(b.date.split('-')[2]) - 1;
-    if(day >= 0 && day < daysInMonth) dailyData[day] += Number(b.fee || 0);
+    if(dailyData.hasOwnProperty(b.date)) {
+      dailyData[b.date] += Number(b.fee || 0);
+    }
   });
   
+  // 累積データを計算
   let acc = 0;
-  const cumData = dailyData.map(v => { acc += v; return acc; });
+  const cumData = dateLabels.map(date => { acc += dailyData[date]; return acc; });
+  
+  // ラベルを短縮形式に（MM/DD）
+  const shortLabels = dateLabels.map(d => {
+    const [y, m, day] = d.split('-');
+    return `${parseInt(m)}/${parseInt(day)}`;
+  });
   
   if(chartInst) chartInst.destroy();
   const ctx = document.getElementById('chartLine').getContext('2d');
   chartInst = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
+      labels: shortLabels,
       datasets: [{
         label: '売上 (累積)', data: cumData,
         borderColor: '#111827', backgroundColor: 'rgba(17, 24, 39, 0.05)',
-        tension: 0.3, fill: true, pointRadius: 2
+        tension: 0.3, fill: true, pointRadius: dateLabels.length > 60 ? 0 : 2
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true } },
+      scales: { 
+        y: { beginAtZero: true },
+        x: { ticks: { maxTicksLimit: 15 } }
+      },
       plugins: { legend: { display: false } }
     }
   });
@@ -1178,6 +1569,188 @@ function getTimeSlots(startTime, endTime) {
     current = addTime(current, 30);
   }
   return slots;
+}
+
+// 決済方法関連
+function updatePaymentButtons(currentMethod) {
+  document.querySelectorAll('.payment-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.method === currentMethod);
+  });
+}
+
+async function selectPayment(method) {
+  if(!s.id) return;
+  
+  // 同じ方法を選択した場合は解除
+  const newMethod = (s.currentPaymentMethod === method) ? null : method;
+  
+  const { error } = await db.from('bookings').update({ payment_method: newMethod }).eq('id', s.id);
+  if(!error) {
+    s.currentPaymentMethod = newMethod;
+    updatePaymentButtons(newMethod);
+    showToast(newMethod ? `決済方法を「${newMethod}」に設定しました` : '決済方法を解除しました');
+    clearAdminCache();
+    load();
+  } else {
+    showToast('決済方法の更新に失敗しました');
+  }
+}
+
+// 繰り返し予約関連
+function openRepeatModal() {
+  document.getElementById('repeatName').value = '';
+  document.getElementById('repeatPhone').value = '';
+  document.getElementById('repeatSymptoms').value = '';
+  document.getElementById('repeatMemo').value = '';
+  openMod('repeatMod');
+}
+
+async function createRepeatBookings() {
+  const dayOfWeek = parseInt(document.getElementById('repeatDay').value);
+  const time = document.getElementById('repeatTime').value;
+  const duration = parseInt(document.getElementById('repeatDuration').value);
+  const staff = document.getElementById('repeatStaff').value;
+  const name = document.getElementById('repeatName').value.trim();
+  const phone = document.getElementById('repeatPhone').value.trim();
+  const symptoms = document.getElementById('repeatSymptoms').value.trim();
+  const memo = document.getElementById('repeatMemo').value.trim();
+  const weeks = parseInt(document.getElementById('repeatWeeks').value);
+  
+  if(!name) { alert('患者名を入力してください'); return; }
+  if(!phone) { alert('電話番号を入力してください'); return; }
+  
+  // 診療時間チェック
+  const hours = STAFF_HOURS[staff];
+  const endTime = addTime(time, duration);
+  if(hours && (time < hours.start || endTime > hours.end)) {
+    alert(`${staff}の診療時間（${hours.start}〜${hours.end}）外です`);
+    return;
+  }
+  
+  showLoad(true);
+  
+  const bookings = [];
+  const today = new Date();
+  
+  for(let w = 0; w < weeks; w++) {
+    // 指定曜日の日付を計算
+    const targetDate = new Date(today);
+    const currentDay = today.getDay();
+    let daysToAdd = dayOfWeek - currentDay;
+    if(daysToAdd <= 0) daysToAdd += 7; // 今週の曜日が過ぎていたら来週
+    daysToAdd += (w * 7);
+    targetDate.setDate(today.getDate() + daysToAdd);
+    
+    const dateStr = fmtLocal(targetDate);
+    const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+    const fee = FEES[staff] ? Number(FEES[staff]) : 0;
+    
+    bookings.push({
+      id,
+      date: dateStr,
+      start_time: time,
+      end_time: endTime,
+      staff,
+      patient_name: name,
+      phone,
+      symptoms,
+      admin_memo: memo,
+      fee,
+      status: '予約済み'
+    });
+  }
+  
+  // 一括挿入
+  const { error } = await db.from('bookings').insert(bookings);
+  
+  if(error) {
+    showLoad(false);
+    alert('エラーが発生しました: ' + error.message);
+    return;
+  }
+  
+  clearAdminCache();
+  showLoad(false);
+  closeAll();
+  load();
+  showToast(`${weeks}件の繰り返し予約を作成しました`);
+}
+
+// switchTab更新（繰り返しボタンの表示制御）
+const originalSwitchTab = switchTab;
+switchTab = function(tab) {
+  originalSwitchTab(tab);
+  document.getElementById('repeatBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
+};
+
+// エクセルエクスポート機能
+function exportToExcel() {
+  if(!dashboardData || dashboardData.length === 0) {
+    showToast('エクスポートするデータがありません');
+    return;
+  }
+  
+  const ymFrom = document.getElementById('dashMonthFrom').value;
+  const ymTo = document.getElementById('dashMonthTo').value;
+  const periodStr = ymFrom === ymTo ? ymFrom : `${ymFrom}_${ymTo}`;
+  
+  // CSVヘッダー（決済手数料を料金の右に配置）
+  const headers = ['日付', '患者名', '開始時間', '終了時間', 'スタッフ', '料金', '決済手数料', '決済方法', '電話番号', '症状', 'メモ'];
+  
+  // データ行を作成
+  const rows = dashboardData.map(b => {
+    const fee = Number(b.fee || 0);
+    const method = b.payment_method || '';
+    const feeRate = PAYMENT_FEES[method] || 0;
+    const paymentFee = Math.round(fee * feeRate);
+    
+    return [
+      b.date,                              // 日付
+      b.patient_name || '',                // 患者名
+      b.start_time || '',                  // 開始時間
+      b.end_time || '',                    // 終了時間
+      b.staff || '',                       // スタッフ
+      fee,                                 // 料金
+      paymentFee,                          // 決済手数料
+      method,                              // 決済方法
+      b.phone || '',                       // 電話番号
+      (b.symptoms || '').replace(/,/g, '、'), // 症状（カンマを全角に）
+      (b.admin_memo || '').replace(/,/g, '、').replace(/\n/g, ' ') // メモ（カンマと改行を変換）
+    ];
+  });
+  
+  // BOM付きUTF-8でCSV作成（Excelで文字化けしないように）
+  const BOM = '\uFEFF';
+  let csvContent = BOM;
+  csvContent += headers.join(',') + '\n';
+  rows.forEach(row => {
+    csvContent += row.map(cell => {
+      // セルにカンマや改行が含まれる場合はダブルクォートで囲む
+      if(typeof cell === 'string' && (cell.includes(',') || cell.includes('\n') || cell.includes('"'))) {
+        return '"' + cell.replace(/"/g, '""') + '"';
+      }
+      return cell;
+    }).join(',') + '\n';
+  });
+  
+  // 集計行を追加
+  const totalFee = rows.reduce((sum, r) => sum + r[6], 0);
+  const totalAmount = rows.reduce((sum, r) => sum + r[5], 0);
+  csvContent += '\n';
+  csvContent += `合計,${rows.length}件,,,,,${totalAmount},${totalFee},,,,\n`;
+  
+  // ダウンロード
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `89CENTER_予約データ_${periodStr}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast(`${rows.length}件のデータをエクスポートしました`);
 }
 </script>
 </body>

@@ -395,6 +395,12 @@
           <input class="inp" id="pName" placeholder="お名前 (必須)">
           <input class="inp" id="pPhone" type="tel" placeholder="電話番号 (必須、ハイフンなし)" maxlength="15" pattern="[0-9]*" inputmode="numeric">
           <input class="inp" id="pSym" placeholder="症状・ご要望 (任意)">
+          <select class="inp" id="pDuration">
+            <option value="30">30分</option>
+            <option value="60" selected>60分（標準）</option>
+            <option value="90">90分</option>
+            <option value="120">120分</option>
+          </select>
         </div>
         <div class="chk-wrap">
           <input type="checkbox" id="inTerm" class="chk">
@@ -884,8 +890,8 @@ async function createBooking() {
   // Validate Past Time
   if(isPast(state.date, p.time)) { loading(false); return alert('過去の時間は予約できません'); }
 
-  // クライアント画面は60分固定
-  const duration = 60;
+  // 患者が選択した施術時間を取得
+  const duration = parseInt(document.getElementById('pDuration').value) || 60;
   const endTime = addTime(p.time, duration);
   const dStr = fmt(state.date);
   
