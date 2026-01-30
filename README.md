@@ -14,34 +14,35 @@
 ### 前提条件
 
 - Node.js（v14以上推奨）
-- またはPython 3.x
 
-### 起動方法
-
-#### 方法1: Node.jsを使用（推奨）
+### 起動方法（推奨）
 
 ```bash
-# http-serverをグローバルにインストール（初回のみ）
-npm install -g http-server
+# 依存関係をインストール（初回のみ）
+npm install
 
-# サーバーを起動
-http-server -p 8080 -o
+# サーバーを起動（ポート 3000）
+npm start
 ```
 
-#### 方法2: Pythonを使用
+- **管理画面:** http://127.0.0.1:3000/admin.html  
+- **予約画面:** http://127.0.0.1:3000/index.html  
+
+ブラウザを自動で開く場合: `npm run dev`
+
+### その他の起動方法
+
+#### Python を使用
 
 ```bash
-# Python 3.x
-python -m http.server 8080
-
-# ブラウザで http://localhost:8080 を開く
+python -m http.server 3000
+# http://localhost:3000/admin.html または /index.html
 ```
 
-#### 方法3: VS Code Live Server拡張機能
+#### VS Code Live Server
 
-1. VS Codeに「Live Server」拡張機能をインストール
-2. `index.html`または`admin.html`を右クリック
-3. 「Open with Live Server」を選択
+1. 「Live Server」拡張機能をインストール
+2. `index.html` または `admin.html` を右クリック → 「Open with Live Server」
 
 ## 🔧 設定
 

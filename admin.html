@@ -98,7 +98,8 @@
     .cell.booked.staff-2,
     .cell.booked.staff-3,
     .cell.booked.staff-4 { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .blocked { background: #F3F4F6; color: var(--sub); background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, #FFF 4px, #FFF 6px); }
+    .blocked { background: #9CA3AF; color: #fff; background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 6px); font-size: 14px; font-weight: 600; }
+.blocked:hover { background: #6B7280; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
     .outside:hover { background: #D0D0D0; cursor: pointer; }
     .dayoff { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -759,6 +760,19 @@
     <div class="box">
       <div class="box-h"><h3 class="box-ttl">ブロック設定</h3></div>
       <div class="inp-group">
+        <label class="inp-lbl">ブロックする時間</label>
+        <select id="sBlkDuration" class="inp" style="margin:0;">
+          <option value="30">30分</option>
+          <option value="60" selected>60分</option>
+          <option value="90">90分</option>
+          <option value="120">120分</option>
+          <option value="150">150分</option>
+          <option value="180">180分</option>
+          <option value="210">210分</option>
+          <option value="240">240分</option>
+        </select>
+      </div>
+      <div class="inp-group">
         <label class="inp-lbl">理由</label>
         <input id="sBlkReason" class="inp" placeholder="理由 (例: 休憩)">
       </div>
@@ -1249,7 +1263,7 @@ function renderGrid() {
         }
       }
       
-      const lbl = c.status === 'booked' ? c.label : displayLabel;
+      const lbl = c.status === 'booked' ? c.label : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       // 予約済みの場合はスタッフインデックスのクラスを追加
       let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
       // 決済選択済みの予約は薄いオレンジで表示
@@ -1576,7 +1590,12 @@ async function openSearchDetail(bookingId) {
 
 async function runSingleBlock() {
   const r = document.getElementById('sBlkReason').value;
-  await db.from('blocks').insert({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff, reason:r });
+  const duration = parseInt(document.getElementById('sBlkDuration').value) || 60;
+  const endTime = addTime(s.cur.time, duration);
+  const slots = getTimeSlots(s.cur.time, endTime);
+  const dStr = fmtLocal(s.date);
+  const rows = slots.map(t => ({ date: dStr, time: t, staff: s.cur.staff, reason: r }));
+  await db.from('blocks').insert(rows);
   clearAdminCache();
   closeAll(); load();
 }
