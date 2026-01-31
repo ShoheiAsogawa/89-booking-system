@@ -932,6 +932,7 @@ const STAFF_HOURS = {
 
 // スタッフ別定休日（曜日: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土）
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 };
+const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let s = { date: new Date(), data: {}, cur: null, id: null };
@@ -1181,7 +1182,8 @@ function refreshData() {
 async function load() {
   showLoad(true);
   const dStr = fmtLocal(s.date);
-  document.getElementById('dDisp').textContent = dStr;
+  const dateWithDow = dStr.replace(/-/g, '.') + ' (' + WEEKDAY_JA[s.date.getDay()] + ')';
+  document.getElementById('dDisp').textContent = dateWithDow;
   
   // キャッシュチェック
   const cached = getAdminCachedData(dStr);
