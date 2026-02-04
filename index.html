@@ -93,13 +93,14 @@
     
     /* Calendar Button */
     .cal-btn {
-      width: 44px; height: 44px; border-radius: 12px; background: var(--text); color: #fff;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--line);
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 2px solid var(--text);
-      flex-shrink: 0; transition: transform 0.15s, box-shadow 0.15s;
+      flex-shrink: 0; transition: background 0.15s, border-color 0.15s;
     }
-    .cal-btn:active { transform: scale(0.96); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-    .cal-icon { width: 22px; height: 22px; }
+    .cal-btn:active { background: var(--line); }
+    .cal-icon { width: 14px; height: 14px; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 10; }
 
     /* LEGEND (凡例) */
@@ -150,6 +151,7 @@
     }
 
     td { height: 50px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 0; }
+    tr.hour-start td { border-top: 2px solid #555; }
     td:first-child {
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
@@ -1035,6 +1037,7 @@ function renderBody() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   genSlots().forEach(t => {
     const tr=document.createElement('tr');
+    if(t.endsWith(':00')) tr.classList.add('hour-start');
     let h=`<td>${escapeHtml(t)}</td>`;
     STAFFS.forEach(s => {
       const st=state.data[s][t].status;
