@@ -148,6 +148,7 @@
     }
 
     td { height: 50px; vertical-align: middle; border-bottom: 1px solid var(--line); padding: 0; }
+    tr.hour-start td { border-top: 2px solid var(--text); }
     td:first-child {
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
@@ -1032,7 +1033,9 @@ function renderDate() {
 function renderBody() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   genSlots().forEach(t => {
-    const tr=document.createElement('tr'); let h=`<td>${escapeHtml(t)}</td>`;
+    const tr=document.createElement('tr');
+    if(t.endsWith(':00')) tr.classList.add('hour-start');
+    let h=`<td>${escapeHtml(t)}</td>`;
     STAFFS.forEach(s => {
       const st=state.data[s][t].status;
       const id = state.data[s][t].id || '';
