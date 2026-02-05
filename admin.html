@@ -41,7 +41,7 @@
     
     .header-left { display: flex; align-items: center; gap: 40px; }
     
-    h1 { font-family: var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
+    h1 { font-family: Impact, var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
     .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
@@ -77,6 +77,9 @@
     td { height: 60px; border-bottom: 1px solid var(--line); border-right: 1px dashed var(--line); padding: 4px; vertical-align: middle; }
     td:last-child { border-right: none; }
     td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 700; font-size: 16px; color: var(--text); border-right: 1px solid var(--line); }
+    /* 右端の時間列 */
+    th:last-child { width: 90px; border-left: 1px solid var(--line); }
+    td.time-right { width: 90px; position: sticky; right: 0; background: var(--surface); z-index: 5; text-align: center; font-family: var(--font-en); font-weight: 700; font-size: 16px; color: var(--text); border-left: 1px solid var(--line); border-right: none; }
     /* 1時間ごとの区切り線を太くする */
     tr.hour-start td { border-top: 2px solid var(--text); }
     
@@ -480,7 +483,7 @@
         <div class="tabs">
           <button class="tab active" onclick="switchTab('schedule')">予約管理</button>
           <button class="tab" onclick="switchTab('search')">患者検索</button>
-          <button class="tab" onclick="switchTab('dashboard')">ダッシュボード</button>
+          <button class="tab" onclick="switchTab('dashboard')">売上</button>
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px;">
@@ -561,9 +564,9 @@
             <select id="sPayment" class="inp" style="margin:0; font-size:12px;">
               <option value="">すべて</option>
               <option value="現金">現金</option>
-              <option value="商品券">商品券</option>
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
+              <option value="商品券">商品券</option>
               <option value="未選択">未選択</option>
             </select>
           </div>
@@ -597,8 +600,6 @@
       <!-- ダッシュボードヘッダー -->
       <div class="dash-header">
         <div class="dash-header-left">
-          <h2 class="dash-title">📊 Analytics Dashboard</h2>
-          <p class="dash-subtitle">売上・予約データの分析</p>
         </div>
         <div class="dash-header-right">
           <div class="period-selector">
@@ -696,9 +697,9 @@
         <label class="inp-lbl">💳 決済方法</label>
         <div class="payment-options" id="paymentOptions">
           <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
-          <button class="payment-btn" data-method="商品券" onclick="selectPayment('商品券')"><span style="font-size:20px;">🎫</span>商品券</button>
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
+          <button class="payment-btn" data-method="商品券" onclick="selectPayment('商品券')"><span style="font-size:20px;">🎫</span>商品券</button>
         </div>
       </div>
       <div class="inp-group">
@@ -926,7 +927,7 @@ const STAFF_HOURS = {
   '麻生川': { start: '12:00', end: '21:00' },
   '松田': { start: '11:00', end: '21:00' },
   '山口': { start: '09:00', end: '19:00' },
-  '岡野': { start: '09:00', end: '21:00' },
+  '岡野': { start: '09:00', end: '19:00' },
   '堀江': { start: '09:00', end: '21:00' }
 };
 
@@ -1182,8 +1183,12 @@ function refreshData() {
 async function load() {
   showLoad(true);
   const dStr = fmtLocal(s.date);
-  const dateWithDow = dStr.replace(/-/g, '.') + ' (' + WEEKDAY_JA[s.date.getDay()] + ')';
-  document.getElementById('dDisp').textContent = dateWithDow;
+  const y = s.date.getFullYear();
+  const m = s.date.getMonth() + 1;
+  const d = s.date.getDate();
+  const dow = WEEKDAY_JA[s.date.getDay()];
+  const dateDisplay = `${y}年${m}月${d}日(${dow})`;
+  document.getElementById('dDisp').textContent = dateDisplay;
   
   // キャッシュチェック
   const cached = getAdminCachedData(dStr);
@@ -1235,9 +1240,20 @@ async function load() {
 
 function renderHead() { 
   let h='<tr><th></th>'; 
-  STAFFS.forEach(n=>h+=`<th>${n}</th>`); 
+  STAFFS.forEach(n=>h+=`<th>${n}</th>`);
+  h+='<th></th>'; // 右端の時間列ヘッダー
   document.getElementById('thead').innerHTML=h+'</tr>'; 
 }
+function formatTimeDisplay(t) {
+  // 09:00 → 9:00, 09:30 → 9:30 形式に
+  const formatted = t.replace(/^0/, '');
+  const isHalfHour = t.endsWith(':30');
+  if (isHalfHour) {
+    return `<span style="color:#666;">${formatted}</span>`;
+  }
+  return formatted;
+}
+
 function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   const dow = s.date.getDay(); // 曜日を取得
@@ -1245,7 +1261,8 @@ function renderGrid() {
     const tr=document.createElement('tr');
     // 1時間の区切り（:00で始まる行）に太い線を追加
     if(t.endsWith(':00')) tr.classList.add('hour-start');
-    let h=`<td>${t}</td>`;
+    const timeDisplay = formatTimeDisplay(t);
+    let h=`<td>${timeDisplay}</td>`;
     STAFFS.forEach((nm, idx) => {
       let c = s.data[nm][t];
       let displayLabel = '';
@@ -1278,6 +1295,8 @@ function renderGrid() {
       if(lbl.length > 7) nameClass = ' name-very-long';
       h+=`<td><div class="cell ${cellStatus}${staffClass}${nameClass}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
     });
+    // 右端にも時間表記を追加
+    h+=`<td class="time-right">${timeDisplay}</td>`;
     tr.innerHTML=h; b.appendChild(tr);
   });
 }
@@ -1624,8 +1643,39 @@ async function runBulk(enable) {
   
   dates.forEach(d => tr.forEach(t => staffs.forEach(st => rows.push({ date:d, time:t, staff:st, reason:reason }))));
 
-  if(enable) await db.from('blocks').insert(rows);
-  else for(const r of rows) await db.from('blocks').delete().match({ date:r.date, time:r.time, staff:r.staff });
+  // ブロック時のみ：既存の予約をチェック
+  if(enable) {
+    // 指定期間の予約を取得
+    const { data: existingBookings, error } = await db.from('bookings')
+      .select('date, start_time, end_time, staff, patient_name')
+      .in('date', dates)
+      .in('staff', staffs)
+      .eq('status', 'confirmed');
+    
+    if(existingBookings && existingBookings.length > 0) {
+      // ブロックしようとしている時間帯と重複する予約を検出
+      const conflicting = [];
+      for(const booking of existingBookings) {
+        const bookingTimes = getTimeSlots(booking.start_time, booking.end_time);
+        for(const bt of bookingTimes) {
+          if(tr.includes(bt)) {
+            conflicting.push(`${booking.date} ${bt} ${booking.staff}（${booking.patient_name}様）`);
+          }
+        }
+      }
+      
+      if(conflicting.length > 0) {
+        showLoad(false);
+        const msg = '以下の時間帯に予約が入っているため、ブロックできません：\n\n' + conflicting.join('\n');
+        alert(msg);
+        return;
+      }
+    }
+    
+    await db.from('blocks').insert(rows);
+  } else {
+    for(const r of rows) await db.from('blocks').delete().match({ date:r.date, time:r.time, staff:r.staff });
+  }
   
   clearAdminCache();
   showLoad(false); closeAll(); load();

@@ -60,7 +60,7 @@
       padding: 0 16px; margin-bottom: 12px;
     }
     header.scrolled { border-color: var(--line); }
-    h1 { font-family: var(--font-en); font-size: 18px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
+    h1 { font-family: Impact, var(--font-en); font-size: 18px; font-weight: 700; letter-spacing: 0.05em; margin: 0; }
     
     .header-btn {
       font-size: 10px; font-weight: 700; color: var(--text); border: 1px solid var(--line);
@@ -69,7 +69,7 @@
     }
 
     /* NAV */
-    .nav { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; padding: 0 4px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px; position: sticky; top: 64px; background: var(--bg); z-index: 45; }
     .nav-btn {
       width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%;
       background: #fff; color: var(--text); font-size: 20px; font-weight: 900; cursor: pointer;
@@ -105,8 +105,9 @@
 
     /* LEGEND (凡例) */
     .legend { 
-      display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; 
+      display: flex; justify-content: center; gap: 16px; padding: 8px 0 12px; 
       font-size: 11px; color: var(--text); font-weight: 700;
+      position: sticky; top: 132px; background: var(--bg); z-index: 44;
     }
     .legend-item { display: flex; align-items: center; gap: 6px; }
     
@@ -157,6 +158,7 @@
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
       text-align: center; font-family: var(--font-en); font-size: 10px; font-weight: 700; color: var(--text);
+      transform: scaleY(1.15); letter-spacing: -0.5px;
     }
 
     /* CELLS */
@@ -506,7 +508,7 @@
                 <div class="step-desc">予約済みの枠はオレンジ色になります。タップすると内容の確認やキャンセルが可能です。</div>
                 <div class="note-box">
                   <span class="note-icon">⚠️</span>
-                  <span class="note-text">当日のキャンセルはシステムからは行えません。お手数ですがお電話にてご連絡ください。</span>
+                  <span class="note-text">当日のキャンセルはシステムからは行えません。お手数ですがお電話またはLINEにてご連絡ください。</span>
                 </div>
               </div>
             </div>
@@ -567,11 +569,14 @@
       <span class="warn-icon" style="font-size:32px; display:block; margin-bottom:16px;">⚠️</span>
       <div class="warn-text" style="font-size:16px; font-weight:700; margin-bottom:8px;">当日キャンセル不可</div>
       <div class="warn-sub" style="font-size:13px; color:var(--sub); line-height:1.6; margin-bottom:24px;">
-        当日のキャンセルはシステムから行えません。<br>お手数ですが、お電話にてご連絡をお願いいたします。
+        当日のキャンセルはシステムから行えません。<br>お手数ですが、お電話またはLINEメッセージにてご連絡をお願いいたします。
       </div>
       <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
         <a href="tel:072-469-0333" class="btn btn-primary" style="width:100%; max-width:280px; border-radius:99px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
           📞 072-469-0333
+        </a>
+        <a href="https://line.me/R/ti/p/@89center" class="btn" style="width:100%; max-width:280px; border-radius:99px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; background:#06C755; color:#fff; border-color:#06C755;">
+          💬 LINEで連絡
         </a>
         <button class="btn" onclick="closeAll()" style="width:100%; max-width:280px; border-radius:8px;">閉じる</button>
       </div>
@@ -1017,7 +1022,7 @@ function renderHead() {
   let h='<tr><th></th>'; STAFFS.forEach(s=>h+=`<th>${escapeHtml(s)}<span class="en">${escapeHtml(getEn(s))}</span></th>`); 
   document.getElementById('thead').innerHTML = h+'</tr>';
 }
-function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MATSUDA','山口':'YAMAGUCHI'}; return m[n]||''; }
+function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MAZDA','山口':'YAMAGUCHI'}; return m[n]||''; }
 
 function renderDate() {
   const d = state.date, w = ['日','月','火','水','木','金','土'];
