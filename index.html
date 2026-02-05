@@ -146,7 +146,7 @@
       line-height: 1.2;
     }
     .staff-header-table th:first-child {
-      width: 35px;
+      width: 36px;
       border-right: 1px solid var(--line);
     }
     .staff-header-table th .en {
@@ -170,7 +170,7 @@
     #schedule thead { display: none; }
     
     #schedule { table-layout: fixed; }
-    #schedule td:first-child { width: 35px; }
+    #schedule td:first-child, #schedule th:first-child { width: 36px; }
     
     .grid-scroller { 
       width: 100%;
@@ -196,7 +196,7 @@
     
     /* Time Column Width */
     th:first-child { 
-      position: sticky; left: 0; z-index: 20; width: 34px; 
+      position: sticky; left: 0; z-index: 20; width: 36px; 
       border-right: 1px solid var(--line); 
     }
 
@@ -207,7 +207,8 @@
       position: sticky; left: 0; z-index: 5; background: var(--bg);
       border-right: 1px solid var(--line);
       text-align: center; font-family: var(--font-en); font-size: 10px; font-weight: 700; color: var(--text);
-      transform: scaleY(1.15); letter-spacing: -0.5px;
+      transform: scaleY(1.3); letter-spacing: -0.5px;
+      width: 36px;
     }
 
     /* CELLS */
