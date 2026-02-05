@@ -116,12 +116,54 @@
     .mark.own { width: 10px; height: 10px; background: var(--color-own); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-own); } /* ● */
     .mark.ng { font-size: 20px; color: var(--color-ng); line-height: 1; } /* × */
 
+    /* FIXED STAFF HEADER */
+    .staff-header {
+      display: flex;
+      position: sticky;
+      top: 163px;
+      z-index: 43;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-bottom: 2px solid var(--text);
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+    }
+    .staff-header-cell {
+      flex: 1;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      border-right: 1px solid var(--line);
+    }
+    .staff-header-cell:first-child {
+      flex: 0 0 35px;
+      min-width: 35px;
+    }
+    .staff-header-cell:last-child {
+      border-right: none;
+    }
+    .staff-header-cell .en {
+      font-size: 8px;
+      font-weight: 400;
+      color: var(--sub);
+      display: block;
+      margin-top: 2px;
+      transform: scale(0.85);
+    }
+
     /* TABLE (Strictly Fixed Layout) */
     .grid-wrapper {
-      position: relative; border-radius: 12px; overflow: hidden;
-      border: 1px solid var(--line); box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+      position: relative; border-radius: 0 0 12px 12px; overflow: hidden;
+      border: 1px solid var(--line); border-top: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.02);
       width: 100%;
     }
+    
+    /* Hide original thead */
+    #schedule thead { display: none; }
     
     .grid-scroller { 
       width: 100%;
@@ -139,7 +181,7 @@
       font-size: 11px; /* スタッフ名を大きく */
       font-weight: 700; color: var(--text); text-align: center;
       padding: 12px 0; border-bottom: 2px solid var(--text);
-      position: sticky; top: 163px; z-index: 40; background: var(--bg);
+      position: sticky; top: 0; z-index: 10; background: var(--bg);
       line-height: 1.2;
       overflow: hidden; white-space: nowrap; text-overflow: ellipsis; /* はみ出し防止 */
     }
@@ -147,7 +189,7 @@
     
     /* Time Column Width */
     th:first-child { 
-      position: sticky; left: 0; top: 163px; z-index: 42; width: 34px; 
+      position: sticky; left: 0; z-index: 20; width: 34px; 
       border-right: 1px solid var(--line); 
     }
 
@@ -378,6 +420,9 @@
       <div class="legend-item"><span class="mark own"></span> あなたの予約</div>
       <div class="legend-item"><span class="mark ng">×</span> 予約不可</div>
     </div>
+
+    <!-- 固定スタッフヘッダー -->
+    <div class="staff-header" id="staffHeader"></div>
 
     <div class="grid-wrapper">
       <div class="grid-scroller">
@@ -1019,8 +1064,14 @@ async function cancelBooking() {
 
 // UI
 function renderHead() {
+  // Original thead (now hidden)
   let h='<tr><th></th>'; STAFFS.forEach(s=>h+=`<th>${escapeHtml(s)}<span class="en">${escapeHtml(getEn(s))}</span></th>`); 
   document.getElementById('thead').innerHTML = h+'</tr>';
+  
+  // Fixed staff header
+  let sh = '<div class="staff-header-cell"></div>';
+  STAFFS.forEach(s => sh += `<div class="staff-header-cell">${escapeHtml(s)}<span class="en">${escapeHtml(getEn(s))}</span></div>`);
+  document.getElementById('staffHeader').innerHTML = sh;
 }
 function getEn(n){ const m={'麻生川':'ASOGAWA','岡野':'OKANO','堀江':'HORIE','松田':'MAZDA','山口':'YAMAGUCHI'}; return m[n]||''; }
 

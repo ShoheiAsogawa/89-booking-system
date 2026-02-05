@@ -1643,7 +1643,7 @@ async function runBulk(enable) {
       .select('date, start_time, end_time, staff, patient_name')
       .in('date', dates)
       .in('staff', staffs)
-      .eq('status', 'confirmed');
+      .neq('status', 'キャンセル');
     
     if(existingBookings && existingBookings.length > 0) {
       // ブロックしようとしている時間帯と重複する予約を検出
