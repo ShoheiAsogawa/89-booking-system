@@ -604,9 +604,9 @@
         <div class="dash-header-right">
           <div class="period-selector">
             <span class="period-label">📅 期間</span>
-            <select id="dashMonthFrom" class="period-select"></select>
+            <input type="date" id="dashDateFrom" class="period-select" style="width:140px;">
             <span class="period-divider">→</span>
-            <select id="dashMonthTo" class="period-select"></select>
+            <input type="date" id="dashDateTo" class="period-select" style="width:140px;">
             <button class="btn-search" onclick="loadDashboard()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             </button>
@@ -1029,18 +1029,11 @@ window.onload = async () => {
   const sc=document.getElementById('blkStaff');
   STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
   
-  // ダッシュボード期間選択の設定（過去24ヶ月）
-  const dmFrom=document.getElementById('dashMonthFrom'), dmTo=document.getElementById('dashMonthTo'), today=new Date();
-  for(let i=0; i<24; i++) {
-    const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
-    const optText = `${d.getFullYear()}年 ${d.getMonth()+1}月`;
-    const optValue = fmtLocal(d).substr(0,7);
-    dmFrom.add(new Option(optText, optValue));
-    dmTo.add(new Option(optText, optValue));
-  }
-  // デフォルトは今月のみ
-  dmFrom.value = fmtLocal(today).substr(0,7);
-  dmTo.value = fmtLocal(today).substr(0,7);
+  // ダッシュボード期間選択の設定（日付ピッカー）
+  const ddFrom=document.getElementById('dashDateFrom'), ddTo=document.getElementById('dashDateTo'), today=new Date();
+  // デフォルトは今日のみ
+  ddFrom.value = fmtLocal(today);
+  ddTo.value = fmtLocal(today);
   
   // 検索画面の年月選択の設定
   const syf=document.getElementById('sYearFrom'), syt=document.getElementById('sYearTo');
@@ -1833,15 +1826,13 @@ async function loadDashboard() {
   document.getElementById('dashPayment').style.display = 'block';
   document.getElementById('dashCharts').style.display = 'grid';
   
-  const ymFrom = document.getElementById('dashMonthFrom').value;
-  const ymTo = document.getElementById('dashMonthTo').value;
+  const start = document.getElementById('dashDateFrom').value;
+  const end = document.getElementById('dashDateTo').value;
   
-  // 開始日と終了日を計算
-  const [yFrom, mFrom] = ymFrom.split('-').map(Number);
-  const [yTo, mTo] = ymTo.split('-').map(Number);
-  const start = `${ymFrom}-01`;
-  const lastDay = new Date(yTo, mTo, 0).getDate();
-  const end = `${ymTo}-${lastDay}`;
+  if(!start || !end) {
+    showLoad(false);
+    return alert('日付を選択してください');
+  }
   
   // エクスポート用に全カラム取得
   const { data: books } = await db.from('bookings')
@@ -1887,7 +1878,7 @@ async function loadDashboard() {
     }
   });
   
-  // 決済方法別カードを表示（並び順：現金→商品券→クレジット→PAYPAY）
+  // 決済方法別カードを表示（並び順：現金→クレジット→PayPay→商品券）
   // PayPayロゴ画像
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
   const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', '商品券': '🎫', '未選択': '❓' };
@@ -1895,7 +1886,7 @@ async function loadDashboard() {
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', '商品券', 'クレジット', 'ペイペイ'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', '商品券'].forEach(method => {
     const stat = payStats[method];
     const feeRate = PAYMENT_FEES[method] * 100;
     totalFees += stat.fee;
