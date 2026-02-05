@@ -105,7 +105,7 @@
 
     /* LEGEND (凡例) */
     .legend { 
-      display: flex; justify-content: center; gap: 16px; padding: 8px 0 12px; 
+      display: flex; justify-content: center; gap: 16px; padding: 8px 0 0; 
       font-size: 11px; color: var(--text); font-weight: 700;
       position: sticky; top: 132px; background: var(--bg); z-index: 44;
     }
@@ -120,13 +120,14 @@
     .staff-header {
       display: flex;
       position: sticky;
-      top: 163px;
+      top: 155px;
       z-index: 43;
       background: var(--bg);
       border: 1px solid var(--line);
       border-bottom: 2px solid var(--text);
       border-radius: 12px 12px 0 0;
       overflow: hidden;
+      margin-top: 12px;
     }
     .staff-header-cell {
       flex: 1;
