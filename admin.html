@@ -51,7 +51,9 @@
       color: var(--sub); border: none; background: transparent; transition: all 0.2s; 
     }
     .tab:hover { color: var(--text); }
-    .tab.active { background: var(--text); color: #fff; }
+    .tab.tab-schedule.active { background: #E8EAED; color: var(--text); }
+    .tab.tab-search.active { background: #D4D8DC; color: var(--text); }
+    .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -59,6 +61,11 @@
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
     .btn-danger { color: var(--red); background: #FEF2F2; border: 1px solid #FECACA; box-shadow: none; }
     .btn-ghost { background: transparent; box-shadow: none; border: 1px solid var(--line); }
+
+    /* VIEW BACKGROUNDS (メニューごとの背景色) */
+    #viewSchedule { background: #E8EAED; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
 
     /* SCHEDULE VIEW */
     .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 0 auto 24px; }
@@ -375,6 +382,7 @@
     /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
+      #viewSchedule, #viewSearch, #viewDashboard { padding: 16px; }
       
       /* Header */
       header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
@@ -481,9 +489,9 @@
       <div class="header-left">
         <h1>89CENTER<span class="badge">管理画面</span></h1>
         <div class="tabs">
-          <button class="tab active" onclick="switchTab('schedule')">予約管理</button>
-          <button class="tab" onclick="switchTab('search')">患者検索</button>
-          <button class="tab" onclick="switchTab('dashboard')">売上</button>
+          <button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button>
+          <button class="tab tab-search" onclick="switchTab('search')">患者検索</button>
+          <button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button>
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px;">
@@ -1608,6 +1616,31 @@ async function runSingleBlock() {
   const endTime = addTime(s.cur.time, duration);
   const slots = getTimeSlots(s.cur.time, endTime);
   const dStr = fmtLocal(s.date);
+  
+  // 予約が入っている時間帯にブロックを防ぐ
+  const { data: existingBookings } = await db.from('bookings')
+    .select('start_time, end_time, patient_name')
+    .eq('date', dStr)
+    .eq('staff', s.cur.staff)
+    .neq('status', 'キャンセル');
+  
+  if (existingBookings && existingBookings.length > 0) {
+    const conflicting = [];
+    for (const booking of existingBookings) {
+      const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+      for (const bt of bookingSlots) {
+        if (slots.includes(bt)) {
+          conflicting.push(`${bt}（${booking.patient_name}様）`);
+        }
+      }
+    }
+    if (conflicting.length > 0) {
+      const msg = '以下の時間帯に予約が入っているため、ブロックできません：\n\n' + conflicting.join('\n');
+      alert(msg);
+      return;
+    }
+  }
+  
   const rows = slots.map(t => ({ date: dStr, time: t, staff: s.cur.staff, reason: r }));
   await db.from('blocks').insert(rows);
   clearAdminCache();
