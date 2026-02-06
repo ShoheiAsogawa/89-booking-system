@@ -2274,16 +2274,26 @@ function exportToExcel() {
   showToast(`${rows.length}件のデータをエクスポートしました`);
 }
 
-// カーソルに追従する小さい「89」
+// カーソルに追従する小さい「89」（遅めの補間）
 (function() {
   const el = document.createElement('div');
   el.className = 'cursor-89';
   el.textContent = '89';
   document.body.appendChild(el);
+  let x = 0, y = 0, targetX = 0, targetY = 0;
+  const speed = 0.1;
   document.addEventListener('mousemove', function(e) {
-    el.style.left = e.clientX + 'px';
-    el.style.top = e.clientY + 'px';
+    targetX = e.clientX;
+    targetY = e.clientY;
   });
+  function tick() {
+    x += (targetX - x) * speed;
+    y += (targetY - y) * speed;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    requestAnimationFrame(tick);
+  }
+  tick();
 })();
 </script>
 </body>
