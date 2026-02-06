@@ -28,6 +28,18 @@
     body {
       margin: 0; padding: 24px; background: var(--bg); color: var(--text);
       font-family: var(--font-jp); font-size: 13px; -webkit-font-smoothing: antialiased;
+      cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><line x1="16" y1="2" x2="16" y2="26" stroke="%23444" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="2" r="2.5" fill="%23888"/></svg>') 16 2, auto;
+    }
+    .needle-stick {
+      position: fixed; pointer-events: none; z-index: 9999;
+      width: 2px; height: 20px; margin-left: -1px; margin-top: 0;
+      background: linear-gradient(to bottom, #888 0%, #555 100%);
+      border-radius: 1px; transform-origin: top center;
+      animation: needleStick 0.35s ease-out forwards;
+    }
+    @keyframes needleStick {
+      0% { transform: translateY(0) scaleY(1); opacity: 1; }
+      100% { transform: translateY(14px) scaleY(0.2); opacity: 0; }
     }
 
     .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
@@ -2267,6 +2279,16 @@ function exportToExcel() {
   
   showToast(`${rows.length}件のデータをエクスポートしました`);
 }
+
+// 針を刺すアニメーション（クリック時）
+document.addEventListener('click', function(e) {
+  const el = document.createElement('div');
+  el.className = 'needle-stick';
+  el.style.left = e.clientX + 'px';
+  el.style.top = e.clientY + 'px';
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, 400);
+});
 </script>
 </body>
 </html>
