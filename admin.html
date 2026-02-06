@@ -63,7 +63,24 @@
     .btn-ghost { background: transparent; box-shadow: none; border: 1px solid var(--line); }
 
     /* VIEW BACKGROUNDS (メニューごとの背景色) */
-    #viewSchedule { background: #E8EAED; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    #viewSchedule { position: relative; background: #E8EAED; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    .btn-refresh {
+      position: absolute; top: 24px; right: 24px;
+      height: 36px; padding: 0 16px; border-radius: 99px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      background: var(--surface); color: var(--text); border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn-refresh:hover {
+      background: var(--text); color: #fff; border-color: var(--text);
+      box-shadow: 0 4px 12px rgba(17,24,39,0.25);
+      transform: scale(1.03);
+    }
+    .btn-refresh:active {
+      transform: scale(0.95);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
 
@@ -383,6 +400,7 @@
     @media (max-width: 768px) {
       body { padding: 12px; }
       #viewSchedule, #viewSearch, #viewDashboard { padding: 16px; }
+      .btn-refresh { top: 16px; right: 16px; padding: 0 12px; height: 32px; font-size: 11px; }
       
       /* Header */
       header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
@@ -497,13 +515,13 @@
       <div class="header-right" style="display:flex; gap:12px;">
         <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
-        <button class="btn btn-ghost" onclick="refreshData()">更新</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
     </header>
 
     <!-- SCHEDULE -->
     <div id="viewSchedule">
+      <button type="button" class="btn-refresh" onclick="refreshData()" title="最新の予約・ブロックを反映">更新</button>
       <div class="date-nav">
         <button class="nav-btn" onclick="move(-1)">‹</button>
         <div class="date-wrapper" onclick="document.getElementById('datePicker').showPicker()">
