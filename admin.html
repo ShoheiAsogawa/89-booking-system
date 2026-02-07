@@ -52,7 +52,9 @@
       opacity: 1;
     }
     .menu-char-wrap .tab,
-    .menu-char-wrap .btn { position: relative; z-index: 1; }
+    .menu-char-wrap .btn,
+    .menu-char-wrap .kpi-card { position: relative; z-index: 1; }
+    .kpi-grid .menu-char-wrap { width: 100%; min-width: 0; }
 
     .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
     .hidden { display: none !important; }
@@ -533,21 +535,21 @@
       <div class="header-left">
         <h1>89CENTER<span class="badge">管理画面</span></h1>
         <div class="tabs">
-          <div class="menu-char-wrap"><img class="char-behind" src="1.png" alt=""><button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button></div>
-          <div class="menu-char-wrap"><img class="char-behind" src="2.png" alt=""><button class="tab tab-search" onclick="switchTab('search')">患者検索</button></div>
-          <div class="menu-char-wrap"><img class="char-behind" src="3.png" alt=""><button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button></div>
+          <button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button>
+          <button class="tab tab-search" onclick="switchTab('search')">患者検索</button>
+          <button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button>
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
-        <div class="menu-char-wrap"><img class="char-behind" src="4.png" alt=""><button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button></div>
-        <div class="menu-char-wrap"><img class="char-behind" src="5.png" alt=""><button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button></div>
+        <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
+        <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
     </header>
 
     <!-- SCHEDULE -->
     <div id="viewSchedule">
-      <button type="button" class="btn-refresh" onclick="refreshData()" title="最新の予約・ブロックを反映">更新</button>
+      <div class="menu-char-wrap"><img class="char-behind" src="2.png" alt=""><button type="button" class="btn-refresh" onclick="refreshData()" title="最新の予約・ブロックを反映">更新</button></div>
       <div class="date-nav">
         <button class="nav-btn" onclick="move(-1)">‹</button>
         <div class="date-wrapper" onclick="document.getElementById('datePicker').showPicker()">
@@ -567,7 +569,7 @@
       <!-- 検索ボックス -->
       <div style="display:grid; grid-template-columns: 1fr auto; gap:10px; margin-bottom:20px;">
         <input id="sKeyword" class="inp-search" placeholder="🔍 名前 または 電話番号 で検索..." onkeypress="if(event.key==='Enter')runSearch()">
-        <button class="btn btn-primary" onclick="runSearch()">検索</button>
+        <div class="menu-char-wrap"><img class="char-behind" src="3.png" alt=""><button class="btn btn-primary" onclick="runSearch()">検索</button></div>
       </div>
       
       <!-- フィルターセクション -->
@@ -638,7 +640,7 @@
           <select id="sTimeTo" class="inp" style="margin:0; width:90px; font-size:12px;">
             <option value="">終了</option>
           </select>
-          <button type="button" class="btn btn-clear" onclick="clearSearchFilters()">クリア</button>
+          <div class="menu-char-wrap"><img class="char-behind" src="5.png" alt=""><button type="button" class="btn btn-clear" onclick="clearSearchFilters()">クリア</button></div>
         </div>
       </div>
       
@@ -663,10 +665,10 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             </button>
           </div>
-          <button class="btn-export" onclick="exportToExcel()">
+          <div class="menu-char-wrap"><img class="char-behind" src="4.png" alt=""><button class="btn-export" onclick="exportToExcel()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel出力
-          </button>
+          </button></div>
         </div>
       </div>
 
@@ -678,7 +680,7 @@
 
       <!-- KPIカード -->
       <div class="kpi-grid" id="dashContent" style="display:none;">
-        <div class="kpi-card kpi-sales">
+        <div class="menu-char-wrap"><img class="char-behind" src="1.png" alt=""><div class="kpi-card kpi-sales">
           <div class="kpi-icon">💰</div>
           <div class="kpi-content">
             <div class="kpi-label">Total Sales</div>
@@ -686,7 +688,7 @@
             <div class="kpi-desc">売上合計</div>
           </div>
           <div class="kpi-bg-icon">¥</div>
-        </div>
+        </div></div>
         <div class="kpi-card kpi-bookings">
           <div class="kpi-icon">📋</div>
           <div class="kpi-content">
@@ -2219,13 +2221,17 @@ function exportToExcel() {
     return;
   }
   
-  const ymFrom = document.getElementById('dashMonthFrom').value;
-  const ymTo = document.getElementById('dashMonthTo').value;
-  const periodStr = ymFrom === ymTo ? ymFrom : `${ymFrom}_${ymTo}`;
+  const dateFrom = document.getElementById('dashDateFrom').value;
+  const dateTo = document.getElementById('dashDateTo').value;
+  if (!dateFrom || !dateTo) {
+    showToast('期間を選択してからエクスポートしてください');
+    return;
+  }
+  const periodStr = dateFrom === dateTo ? dateFrom : `${dateFrom}_${dateTo}`;
   
   // 確認ダイアログ
   const confirmMsg = `以下の内容でExcelファイルを出力します。\n\n` +
-    `期間: ${ymFrom} 〜 ${ymTo}\n` +
+    `期間: ${dateFrom} 〜 ${dateTo}\n` +
     `件数: ${dashboardData.length}件\n\n` +
     `出力しますか？`;
   
