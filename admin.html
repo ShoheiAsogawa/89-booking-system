@@ -35,18 +35,24 @@
       color: var(--text); line-height: 1; opacity: 0.12;
       transform: translate(-50%, -50%);
     }
-    /* キャラクター pop（メニューにカーソルを合わせると右側に Pyo! 表示） */
-    .character-pop {
-      position: fixed; right: 24px; top: 50%;
-      width: 100px; height: auto; max-height: 140px; object-fit: contain;
-      z-index: 100; pointer-events: none;
-      opacity: 0; transform: translateY(-50%) scale(0.3);
-      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* ボタンの後ろからキャラがピョンと出る */
+    .menu-char-wrap {
+      position: relative; display: inline-flex; align-items: flex-end; justify-content: center;
     }
-    .character-pop.show {
-      opacity: 1; transform: translateY(-50%) scale(1);
+    .menu-char-wrap .char-behind {
+      position: absolute; bottom: 0; left: 50%;
+      width: 26px; height: auto; max-height: 32px; object-fit: contain;
+      z-index: 0; pointer-events: none;
+      transform: translateX(-50%) translateY(100%) scale(0.6);
+      opacity: 0;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
     }
-    .character-pop img { width: 100%; height: auto; display: block; }
+    .menu-char-wrap:hover .char-behind {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+    .menu-char-wrap .tab,
+    .menu-char-wrap .btn { position: relative; z-index: 1; }
 
     .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
     .hidden { display: none !important; }
@@ -523,21 +529,18 @@
   <div id="toast" class="toast"></div>
 
   <div class="wrap" id="mainApp">
-    <div class="character-pop" id="characterPop" aria-hidden="true">
-      <img id="characterPopImg" src="" alt="">
-    </div>
     <header>
       <div class="header-left">
         <h1>89CENTER<span class="badge">管理画面</span></h1>
         <div class="tabs">
-          <button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button>
-          <button class="tab tab-search" onclick="switchTab('search')">患者検索</button>
-          <button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button>
+          <div class="menu-char-wrap"><img class="char-behind" src="1.png" alt=""><button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button></div>
+          <div class="menu-char-wrap"><img class="char-behind" src="2.png" alt=""><button class="tab tab-search" onclick="switchTab('search')">患者検索</button></div>
+          <div class="menu-char-wrap"><img class="char-behind" src="3.png" alt=""><button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button></div>
         </div>
       </div>
-      <div class="header-right" style="display:flex; gap:12px;">
-        <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
-        <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
+      <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
+        <div class="menu-char-wrap"><img class="char-behind" src="4.png" alt=""><button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button></div>
+        <div class="menu-char-wrap"><img class="char-behind" src="5.png" alt=""><button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button></div>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
     </header>
@@ -2309,32 +2312,6 @@ function exportToExcel() {
     requestAnimationFrame(tick);
   }
   tick();
-})();
-
-// メニューにカーソルを合わせると右側にキャラクターが Pyo! で出現
-(function() {
-  const pop = document.getElementById('characterPop');
-  const img = document.getElementById('characterPopImg');
-  if (!pop || !img) return;
-  const map = [
-    { sel: '.tab-schedule', src: '1.png' },
-    { sel: '.tab-search', src: '2.png' },
-    { sel: '.tab-dashboard', src: '3.png' },
-    { sel: '#repeatBtn', src: '4.png' },
-    { sel: '#bulkBtn', src: '5.png' }
-  ];
-  map.forEach(function(m) {
-    const el = document.querySelector(m.sel);
-    if (!el) return;
-    el.addEventListener('mouseenter', function() {
-      img.src = m.src;
-      img.alt = '';
-      pop.classList.add('show');
-    });
-    el.addEventListener('mouseleave', function() {
-      pop.classList.remove('show');
-    });
-  });
 })();
 </script>
 </body>
