@@ -315,6 +315,7 @@
     }
     .btn:active { opacity: 0.7; transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .btn:disabled, .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
     .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
     .btn-full { width: 100%; margin-top: 12px; }
 
@@ -507,7 +508,7 @@
         </div>
         <div class="btn-group">
           <button class="btn" onclick="closeAll()">閉じる<span class="en">CLOSE</span></button>
-          <button class="btn btn-primary" onclick="createBooking()">予約する<span class="en">BOOK</span></button>
+          <button id="btnBook" class="btn btn-primary" onclick="createBooking()">予約する<span class="en">BOOK</span></button>
         </div>
       </div>
       
@@ -969,7 +970,10 @@ function validatePhone(phone) {
   return { valid: true };
 }
 
+let _bookingInProgress = false;
 async function createBooking() {
+  if(_bookingInProgress) return;
+  
   // レート制限チェック
   const rateLimit = checkRateLimit();
   if (!rateLimit.allowed) {
@@ -996,61 +1000,71 @@ async function createBooking() {
   
   if(!term) return alert('利用規約・プライバシーポリシーへの同意が必要です');
   
+  // 二重クリック防止
+  _bookingInProgress = true;
+  const btn = document.getElementById('btnBook');
+  if(btn) btn.disabled = true;
+  
   loading(true);
   const p = state.pending;
 
-  // Validate Date Range
-  const maxDate = new Date(); maxDate.setMonth(maxDate.getMonth() + MAX_MONTHS);
-  if(state.date > maxDate) { loading(false); return alert('予約期間外です'); }
-  
-  // Validate Past Time
-  if(isPast(state.date, p.time)) { loading(false); return alert('過去の時間は予約できません'); }
+  try {
+    // Validate Date Range
+    const maxDate = new Date(); maxDate.setMonth(maxDate.getMonth() + MAX_MONTHS);
+    if(state.date > maxDate) { loading(false); alert('予約期間外です'); return; }
+    
+    // Validate Past Time
+    if(isPast(state.date, p.time)) { loading(false); alert('過去の時間は予約できません'); return; }
 
-  // 患者が選択した施術時間を取得
-  const duration = parseInt(document.getElementById('pDuration').value) || 60;
-  const endTime = addTime(p.time, duration);
-  const dStr = fmt(state.date);
-  
-  // 重複チェック: 選択した時間帯に既存の予約がないか確認
-  const requiredSlots = getTimeSlots(p.time, endTime);
-  
-  // 該当日付の既存予約を取得
-  const { data: existingBookings } = await db.from('bookings')
-    .select('id, start_time, end_time, staff, patient_name')
-    .eq('date', dStr)
-    .eq('staff', p.staff)
-    .neq('status', 'キャンセル');
-  
-  // 各スロットが既存予約と重複していないかチェック
-  if(existingBookings && existingBookings.length > 0) {
-    for(const slot of requiredSlots) {
-      for(const booking of existingBookings) {
-        const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
-        if(bookingSlots.includes(slot)) {
-          loading(false);
-          alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っています。別の時間を選択してください。`);
-          return;
+    // 患者が選択した施術時間を取得
+    const duration = parseInt(document.getElementById('pDuration').value) || 60;
+    const endTime = addTime(p.time, duration);
+    const dStr = fmt(state.date);
+    
+    // 重複チェック: 選択した時間帯に既存の予約がないか確認
+    const requiredSlots = getTimeSlots(p.time, endTime);
+    
+    // 該当日付の既存予約を取得
+    const { data: existingBookings } = await db.from('bookings')
+      .select('id, start_time, end_time, staff, patient_name')
+      .eq('date', dStr)
+      .eq('staff', p.staff)
+      .neq('status', 'キャンセル');
+    
+    // 各スロットが既存予約と重複していないかチェック
+    if(existingBookings && existingBookings.length > 0) {
+      for(const slot of requiredSlots) {
+        for(const booking of existingBookings) {
+          const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+          if(bookingSlots.includes(slot)) {
+            loading(false);
+            alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っています。別の時間を選択してください。`);
+            return;
+          }
         }
       }
     }
-  }
 
-  const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const { error } = await db.from('bookings').insert({
-    id: id, date: dStr, start_time: p.time, end_time: endTime,
-    staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
-    fee: FEES[p.staff], user_id: state.uid
-  });
+    const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+    const { error } = await db.from('bookings').insert({
+      id: id, date: dStr, start_time: p.time, end_time: endTime,
+      staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
+      fee: FEES[p.staff], user_id: state.uid
+    });
 
-  if(error) alert('エラーが発生しました: ' + error.message); 
-  else { 
-    // キャッシュをクリアして最新データを取得
-    clearCache();
-    closeAll(); 
-    loadData(); 
-    alert('予約が完了しました！'); 
+    if(error) alert('エラーが発生しました: ' + error.message); 
+    else { 
+      // キャッシュをクリアして最新データを取得
+      clearCache();
+      closeAll(); 
+      loadData(); 
+      alert('予約が完了しました！'); 
+    }
+    loading(false);
+  } finally {
+    _bookingInProgress = false;
+    if(btn) btn.disabled = false;
   }
-  loading(false);
 }
 
 async function cancelBooking() {

@@ -64,6 +64,7 @@
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .btn:disabled, .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
     .btn-danger { color: var(--red); background: #FEF2F2; border: 1px solid #FECACA; box-shadow: none; }
     .btn-ghost { background: transparent; box-shadow: none; border: 1px solid var(--line); }
     .btn-clear { margin-left: auto; background: var(--surface); color: var(--text); border: 2px solid var(--text); font-size: 13px; font-weight: 700; padding: 8px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -784,7 +785,7 @@
       </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
-        <button class="btn btn-primary" onclick="runCreate()">確定</button>
+        <button id="btnCreate" class="btn btn-primary" onclick="runCreate()">確定</button>
       </div>
     </div>
   </div>
@@ -943,7 +944,7 @@
       </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
-        <button class="btn btn-primary" onclick="createRepeatBookings()">作成</button>
+        <button id="btnRepeat" class="btn btn-primary" onclick="createRepeatBookings()">作成</button>
       </div>
     </div>
   </div>
@@ -1406,9 +1407,16 @@ async function cellClick(nm, t) {
   }
 }
 
+let _creatingBooking = false;
 async function runCreate() {
+  if(_creatingBooking) return;
   const name = document.getElementById('cName').value;
   if(!name) return;
+  
+  // 二重クリック防止
+  _creatingBooking = true;
+  const btn = document.getElementById('btnCreate');
+  if(btn) btn.disabled = true;
   
   // 選択された時間（分）を取得
   const duration = parseInt(document.getElementById('cDuration').value) || 60;
@@ -1418,46 +1426,51 @@ async function runCreate() {
   const requiredSlots = getTimeSlots(s.cur.time, endTime);
   const dStr = fmtLocal(s.date);
   
-  // 該当日付の既存予約を取得
-  const { data: existingBookings } = await db.from('bookings')
-    .select('id, start_time, end_time, staff, patient_name')
-    .eq('date', dStr)
-    .eq('staff', s.cur.staff)
-    .neq('status', 'キャンセル');
-  
-  // 各スロットが既存予約と重複していないかチェック
-  if(existingBookings) {
-    for(const slot of requiredSlots) {
-      for(const booking of existingBookings) {
-        const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
-        if(bookingSlots.includes(slot)) {
-          showLoad(false);
-          alert(`申し訳ございません。選択した時間帯（${s.cur.time}〜${endTime}）は既に「${booking.patient_name}」様の予約が入っています。別の時間を選択してください。`);
-          return;
+  try {
+    // 該当日付の既存予約を取得
+    const { data: existingBookings } = await db.from('bookings')
+      .select('id, start_time, end_time, staff, patient_name')
+      .eq('date', dStr)
+      .eq('staff', s.cur.staff)
+      .neq('status', 'キャンセル');
+    
+    // 各スロットが既存予約と重複していないかチェック
+    if(existingBookings) {
+      for(const slot of requiredSlots) {
+        for(const booking of existingBookings) {
+          const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+          if(bookingSlots.includes(slot)) {
+            showLoad(false);
+            alert(`申し訳ございません。選択した時間帯（${s.cur.time}〜${endTime}）は既に「${booking.patient_name}」様の予約が入っています。別の時間を選択してください。`);
+            return;
+          }
         }
       }
     }
+    
+    const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+    const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
+    
+    const { error } = await db.from('bookings').insert({ 
+      id, date:dStr, start_time:s.cur.time, end_time:endTime, 
+      staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
+      symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
+    });
+    
+    if(error) {
+      showLoad(false);
+      alert('エラーが発生しました: ' + error.message);
+      return;
+    }
+    
+    clearAdminCache();
+    closeAll(); 
+    load();
+    showToast('予約を作成しました');
+  } finally {
+    _creatingBooking = false;
+    if(btn) btn.disabled = false;
   }
-  
-  const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-  const fee = FEES[s.cur.staff] ? Number(FEES[s.cur.staff]) : 0;
-  
-  const { error } = await db.from('bookings').insert({ 
-    id, date:dStr, start_time:s.cur.time, end_time:endTime, 
-    staff:s.cur.staff, patient_name:name, phone:document.getElementById('cPhone').value, 
-    symptoms: document.getElementById('cSym').value, fee: fee, status:'予約済み' 
-  });
-  
-  if(error) {
-    showLoad(false);
-    alert('エラーが発生しました: ' + error.message);
-    return;
-  }
-  
-  clearAdminCache();
-  closeAll(); 
-  load();
-  showToast('予約を作成しました');
 }
 
 async function runCancel() {
@@ -2115,7 +2128,10 @@ function openRepeatModal() {
   openMod('repeatMod');
 }
 
+let _repeatInProgress = false;
 async function createRepeatBookings() {
+  if(_repeatInProgress) return;
+  
   const dayOfWeek = parseInt(document.getElementById('repeatDay').value);
   const time = document.getElementById('repeatTime').value;
   const duration = parseInt(document.getElementById('repeatDuration').value);
@@ -2137,53 +2153,118 @@ async function createRepeatBookings() {
     return;
   }
   
+  // 二重クリック防止
+  _repeatInProgress = true;
+  const btn = document.getElementById('btnRepeat');
+  if(btn) btn.disabled = true;
+  
   showLoad(true);
   
-  const bookings = [];
-  const today = new Date();
-  
-  for(let w = 0; w < weeks; w++) {
-    // 指定曜日の日付を計算
-    const targetDate = new Date(today);
-    const currentDay = today.getDay();
-    let daysToAdd = dayOfWeek - currentDay;
-    if(daysToAdd <= 0) daysToAdd += 7; // 今週の曜日が過ぎていたら来週
-    daysToAdd += (w * 7);
-    targetDate.setDate(today.getDate() + daysToAdd);
+  try {
+    const bookings = [];
+    const skippedDates = [];
+    const today = new Date();
     
-    const dateStr = fmtLocal(targetDate);
-    const id = Math.random().toString(36).substr(2, 9).toUpperCase();
-    const fee = FEES[staff] ? Number(FEES[staff]) : 0;
+    for(let w = 0; w < weeks; w++) {
+      // 指定曜日の日付を計算
+      const targetDate = new Date(today);
+      const currentDay = today.getDay();
+      let daysToAdd = dayOfWeek - currentDay;
+      if(daysToAdd <= 0) daysToAdd += 7; // 今週の曜日が過ぎていたら来週
+      daysToAdd += (w * 7);
+      targetDate.setDate(today.getDate() + daysToAdd);
+      
+      const dateStr = fmtLocal(targetDate);
+      
+      // 重複チェック: その日のそのスタッフの既存予約を確認
+      const requiredSlots = getTimeSlots(time, endTime);
+      const { data: existingBookings } = await db.from('bookings')
+        .select('id, start_time, end_time, patient_name')
+        .eq('date', dateStr)
+        .eq('staff', staff)
+        .neq('status', 'キャンセル');
+      
+      let hasConflict = false;
+      if(existingBookings) {
+        for(const slot of requiredSlots) {
+          for(const booking of existingBookings) {
+            const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
+            if(bookingSlots.includes(slot)) {
+              hasConflict = true;
+              skippedDates.push(`${dateStr}（${booking.patient_name}様の予約あり）`);
+              break;
+            }
+          }
+          if(hasConflict) break;
+        }
+      }
+      
+      // ブロックチェック
+      if(!hasConflict) {
+        const { data: existingBlocks } = await db.from('blocks')
+          .select('time')
+          .eq('date', dateStr)
+          .eq('staff', staff);
+        if(existingBlocks) {
+          for(const slot of requiredSlots) {
+            if(existingBlocks.some(bl => bl.time === slot)) {
+              hasConflict = true;
+              skippedDates.push(`${dateStr}（ブロックあり）`);
+              break;
+            }
+          }
+        }
+      }
+      
+      if(hasConflict) continue;
+      
+      const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+      const fee = FEES[staff] ? Number(FEES[staff]) : 0;
+      
+      bookings.push({
+        id,
+        date: dateStr,
+        start_time: time,
+        end_time: endTime,
+        staff,
+        patient_name: name,
+        phone,
+        symptoms,
+        admin_memo: memo,
+        fee,
+        status: '予約済み'
+      });
+    }
     
-    bookings.push({
-      id,
-      date: dateStr,
-      start_time: time,
-      end_time: endTime,
-      staff,
-      patient_name: name,
-      phone,
-      symptoms,
-      admin_memo: memo,
-      fee,
-      status: '予約済み'
-    });
-  }
-  
-  // 一括挿入
-  const { error } = await db.from('bookings').insert(bookings);
-  
-  if(error) {
+    // スキップされた日付があれば確認
+    if(skippedDates.length > 0 && bookings.length > 0) {
+      const msg = `以下の日付は既に予約またはブロックがあるためスキップします:\n${skippedDates.join('\n')}\n\n残り${bookings.length}件を作成しますか？`;
+      if(!confirm(msg)) { return; }
+    }
+    if(skippedDates.length > 0 && bookings.length === 0) {
+      alert(`すべての日付に既存の予約またはブロックがあるため、作成できる予約がありません。\n\nスキップ:\n${skippedDates.join('\n')}`);
+      return;
+    }
+    
+    // 一括挿入
+    const { error } = await db.from('bookings').insert(bookings);
+    
+    if(error) {
+      showLoad(false);
+      alert('エラーが発生しました: ' + error.message);
+      return;
+    }
+    
+    clearAdminCache();
+    closeAll();
+    load();
+    const skipMsg = skippedDates.length > 0 ? `（${skippedDates.length}件スキップ）` : '';
+    showToast(`${bookings.length}件の繰り返し予約を作成しました${skipMsg}`);
+  } finally {
     showLoad(false);
-    alert('エラーが発生しました: ' + error.message);
-    return;
+    _repeatInProgress = false;
+    if(btn) btn.disabled = false;
   }
-  
-  clearAdminCache();
-  showLoad(false);
-  closeAll();
-  load();
-  showToast(`${weeks}件の繰り返し予約を作成しました`);
 }
 
 // switchTab更新（繰り返しボタンの表示制御）
