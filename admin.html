@@ -35,20 +35,20 @@
       color: var(--text); line-height: 1; opacity: 0.12;
       transform: translate(-50%, -50%);
     }
-    /* ボタンの後ろからキャラがピョンと出る */
+    /* ボタンの後ろからキャラが上にピョンと出て、ボタンの上で止まる */
     .menu-char-wrap {
       position: relative; display: inline-flex; align-items: flex-end; justify-content: center;
     }
     .menu-char-wrap .char-behind {
       position: absolute; bottom: 0; left: 50%;
-      width: 26px; height: auto; max-height: 32px; object-fit: contain;
+      width: 38px; height: auto; max-height: 44px; object-fit: contain;
       z-index: 0; pointer-events: none;
-      transform: translateX(-50%) translateY(100%) scale(0.6);
+      transform: translateX(-50%) translateY(0) scale(0.5);
       opacity: 0;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
     }
     .menu-char-wrap:hover .char-behind {
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateX(-50%) translateY(-100%) scale(1);
       opacity: 1;
     }
     .menu-char-wrap .tab,
