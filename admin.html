@@ -59,6 +59,7 @@
     .tab.tab-schedule.active { background: #E8EAED; color: var(--text); }
     .tab.tab-search.active { background: #D4D8DC; color: var(--text); }
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
+    .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -89,6 +90,7 @@
     }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    #viewExpenses { background: #FFFBF7; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
 
     /* SCHEDULE VIEW */
     .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 0 auto 24px; }
@@ -243,7 +245,7 @@
     .fee-total-label { font-size: 11px; color: #6B7280; font-weight: 600; }
     .fee-total-value { font-size: 18px; font-weight: 800; color: #111827; font-family: var(--font-en); }
     
-    .payment-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .payment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     
     .payment-stat-card { 
       padding: 20px 16px; border-radius: 10px; 
@@ -254,6 +256,8 @@
     .payment-stat-card.giftcard { border-color: #8B5CF6; background: #F5F3FF; }
     .payment-stat-card.credit { border-color: #3B82F6; background: #EFF6FF; }
     .payment-stat-card.paypay { border-color: #EF4444; background: #FEF2F2; }
+    .payment-stat-card.tsuke { border-color: #F59E0B; background: #FFFBEB; }
+    .payment-stat-card.hoken { border-color: #0EA5E9; background: #F0F9FF; }
     
     .payment-stat-card .pay-icon { 
       font-size: 32px; margin-bottom: 10px; 
@@ -350,11 +354,13 @@
     /* 決済方法選択 */
     .payment-section { background: var(--bg); padding: 16px; border-radius: 10px; margin-bottom: 16px; }
     .payment-section .inp-lbl { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 12px; display: block; }
-    .payment-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .payment-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .payment-btn { padding: 10px 6px; border: 2px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-size: 11px; font-weight: 700; transition: all 0.2s; text-align: center; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .payment-btn:hover { border-color: var(--text); background: #F9FAFB; }
     .payment-btn.selected { background: #FFF3E0; border-color: #FF9800; color: #E65100; }
     .payment-btn img { width: 24px; height: 24px; object-fit: contain; }
+    #paymentDateSection { margin-top: 12px; display: none; }
+    #paymentDateSection.show { display: block; }
     
     /* 決済済みの予約セル（薄いオレンジ背景） */
     .cell.booked.paid { background: #FFF3E0 !important; color: #E65100 !important; }
@@ -492,6 +498,146 @@
       .payment-grid { grid-template-columns: 1fr; }
       .period-selector { padding: 10px; }
       .period-select { width: 100%; }
+      .expense-list-table { font-size: 11px; }
+      .expense-list-table th, .expense-list-table td { padding: 8px 6px; }
+    }
+
+    /* ===== Dashboard Refresh Button ===== */
+    .btn-dash-refresh {
+      height: 30px; padding: 0 14px; border-radius: 6px; border: none;
+      background: #6366F1; color: #fff; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      font-size: 12px; font-weight: 700; min-width: 70px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-dash-refresh:hover { background: #4F46E5; }
+    .btn-dash-refresh .refresh-icon {
+      display: inline-block;
+      width: 14px; height: 14px;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-dash-refresh:hover .refresh-icon { transform: rotate(180deg); }
+    .btn-dash-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
+    @keyframes refreshSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== Editable Info in Detail Modal ===== */
+    .info-edit-input {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px;
+      font-size: 14px; font-weight: 600; background: #fff; color: var(--text);
+      transition: border-color 0.2s; font-family: var(--font-jp);
+    }
+    .info-edit-input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .info-edit-input.textarea { min-height: 50px; resize: vertical; }
+    .btn-save-info {
+      padding: 14px 28px; border-radius: 10px; border: none;
+      background: var(--blue); color: #fff; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; width: 100%;
+    }
+    .btn-save-info:hover { background: #2563EB; box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+    .btn-save-info:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== 編集履歴（視認性向上） ===== */
+    #auditLogSection, #expenseEditAuditSection { margin-bottom: 20px; }
+    #auditLogSection .audit-log-title, #expenseEditAuditSection .audit-log-title {
+      font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 12px;
+      letter-spacing: 0.02em;
+    }
+    #auditLogSection .audit-entry, #expenseEditAuditSection .audit-entry {
+      display: flex; gap: 14px; padding: 12px 14px; margin-bottom: 8px;
+      font-size: 13px; line-height: 1.6;
+      background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;
+    }
+    #auditLogSection .audit-entry:last-child, #expenseEditAuditSection .audit-entry:last-child { margin-bottom: 0; }
+    #auditLogSection .audit-time, #expenseEditAuditSection .audit-time {
+      color: #64748B; font-family: var(--font-en); font-weight: 700;
+      white-space: nowrap; min-width: 150px; font-size: 12px; flex-shrink: 0;
+    }
+    #auditLogSection .audit-action, #expenseEditAuditSection .audit-action {
+      color: var(--text); font-weight: 600; font-size: 13px;
+    }
+    #auditLogSection .audit-empty, #expenseEditAuditSection .audit-empty {
+      color: var(--sub); font-size: 13px; padding: 14px 0; font-weight: 500;
+    }
+
+    .expense-form-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
+    }
+    .expense-form-grid .inp-group.full { grid-column: 1 / -1; }
+    .expense-form-grid .inp-group .inp { margin-bottom: 0; }
+
+    /* 小口経費ページ フィルター（横並び・見やすく） */
+    .expenses-filter-bar {
+      background: var(--surface); border-radius: 12px; padding: 16px 20px;
+      margin-bottom: 20px; border: 1px solid var(--line);
+    }
+    .expenses-filter-title {
+      font-size: 12px; font-weight: 700; color: var(--text);
+      margin-bottom: 12px;
+    }
+    .expenses-filter-row {
+      display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap;
+    }
+    .expenses-filter-label {
+      font-size: 11px; font-weight: 700; color: var(--sub);
+      margin: 0; white-space: nowrap;
+    }
+    .expenses-filter-inp { margin: 0; width: 140px; }
+    .expenses-filter-select { margin: 0; width: 140px; min-width: 0; }
+    .expenses-filter-sep { color: var(--sub); font-weight: 600; }
+
+    /* ===== Expense Button ===== */
+    .btn-expense { background: #FFF8F0; color: #C2410C; border-color: #FFE4CC; }
+    .btn-expense:hover { background: #FFEDE0; border-color: #FFD4B8; }
+
+    /* ===== Expense Section in Dashboard ===== */
+    .expense-section-dashboard {
+      background: var(--surface); border-radius: 12px; padding: 24px;
+      border: 1px solid var(--line); margin-bottom: 24px;
+    }
+    .expense-list-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .expense-list-table th {
+      position: static; background: #F3F4F6; padding: 10px 12px; text-align: left;
+      font-size: 11px; font-weight: 700; color: var(--sub); border-bottom: 2px solid var(--line);
+    }
+    .expense-list-table td {
+      height: auto; padding: 10px 12px; border-bottom: 1px solid var(--line);
+      font-size: 12px; color: var(--text); border-right: none;
+    }
+    .expense-list-table td:first-child { position: static; border-right: none; }
+    .expense-list-table tr:hover td { background: #F9FAFB; }
+    .expense-list-table tr.expense-row-clickable { cursor: pointer; }
+    .expense-list-table tr.expense-row-clickable:hover td { background: #F3F4F6; }
+    .expense-list-table .expense-actions-cell { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+    .btn-delete-expense {
+      background: none; border: none; color: var(--red); cursor: pointer;
+      font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: background 0.2s;
+    }
+    .btn-delete-expense:hover { background: #FEE2E2; }
+    .expense-category-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 700;
+    }
+    .expense-category-badge.bank { background: #EFF6FF; color: #2563EB; }
+    .expense-category-badge.parking { background: #F0FDF4; color: #16A34A; }
+    .expense-category-badge.cod { background: #FEF2F2; color: #DC2626; }
+    .expense-category-badge.other { background: #F3F4F6; color: #6B7280; }
+    /* 旧カテゴリ互換 */
+    .expense-category-badge.register { background: #FEF2F2; color: #DC2626; }
+    .expense-category-badge.supplies { background: #EFF6FF; color: #2563EB; }
+    .expense-category-badge.transport { background: #F0FDF4; color: #16A34A; }
+    .expense-category-badge.equipment { background: #FFF7ED; color: #EA580C; }
+
+    @media (max-width: 768px) {
+      .expense-section-dashboard { padding: 16px; }
+      .expense-list-table { font-size: 11px; }
+      .expenses-filter-bar { padding: 12px 16px; }
+      .expenses-filter-row { gap: 8px 12px; }
+      .expenses-filter-inp, .expenses-filter-select { width: 120px; min-width: 0; }
     }
   </style>
 </head>
@@ -502,7 +648,7 @@
       <h2 style="font-family: Impact, var(--font-en); font-weight:900; margin-bottom:32px;">89CENTER ADMIN</h2>
       <input type="email" id="email" class="inp" placeholder="メールアドレス" style="text-align:center; letter-spacing:0.05em; margin-bottom:12px;">
       <input type="password" id="password" class="inp" placeholder="パスワード" style="text-align:center; letter-spacing:0.1em;">
-      <button class="btn btn-primary w-full" style="margin-top:12px;" onclick="handleLogin()">ログイン</button>
+      <button type="button" class="btn btn-primary w-full" style="margin-top:12px;" onclick="handleLogin()">ログイン</button>
       <p id="loginError" style="color:var(--red); font-size:12px; margin-top:16px; display:none;"></p>
     </div>
   </div>
@@ -518,10 +664,12 @@
           <button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button>
           <button class="tab tab-search" onclick="switchTab('search')">患者検索</button>
           <button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button>
+          <button class="tab tab-expenses" onclick="switchTab('expenses')">小口経費</button>
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
         <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
+        <button id="expenseBtn" class="btn btn-expense" onclick="openExpenseModal()">経費入力</button>
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
         <button class="btn btn-ghost" style="width:auto; padding:0 12px;" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -601,6 +749,8 @@
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
               <option value="商品券">商品券</option>
+              <option value="ツケ払い">ツケ払い</option>
+              <option value="保険">保険</option>
               <option value="未選択">未選択</option>
             </select>
           </div>
@@ -643,6 +793,10 @@
             <input type="date" id="dashDateTo" class="period-select" style="width:140px;">
             <button class="btn-search" onclick="loadDashboard()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </button>
+            <button class="btn-dash-refresh" onclick="refreshDashboard()" title="データを更新">
+              <span class="refresh-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
+              更新
             </button>
           </div>
           <button class="btn-export" onclick="exportToExcel()">
@@ -689,6 +843,9 @@
         </div>
       </div>
 
+      <!-- 売上0円のときの案内（予約はあるが決済方法未選択 or payment_method 列なし） -->
+      <div id="dashZeroHint" style="display:none; margin-top:12px; padding:14px 18px; background:#FEF3C7; border:1px solid #F59E0B; border-radius:10px; font-size:12px; color:#92400E; line-height:1.5;"></div>
+
       <!-- 決済方法別集計 -->
       <div class="payment-section-dashboard" id="dashPayment" style="display:none;">
         <div class="section-header">
@@ -704,6 +861,19 @@
         <div class="payment-grid" id="paymentStats"></div>
       </div>
 
+      <!-- 経費セクション -->
+      <div class="expense-section-dashboard" id="dashExpenses" style="display:none;">
+        <div class="section-header">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <h3 class="section-title">💰 経費一覧</h3>
+            <span style="font-size:11px; color:var(--sub); font-weight:600;" id="expenseTotalBadge"></span>
+          </div>
+        </div>
+        <div id="expenseListArea">
+          <div style="text-align:center; padding:20px; color:var(--sub); font-size:12px;">この期間の経費はありません</div>
+        </div>
+      </div>
+
       <!-- チャートエリア -->
       <div class="charts-grid" id="dashCharts" style="display:none;">
         <div class="chart-card staff-chart">
@@ -714,10 +884,47 @@
         </div>
         <div class="chart-card line-chart">
           <div class="chart-header">
-            <h3 class="chart-title">📈 売上推移（累積）</h3>
+            <h3 class="chart-title">📈 売上推移（決済済み累積）</h3>
           </div>
           <div class="chart-body"><canvas id="chartLine"></canvas></div>
         </div>
+      </div>
+    </div>
+
+    <!-- 小口経費 -->
+    <div id="viewExpenses" class="hidden">
+      <div class="expenses-page-header" style="margin-bottom:24px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0;">小口経費一覧</h2>
+      </div>
+      <div class="expenses-filter-bar">
+        <div class="expenses-filter-title">フィルター条件</div>
+        <div class="expenses-filter-row">
+          <label class="expenses-filter-label">期間</label>
+          <input type="date" id="expListDateFrom" class="inp expenses-filter-inp">
+          <span class="expenses-filter-sep">〜</span>
+          <input type="date" id="expListDateTo" class="inp expenses-filter-inp">
+          <label class="expenses-filter-label">カテゴリ</label>
+          <select id="expListCategory" class="inp expenses-filter-select">
+            <option value="">すべて</option>
+            <option value="銀行手数料">銀行手数料</option>
+            <option value="駐車場代">駐車場代</option>
+            <option value="代引き">代引き</option>
+            <option value="その他">その他</option>
+          </select>
+          <label class="expenses-filter-label">ソート</label>
+          <select id="expListSort" class="inp expenses-filter-select">
+            <option value="date_desc">日付の新しい順</option>
+            <option value="date_asc">日付の古い順</option>
+            <option value="amount_desc">金額の高い順</option>
+            <option value="amount_asc">金額の低い順</option>
+            <option value="category">カテゴリ順</option>
+            <option value="created_desc">登録日の新しい順</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadExpensesPage()">検索</button>
+        </div>
+      </div>
+      <div id="expensesPageList">
+        <div style="text-align:center; padding:40px; color:var(--sub);">期間を選択して「検索」を押してください</div>
       </div>
     </div>
   </div>
@@ -734,11 +941,26 @@
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
           <button class="payment-btn" data-method="商品券" onclick="selectPayment('商品券')"><span style="font-size:20px;">🎫</span>商品券</button>
+          <button class="payment-btn" data-method="ツケ払い" onclick="selectPayment('ツケ払い')"><span style="font-size:18px;">📋</span>ツケ払い</button>
+          <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
+        </div>
+        <div id="paymentDateSection">
+          <label class="inp-lbl">📅 決済日（売上カウント日）</label>
+          <input type="date" id="paymentDateInput" class="inp" style="margin:0;" onchange="onPaymentDateChange()">
         </div>
       </div>
       <div class="inp-group">
         <label class="inp-lbl">📝 管理者メモ</label>
-        <textarea id="memo" class="inp" placeholder="メモを入力（自動保存）"></textarea>
+        <textarea id="memo" class="inp" placeholder="メモを入力（保存ボタンで反映）"></textarea>
+      </div>
+      <div id="editSaveArea" style="margin-bottom:16px; display:none;">
+        <button class="btn-save-info" onclick="savePatientInfo()">保存</button>
+      </div>
+      <div id="auditLogSection">
+        <div class="audit-log-title">編集履歴</div>
+        <div id="auditLogList">
+          <div class="audit-empty">読み込み中...</div>
+        </div>
       </div>
       <div class="btns"><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
     </div>
@@ -880,6 +1102,102 @@
     </div>
   </div>
 
+  <!-- 経費入力モーダル -->
+  <div class="overlay" id="expenseMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:520px;">
+      <div class="box-h"><h3 class="box-ttl">小口経費 登録</h3></div>
+      <div class="expense-form-grid">
+        <div class="inp-group">
+          <label class="inp-lbl">📅 日付</label>
+          <input type="date" id="expDate" class="inp" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">📂 カテゴリ</label>
+          <select id="expCategory" class="inp" style="margin:0;" onchange="toggleExpenseItemField('exp')">
+            <option value="銀行手数料">銀行手数料</option>
+            <option value="駐車場代">駐車場代</option>
+            <option value="代引き">代引き</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="inp-group full" id="expItemGroup" style="display:none;">
+          <label class="inp-lbl">📝 項目名（その他の内容）</label>
+          <input id="expItem" class="inp" placeholder="例: 消耗品、雑費 など" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💴 金額</label>
+          <input type="number" id="expAmount" class="inp" placeholder="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">👤 担当者</label>
+          <select id="expStaff" class="inp" style="margin:0;">
+            <option value="">未選択</option>
+          </select>
+        </div>
+        <div class="inp-group full">
+          <label class="inp-lbl">📎 メモ</label>
+          <textarea id="expMemo" class="inp" placeholder="備考（任意）" style="margin:0; min-height:60px;"></textarea>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveExpense()">登録</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 小口経費 編集モーダル -->
+  <div class="overlay" id="expenseEditMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:520px;">
+      <div class="box-h"><h3 class="box-ttl">小口経費 編集</h3></div>
+      <input type="hidden" id="expEditId">
+      <div class="expense-form-grid">
+        <div class="inp-group">
+          <label class="inp-lbl">📅 日付</label>
+          <input type="date" id="expEditDate" class="inp" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">📂 カテゴリ</label>
+          <select id="expEditCategory" class="inp" style="margin:0;" onchange="toggleExpenseItemField('expEdit')">
+            <option value="銀行手数料">銀行手数料</option>
+            <option value="駐車場代">駐車場代</option>
+            <option value="代引き">代引き</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="inp-group full" id="expEditItemGroup" style="display:none;">
+          <label class="inp-lbl">📝 項目名（その他の内容）</label>
+          <input id="expEditItem" class="inp" placeholder="例: 消耗品、雑費 など" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💴 金額</label>
+          <input type="number" id="expEditAmount" class="inp" placeholder="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">👤 担当者</label>
+          <select id="expEditStaff" class="inp" style="margin:0;">
+            <option value="">未選択</option>
+          </select>
+        </div>
+        <div class="inp-group full">
+          <label class="inp-lbl">📎 メモ</label>
+          <textarea id="expEditMemo" class="inp" placeholder="備考（任意）" style="margin:0; min-height:60px;"></textarea>
+        </div>
+      </div>
+      <div id="expenseEditAuditSection" style="margin-bottom:16px;">
+        <div class="audit-log-title">編集履歴</div>
+        <div id="expenseEditAuditList">
+          <div class="audit-empty">読み込み中...</div>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-danger" type="button" onclick="confirmDeleteExpenseFromModal()">削除（計上から除外）</button>
+        <button class="btn btn-primary" onclick="saveExpenseEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 繰り返し予約モーダル -->
   <div class="overlay" id="repeatMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
@@ -969,15 +1287,63 @@ const STAFF_HOURS = {
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 };
 const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let db = null;
+try {
+  if (window.supabase) {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch (e) {
+  console.error('Supabase初期化エラー:', e);
+}
+
+window.handleLogin = async function() {
+  const errEl = document.getElementById('loginError');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (!db) {
+    if (errEl) { errEl.textContent = 'Supabaseに接続できません。ページを再読み込みしてください。'; errEl.style.display = 'block'; }
+    return;
+  }
+  const emailEl = document.getElementById('email');
+  const passwordEl = document.getElementById('password');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const password = passwordEl ? passwordEl.value : '';
+  if(!email || !password) {
+    if (errEl) { errEl.textContent = 'メールアドレスとパスワードを入力してください'; errEl.style.display = 'block'; }
+    return;
+  }
+  var loader = document.getElementById('loader');
+  if (loader) loader.style.display = 'flex';
+  try {
+    console.log('ログイン試行:', email);
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('ログインエラー:', error);
+      var errMsg = (error.message || '');
+      var errorMsg = errMsg.includes('Invalid login credentials') || errMsg.includes('invalid_credentials') ? 'メールアドレスまたはパスワードが正しくありません'
+        : errMsg.includes('Email not confirmed') || errMsg.includes('email_not_confirmed') ? 'メールアドレスが確認されていません。メールを確認してください'
+        : errMsg.includes('Too many requests') || errMsg.includes('too_many_requests') ? 'リクエストが多すぎます。しばらく待ってから再試行してください'
+        : errMsg.includes('User not found') || errMsg.includes('user_not_found') ? 'このメールアドレスは登録されていません'
+        : 'ログインに失敗しました: ' + errMsg;
+      if (errEl) { errEl.textContent = errorMsg; errEl.style.display = 'block'; errEl.style.color = 'var(--red)'; errEl.style.fontSize = '13px'; errEl.style.fontWeight = '600'; }
+    } else {
+      console.log('ログイン成功:', data);
+      if (typeof loadFees === 'function') await loadFees();
+      if (typeof showMain === 'function') showMain();
+    }
+  } catch (e) {
+    console.error('予期しないエラー:', e);
+    if (errEl) { errEl.textContent = '予期しないエラー: ' + (e.message || '不明'); errEl.style.display = 'block'; errEl.style.color = 'var(--red)'; errEl.style.fontSize = '13px'; errEl.style.fontWeight = '600'; }
+  } finally {
+    if (loader) loader.style.display = 'none';
+  }
+};
+
 let s = { date: new Date(), data: {}, cur: null, id: null };
 let chartInst = null;
 let currentTab = 'schedule';
 let FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000}; // 動的に更新される
 
 // メモ更新のデバウンス処理（1秒待ってから保存）
-let memoUpdateTimer = null;
-const MEMO_DEBOUNCE_MS = 1000;
 
 // キャッシュ管理
 const ADMIN_CACHE_PREFIX = '89admin_';
@@ -1022,34 +1388,34 @@ function clearAdminCache() {
 }
 
 window.onload = async () => {
-  // Supabase接続確認
+  const loginScreen = document.getElementById('loginScreen');
+  const errEl = document.getElementById('loginError');
+  function showLoginError(msg) {
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  }
+
+  if (!db) {
+    showLoginError('Supabaseの読み込みに失敗しました。ネットワークとブラウザのコンソールを確認してください。');
+    return;
+  }
+
   try {
     console.log('Supabase URL:', SUPABASE_URL);
     console.log('Supabase接続確認中...');
-    
-    // Session Check
     const { data: { session }, error: sessionError } = await db.auth.getSession();
-    
-    if (sessionError) {
-      console.error('セッション取得エラー:', sessionError);
-    }
-    
+    if (sessionError) console.error('セッション取得エラー:', sessionError);
     if (session) {
       console.log('既存のセッションが見つかりました');
-      await loadFees(); // 料金をDBから読み込む
+      await loadFees();
       showMain();
     } else {
       console.log('セッションが見つかりません。ログイン画面を表示します');
-      document.getElementById('loginScreen').style.display = 'flex';
+      if (loginScreen) loginScreen.style.display = 'flex';
     }
   } catch (e) {
     console.error('初期化エラー:', e);
-    document.getElementById('loginScreen').style.display = 'flex';
-    const errEl = document.getElementById('loginError');
-    if (errEl) {
-      errEl.textContent = '初期化エラー: ' + e.message;
-      errEl.style.display = 'block';
-    }
+    showLoginError('接続エラー: ' + (e.message || '不明なエラー'));
   }
 
   // 日付ピッカーの設定
@@ -1096,76 +1462,14 @@ window.onload = async () => {
   TIMES.forEach(t => rt.add(new Option(t, t)));
   STAFFS.forEach(st => rs.add(new Option(st, st)));
   
-  // Enterキーでログイン
-  document.getElementById('email').addEventListener('keypress', (e) => {
-    if(e.key === 'Enter') document.getElementById('password').focus();
-  });
-  document.getElementById('password').addEventListener('keypress', (e) => {
-    if(e.key === 'Enter') handleLogin();
-  });
-};
-
-// グローバルスコープに明示的に設定
-window.handleLogin = async function() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const errEl = document.getElementById('loginError');
-  errEl.style.display = 'none';
-  errEl.textContent = '';
-
-  if(!email || !password) {
-    errEl.textContent = 'メールアドレスとパスワードを入力してください';
-    errEl.style.display = 'block';
-    return;
-  }
-  
-  showLoad(true);
-  try {
-    console.log('ログイン試行:', email);
-    const { data, error } = await db.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-      console.error('ログインエラー:', error);
-      let errorMsg = '';
-      
-      // エラーメッセージを日本語化
-      const errMsg = error.message || '';
-      if (errMsg.includes('Invalid login credentials') || errMsg.includes('invalid_credentials')) {
-        errorMsg = 'メールアドレスまたはパスワードが正しくありません';
-      } else if (errMsg.includes('Email not confirmed') || errMsg.includes('email_not_confirmed')) {
-        errorMsg = 'メールアドレスが確認されていません。メールを確認してください';
-      } else if (errMsg.includes('Too many requests') || errMsg.includes('too_many_requests')) {
-        errorMsg = 'リクエストが多すぎます。しばらく待ってから再試行してください';
-      } else if (errMsg.includes('User not found') || errMsg.includes('user_not_found')) {
-        errorMsg = 'このメールアドレスは登録されていません';
-      } else {
-        errorMsg = 'ログインに失敗しました: ' + errMsg;
-      }
-      
-      errEl.textContent = errorMsg;
-      errEl.style.display = 'block';
-      errEl.style.color = 'var(--red)';
-      errEl.style.fontSize = '13px';
-      errEl.style.fontWeight = '600';
-    } else {
-      console.log('ログイン成功:', data);
-      await loadFees(); // 料金を読み込む
-      showMain();
-    }
-  } catch (e) {
-    console.error('予期しないエラー:', e);
-    errEl.textContent = '予期しないエラーが発生しました: ' + (e.message || '不明なエラー');
-    errEl.style.display = 'block';
-    errEl.style.color = 'var(--red)';
-    errEl.style.fontSize = '13px';
-    errEl.style.fontWeight = '600';
-  } finally {
-    showLoad(false);
-  }
+  const emailEl = document.getElementById('email');
+  const passwordEl = document.getElementById('password');
+  if (emailEl) emailEl.addEventListener('keypress', (e) => { if(e.key === 'Enter') (passwordEl && passwordEl.focus()); });
+  if (passwordEl) passwordEl.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleLogin(); });
 };
 
 async function handleLogout() {
-  await db.auth.signOut();
+  if (db) try { await db.auth.signOut(); } catch (e) {}
   location.reload();
 }
 
@@ -1183,14 +1487,17 @@ function switchTab(tab) {
   document.getElementById('viewSchedule').classList.toggle('hidden', tab!=='schedule');
   document.getElementById('viewSearch').classList.toggle('hidden', tab!=='search');
   document.getElementById('viewDashboard').classList.toggle('hidden', tab!=='dashboard');
+  document.getElementById('viewExpenses').classList.toggle('hidden', tab!=='expenses');
   document.getElementById('bulkBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
   
-  // カレンダーは表示するたびに最新情報を取得
   if(tab==='schedule') {
     clearAdminCache();
     load();
   }
-  // ダッシュボードは自動更新しない（検索ボタンを押した時のみ更新）
+  if(tab==='expenses') {
+    initExpensesPageDates();
+    // 一覧は「表示」ボタン押下時のみ loadExpensesPage() で読み込む（タブ表示時は読み込まない）
+  }
 }
 
 function refreshData() {
@@ -1201,6 +1508,8 @@ function refreshData() {
     loadDashboard();
   } else if(currentTab === 'search') {
     runSearch();
+  } else if(currentTab === 'expenses') {
+    loadExpensesPage();
   } else {
     load();
   }
@@ -1333,24 +1642,26 @@ async function cellClick(nm, t) {
   if(c.status === 'booked') {
     // 詳細情報を取得（必要な場合のみ）
     const { data: detail } = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date')
       .eq('id', c.id)
       .single();
     
     const d = detail || c.detail || {};
     s.currentPaymentMethod = d.payment_method || '';
+    s.currentPaymentDate = d.payment_date || '';
+    s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
     document.getElementById('info').innerHTML = `
       <div class="info-item">
-        <span class="info-lbl">👤 氏名</span>
-        <span class="info-val">${d.patient_name||'-'}</span>
+        <span class="info-lbl">👤 氏名（編集可）</span>
+        <input type="text" id="editName" class="info-edit-input" value="${(d.patient_name||'').replace(/"/g,'&quot;')}">
       </div>
       <div class="info-item">
-        <span class="info-lbl">📞 電話</span>
-        <span class="info-val">${d.phone||'-'}</span>
+        <span class="info-lbl">📞 電話番号（編集可）</span>
+        <input type="text" id="editPhone" class="info-edit-input" value="${(d.phone||'').replace(/"/g,'&quot;')}">
       </div>
       <div class="info-item full">
-        <span class="info-lbl">🩺 症状</span>
-        <span class="info-val" style="font-weight:500;">${d.symptoms||'-'}</span>
+        <span class="info-lbl">🩺 症状（編集可）</span>
+        <textarea id="editSymptoms" class="info-edit-input textarea">${d.symptoms||''}</textarea>
       </div>
       <div class="info-item fee-item full">
         <div>
@@ -1362,29 +1673,23 @@ async function cellClick(nm, t) {
         </div>
       </div>`;
     
-    // 決済方法のボタンを更新
+    document.getElementById('editSaveArea').style.display = 'block';
+    setupPatientEditListeners();
+    
     updatePaymentButtons(d.payment_method);
+    const payDateEl = document.getElementById('paymentDateInput');
+    if(payDateEl) payDateEl.value = s.currentPaymentDate || '';
     
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
-    // デバウンス処理でメモ更新
-    mEl.oninput = () => {
-      clearTimeout(memoUpdateTimer);
-      memoUpdateTimer = setTimeout(() => {
-        updateMemo(s.id, mEl.value);
-      }, MEMO_DEBOUNCE_MS);
-    };
-    // 料金編集のイベント
+    s.originalDetail = { patient_name: d.patient_name||'', phone: d.phone||'', symptoms: d.symptoms||'', fee: Number(d.fee||0), admin_memo: d.admin_memo||'', payment_method: d.payment_method||'', payment_date: d.payment_date||'' };
+    setupDetailSaveButtonState();
     const feeEl = document.getElementById('editFee');
-    if(feeEl) {
-      feeEl.onchange = () => {
-        const newFee = Number(feeEl.value);
-        if(newFee >= 0) {
-          updateBookingFee(s.id, newFee);
-        }
-      };
-    }
+    if(feeEl) feeEl.oninput = setupDetailSaveButtonState;
+    if(mEl) mEl.oninput = setupDetailSaveButtonState;
+    if(payDateEl) payDateEl.onchange = setupDetailSaveButtonState;
     openMod('detailMod');
+    loadAuditLogs(c.id);
   } else if(c.status === 'free' || c.status === 'outside' || c.status === 'dayoff') {
     // 定休日または時間外の場合はラベルを表示
     const dow = s.date.getDay();
@@ -1463,6 +1768,7 @@ async function runCreate() {
       return;
     }
     
+    addAuditLog(id, '予約作成', `${name}様 ${s.cur.staff} ${s.cur.time}〜${endTime} ¥${fee.toLocaleString()}`);
     clearAdminCache();
     closeAll(); 
     load();
@@ -1476,18 +1782,23 @@ async function runCreate() {
 async function runCancel() {
   if(!confirm('キャンセルしますか？')) return;
   await db.from('bookings').update({ status:'キャンセル' }).eq('id', s.id);
+  addAuditLog(s.id, 'キャンセル', '予約をキャンセルしました');
   clearAdminCache();
   closeAll(); load();
 }
 
 async function updateMemo(id, val) {
   const { error } = await db.from('bookings').update({ admin_memo: val }).eq('id', id);
-  if(!error) showToast('メモを保存しました');
+  if(!error) {
+    addAuditLog(id, 'メモ更新', 'メモを更新しました');
+    showToast('メモを保存しました');
+  }
 }
 
 async function updateBookingFee(id, fee) {
   const { error } = await db.from('bookings').update({ fee: fee }).eq('id', id);
   if(!error) {
+    addAuditLog(id, '料金変更', `料金を ¥${fee.toLocaleString()} に変更`);
     showToast('料金を更新しました');
     clearAdminCache();
     if(currentTab === 'schedule') load();
@@ -1585,21 +1896,23 @@ async function saveFees() {
 async function openSearchDetail(bookingId) {
   s.id = bookingId;
   const { data: detail } = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff, payment_method')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff, payment_method, payment_date')
     .eq('id', bookingId)
     .single();
   
   if(!detail) return;
   
   s.currentPaymentMethod = detail.payment_method || '';
+  s.currentPaymentDate = detail.payment_date || '';
+  s.originalPatientData = { patient_name: detail.patient_name || '', phone: detail.phone || '', symptoms: detail.symptoms || '' };
   document.getElementById('info').innerHTML = `
     <div class="info-item">
-      <span class="info-lbl">👤 氏名</span>
-      <span class="info-val">${detail.patient_name||'-'}</span>
+      <span class="info-lbl">👤 氏名（編集可）</span>
+      <input type="text" id="editName" class="info-edit-input" value="${(detail.patient_name||'').replace(/"/g,'&quot;')}">
     </div>
     <div class="info-item">
-      <span class="info-lbl">📞 電話</span>
-      <span class="info-val">${detail.phone||'-'}</span>
+      <span class="info-lbl">📞 電話番号（編集可）</span>
+      <input type="text" id="editPhone" class="info-edit-input" value="${(detail.phone||'').replace(/"/g,'&quot;')}">
     </div>
     <div class="info-item">
       <span class="info-lbl">📅 日時</span>
@@ -1610,8 +1923,8 @@ async function openSearchDetail(bookingId) {
       <span class="info-val">${detail.staff||'-'}</span>
     </div>
     <div class="info-item full">
-      <span class="info-lbl">🩺 症状</span>
-      <span class="info-val" style="font-weight:500;">${detail.symptoms||'-'}</span>
+      <span class="info-lbl">🩺 症状（編集可）</span>
+      <textarea id="editSymptoms" class="info-edit-input textarea">${detail.symptoms||''}</textarea>
     </div>
     <div class="info-item fee-item full">
       <div>
@@ -1623,29 +1936,23 @@ async function openSearchDetail(bookingId) {
       </div>
     </div>`;
   
-  // 決済方法のボタンを更新
+  document.getElementById('editSaveArea').style.display = 'block';
+  setupPatientEditListeners();
+  
   updatePaymentButtons(detail.payment_method);
+  const payDateEl = document.getElementById('paymentDateInput');
+  if(payDateEl) payDateEl.value = s.currentPaymentDate || '';
   
   const mEl = document.getElementById('memo');
   mEl.value = detail.admin_memo || '';
-  mEl.oninput = () => {
-    clearTimeout(memoUpdateTimer);
-    memoUpdateTimer = setTimeout(() => {
-      updateMemo(s.id, mEl.value);
-    }, MEMO_DEBOUNCE_MS);
-  };
-  
+  s.originalDetail = { patient_name: detail.patient_name||'', phone: detail.phone||'', symptoms: detail.symptoms||'', fee: Number(detail.fee||0), admin_memo: detail.admin_memo||'', payment_method: detail.payment_method||'', payment_date: detail.payment_date||'' };
+  setupDetailSaveButtonState();
   const feeEl = document.getElementById('editFee');
-  if(feeEl) {
-    feeEl.onchange = () => {
-      const newFee = Number(feeEl.value);
-      if(newFee >= 0) {
-        updateBookingFee(s.id, newFee);
-      }
-    };
-  }
-  
+  if(feeEl) feeEl.oninput = setupDetailSaveButtonState;
+  if(mEl) mEl.oninput = setupDetailSaveButtonState;
+  if(payDateEl) payDateEl.onchange = setupDetailSaveButtonState;
   openMod('detailMod');
+  loadAuditLogs(bookingId);
 }
 
 async function runSingleBlock() {
@@ -1882,7 +2189,9 @@ const PAYMENT_FEES = {
   '現金': 0,
   'ペイペイ': 0.018,  // 1.8%
   'クレジット': 0.0325, // 3.25%
-  '商品券': 0
+  '商品券': 0,
+  'ツケ払い': 0,
+  '保険': 0
 };
 
 // ダッシュボード用データ保存
@@ -1895,6 +2204,7 @@ async function loadDashboard() {
   document.getElementById('dashInitMsg').style.display = 'none';
   document.getElementById('dashContent').style.display = 'grid';
   document.getElementById('dashPayment').style.display = 'block';
+  document.getElementById('dashExpenses').style.display = 'block';
   document.getElementById('dashCharts').style.display = 'grid';
   
   const start = document.getElementById('dashDateFrom').value;
@@ -1905,40 +2215,118 @@ async function loadDashboard() {
     return alert('日付を選択してください');
   }
   
-  // エクスポート用に全カラム取得
-  const { data: books } = await db.from('bookings')
-    .select('id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo')
+  // 予約日で期間内の予約を取得（payment_date / payment_method 列が無いDBでも動くよう段階的にフォールバック）
+  const selectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo';
+  const selectColsMin = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, admin_memo';
+  const r1 = await db.from('bookings')
+    .select(selectCols + ', payment_date')
     .gte('date', start)
     .lte('date', end)
     .neq('status', 'キャンセル')
     .order('date', { ascending: true });
-  const list = books || [];
-  dashboardData = list; // エクスポート用に保存
-    
-  // KPI
-  const totalSales = list.reduce((sum, b) => sum + Number(b.fee || 0), 0);
-  const count = list.length;
-  const avg = count ? Math.round(totalSales / count) : 0;
+  
+  let booksByDate;
+  if(r1.error) {
+    const r1b = await db.from('bookings')
+      .select(selectCols)
+      .gte('date', start)
+      .lte('date', end)
+      .neq('status', 'キャンセル')
+      .order('date', { ascending: true });
+    if(r1b.error) {
+      const r1c = await db.from('bookings')
+        .select(selectColsMin)
+        .gte('date', start)
+        .lte('date', end)
+        .neq('status', 'キャンセル')
+        .order('date', { ascending: true });
+      booksByDate = (r1c.data || []).map(b => ({ ...b, payment_method: null, payment_date: null }));
+      if(r1c.data && r1c.data.length > 0) console.warn('売上: payment_method 列がありません。Supabaseで supabase_bookings_payment_method.sql を実行してください。');
+    } else {
+      booksByDate = (r1b.data || []).map(b => ({ ...b, payment_date: b.payment_date || null }));
+    }
+  } else {
+    booksByDate = (r1.data || []).map(b => ({ ...b, payment_date: b.payment_date || null }));
+  }
+  
+  // 決済日で期間内のツケ払い・保険（payment_date 列が無い場合はスキップ）
+  let booksByPaymentDate = [];
+  const r2 = await db.from('bookings')
+    .select(selectCols + ', payment_date')
+    .gte('payment_date', start)
+    .lte('payment_date', end)
+    .in('payment_method', DEFERRED_PAYMENT_METHODS)
+    .neq('status', 'キャンセル');
+  if(!r2.error) booksByPaymentDate = r2.data || [];
+  
+  const mergedMap = new Map();
+  (booksByDate || []).forEach(b => mergedMap.set(b.id, b));
+  (booksByPaymentDate || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
+  const mergedList = Array.from(mergedMap.values());
+  
+  // 売上カウント日: 現金・クレジット・PayPay・商品券はその日(予約日)、ツケ払い・保険は決済日
+  function getReportDate(b) {
+    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0 && b.payment_date) return b.payment_date;
+    return b.date;
+  }
+  
+  const listInRange = mergedList.filter(b => {
+    const reportDate = getReportDate(b);
+    return reportDate >= start && reportDate <= end;
+  });
+  
+  dashboardData = listInRange;
+  
+  // 決済済み: 決済方法あり、ツケ払い・保険は決済日も必須
+  const paidList = listInRange.filter(b => {
+    if(!b.payment_method) return false;
+    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0) return !!b.payment_date;
+    return true;
+  });
+  
+  const totalSales = paidList.reduce((sum, b) => sum + Number(b.fee || 0), 0);
+  const paidCount = paidList.length;
+  const totalCount = listInRange.length;
+  const avg = paidCount ? Math.round(totalSales / paidCount) : 0;
   
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
-  document.getElementById('kpiCount').textContent = count + '件';
+  document.getElementById('kpiCount').textContent = paidCount + '件';
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
   
-  // 決済方法別集計
+  const salesDesc = document.querySelector('.kpi-sales .kpi-desc');
+  if(salesDesc) salesDesc.textContent = `売上合計（決済済み ${paidCount}件）`;
+  const countDesc = document.querySelector('.kpi-bookings .kpi-desc');
+  if(countDesc) countDesc.textContent = `決済済み / 全${totalCount}件`;
+  const avgDesc = document.querySelector('.kpi-avg .kpi-desc');
+  if(avgDesc) avgDesc.textContent = `決済済みの平均客単価`;
+  
+  // 予約はあるが売上0円のとき案内（決済方法未選択 or payment_method 列なし）
+  const dashZeroHint = document.getElementById('dashZeroHint');
+  if(dashZeroHint) {
+    if(totalCount > 0 && paidCount === 0) {
+      dashZeroHint.style.display = 'block';
+      dashZeroHint.innerHTML = '予約はありますが、決済方法が選択されていません。予約管理でセルをクリックし、詳細内の「決済方法」を選んでください。まだ「更新に失敗しました」と出る場合は、SupabaseのSQLエディターで <code>supabase_bookings_payment_method.sql</code> を実行して <code>payment_method</code> 列を追加してください。';
+    } else {
+      dashZeroHint.style.display = 'none';
+    }
+  }
+  
   const payStats = {
     '現金': { count: 0, amount: 0, fee: 0 },
     'ペイペイ': { count: 0, amount: 0, fee: 0 },
     'クレジット': { count: 0, amount: 0, fee: 0 },
     '商品券': { count: 0, amount: 0, fee: 0 },
+    'ツケ払い': { count: 0, amount: 0, fee: 0 },
+    '保険': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
   
-  list.forEach(b => {
-    const method = b.payment_method || '未選択';
+  listInRange.forEach(b => {
+    let method = b.payment_method || '未選択';
+    if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
     const amount = Number(b.fee || 0);
     const feeRate = PAYMENT_FEES[method] || 0;
     const fee = Math.round(amount * feeRate);
-    
     if(payStats[method]) {
       payStats[method].count++;
       payStats[method].amount += amount;
@@ -1949,26 +2337,21 @@ async function loadDashboard() {
     }
   });
   
-  // 決済方法別カードを表示（並び順：現金→クレジット→PayPay→商品券）
-  // PayPayロゴ画像
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', '商品券': '🎫', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', '商品券': 'giftcard' };
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', '商品券': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', '商品券': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', '商品券'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', '商品券', 'ツケ払い', '保険'].forEach(method => {
     const stat = payStats[method];
-    const feeRate = PAYMENT_FEES[method] * 100;
+    const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
-    
-    // 手数料が0%の場合は手数料欄を非表示
     const feeHtml = feeRate > 0 ? `
         <div class="pay-fee">
           -¥${stat.fee.toLocaleString()}
           <div class="pay-fee-rate">(${feeRate % 1 === 0 ? feeRate : feeRate.toFixed(2)}%)</div>
         </div>` : '';
-    
     payHtml += `
       <div class="payment-stat-card ${payClasses[method]}">
         <div class="pay-icon">${payIcons[method]}</div>
@@ -1982,7 +2365,6 @@ async function loadDashboard() {
   document.getElementById('paymentStats').innerHTML = payHtml;
   document.getElementById('totalFees').textContent = '-¥' + totalFees.toLocaleString();
   
-  // 未決済件数を表示
   const unpaidEl = document.getElementById('unpaidCount');
   const unpaidCount = payStats['未選択'].count;
   if(unpaidCount > 0) {
@@ -1992,25 +2374,25 @@ async function loadDashboard() {
     unpaidEl.classList.remove('show');
   }
   
-  // List: Staff Stats
-  const stStats = {}; STAFFS.forEach(s => stStats[s] = {c:0, s:0});
-  list.forEach(b => { if(stStats[b.staff]) { stStats[b.staff].c++; stStats[b.staff].s += Number(b.fee||0); } });
+  const stStats = {}; STAFFS.forEach(st => stStats[st] = {c:0, s:0, total:0});
+  listInRange.forEach(b => { if(stStats[b.staff]) stStats[b.staff].total++; });
+  paidList.forEach(b => { if(stStats[b.staff]) { stStats[b.staff].c++; stStats[b.staff].s += Number(b.fee||0); } });
   
   let stHtml = '';
-  STAFFS.forEach((s, idx) => {
+  STAFFS.forEach((st, idx) => {
     stHtml += `
       <div class="staff-row">
-        <div class="s-name">${s}</div>
+        <div class="s-name">${st}</div>
         <div class="s-data">
-          <span class="s-cnt">${stStats[s].c}件</span>
-          <span class="s-amt">¥${stStats[s].s.toLocaleString()}</span>
+          <span class="s-cnt">${stStats[st].c}件（全${stStats[st].total}件）</span>
+          <span class="s-amt">¥${stStats[st].s.toLocaleString()}</span>
         </div>
       </div>`;
   });
   document.getElementById('staffList').innerHTML = stHtml;
 
-  // Chart: Cumulative（日付ベース）
-  // 期間内の全日付を生成
+  await loadExpensesDashboard(start, end, totalSales, totalFees);
+  
   const startDate = new Date(start);
   const endDate = new Date(end);
   const dateLabels = [];
@@ -2022,9 +2404,10 @@ async function loadDashboard() {
     dailyData[dateStr] = 0;
   }
   
-  list.forEach(b => {
-    if(dailyData.hasOwnProperty(b.date)) {
-      dailyData[b.date] += Number(b.fee || 0);
+  paidList.forEach(b => {
+    const reportDate = getReportDate(b);
+    if(dailyData.hasOwnProperty(reportDate)) {
+      dailyData[reportDate] += Number(b.fee || 0);
     }
   });
   
@@ -2045,7 +2428,7 @@ async function loadDashboard() {
     data: {
       labels: shortLabels,
       datasets: [{
-        label: '売上 (累積)', data: cumData,
+        label: '売上 累積（決済済みのみ）', data: cumData,
         borderColor: '#111827', backgroundColor: 'rgba(17, 24, 39, 0.05)',
         tension: 0, fill: true, pointRadius: dateLabels.length > 60 ? 0 : 2
       }]
@@ -2094,29 +2477,42 @@ function getTimeSlots(startTime, endTime) {
   return slots;
 }
 
-// 決済方法関連
+// 決済方法関連（ツケ払い・保険は決済日を売上カウント日に使用）
+const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
+
 function updatePaymentButtons(currentMethod) {
   document.querySelectorAll('.payment-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.method === currentMethod);
   });
+  const section = document.getElementById('paymentDateSection');
+  const input = document.getElementById('paymentDateInput');
+  if(section && input) {
+    if(DEFERRED_PAYMENT_METHODS.indexOf(currentMethod) >= 0) {
+      section.classList.add('show');
+      input.value = s.currentPaymentDate || '';
+    } else {
+      section.classList.remove('show');
+      input.value = '';
+    }
+  }
 }
 
-async function selectPayment(method) {
+function selectPayment(method) {
   if(!s.id) return;
-  
-  // 同じ方法を選択した場合は解除
   const newMethod = (s.currentPaymentMethod === method) ? null : method;
-  
-  const { error } = await db.from('bookings').update({ payment_method: newMethod }).eq('id', s.id);
-  if(!error) {
-    s.currentPaymentMethod = newMethod;
-    updatePaymentButtons(newMethod);
-    showToast(newMethod ? `決済方法を「${newMethod}」に設定しました` : '決済方法を解除しました');
-    clearAdminCache();
-    load();
-  } else {
-    showToast('決済方法の更新に失敗しました');
-  }
+  const isDeferred = newMethod && DEFERRED_PAYMENT_METHODS.indexOf(newMethod) >= 0;
+  s.currentPaymentMethod = newMethod;
+  if(!isDeferred) s.currentPaymentDate = '';
+  updatePaymentButtons(newMethod);
+  const payDateEl = document.getElementById('paymentDateInput');
+  if(payDateEl && !isDeferred) payDateEl.value = '';
+  setupDetailSaveButtonState();
+}
+
+function onPaymentDateChange() {
+  const el = document.getElementById('paymentDateInput');
+  if(el) s.currentPaymentDate = el.value || '';
+  setupDetailSaveButtonState();
 }
 
 // 繰り返し予約関連
@@ -2255,6 +2651,11 @@ async function createRepeatBookings() {
       return;
     }
     
+    // 繰り返し予約の監査ログ
+    for(const booking of bookings) {
+      addAuditLog(booking.id, '繰り返し予約作成', `${booking.patient_name}様 ${booking.staff} ${booking.date} ${booking.start_time}〜${booking.end_time}`);
+    }
+    
     clearAdminCache();
     closeAll();
     load();
@@ -2267,11 +2668,12 @@ async function createRepeatBookings() {
   }
 }
 
-// switchTab更新（繰り返しボタンの表示制御）
+// switchTab更新（ボタンの表示制御）
 const originalSwitchTab = switchTab;
 switchTab = function(tab) {
   originalSwitchTab(tab);
   document.getElementById('repeatBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
+  document.getElementById('expenseBtn').style.display = (tab==='schedule' || tab==='dashboard' || tab==='expenses') ? 'inline-flex' : 'none';
 };
 
 // エクセルエクスポート機能
@@ -2299,28 +2701,28 @@ function exportToExcel() {
     return;
   }
   
-  // CSVヘッダー（決済手数料を料金の右に配置）
-  const headers = ['日付', '患者名', '開始時間', '終了時間', 'スタッフ', '料金', '決済手数料', '決済方法', '電話番号', '症状', 'メモ'];
+  const headers = ['日付', '患者名', '開始時間', '終了時間', 'スタッフ', '料金', '決済手数料', '決済方法', '決済日', '電話番号', '症状', 'メモ'];
   
-  // データ行を作成
   const rows = dashboardData.map(b => {
     const fee = Number(b.fee || 0);
     const method = b.payment_method || '';
     const feeRate = PAYMENT_FEES[method] || 0;
     const paymentFee = Math.round(fee * feeRate);
+    const paymentDate = (method && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0) ? (b.payment_date || '') : '';
     
     return [
-      b.date,                              // 日付
-      b.patient_name || '',                // 患者名
-      b.start_time || '',                  // 開始時間
-      b.end_time || '',                    // 終了時間
-      b.staff || '',                       // スタッフ
-      fee,                                 // 料金
-      paymentFee,                          // 決済手数料
-      method,                              // 決済方法
-      b.phone || '',                       // 電話番号
-      (b.symptoms || '').replace(/,/g, '、'), // 症状（カンマを全角に）
-      (b.admin_memo || '').replace(/,/g, '、').replace(/\n/g, ' ') // メモ（カンマと改行を変換）
+      b.date,
+      b.patient_name || '',
+      b.start_time || '',
+      b.end_time || '',
+      b.staff || '',
+      fee,
+      paymentFee,
+      method,
+      paymentDate,
+      b.phone || '',
+      (b.symptoms || '').replace(/,/g, '、'),
+      (b.admin_memo || '').replace(/,/g, '、').replace(/\n/g, ' ')
     ];
   });
   
@@ -2341,8 +2743,16 @@ function exportToExcel() {
   // 集計行を追加
   const totalFee = rows.reduce((sum, r) => sum + r[6], 0);
   const totalAmount = rows.reduce((sum, r) => sum + r[5], 0);
+  const paidRows = rows.filter((r, i) => {
+    const b = dashboardData[i];
+    if(!b || !b.payment_method) return false;
+    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0) return !!b.payment_date;
+    return true;
+  });
+  const paidTotal = paidRows.reduce((sum, r) => sum + r[5], 0);
   csvContent += '\n';
-  csvContent += `合計,${rows.length}件,,,,,${totalAmount},${totalFee},,,,\n`;
+  csvContent += `全件合計,${rows.length}件,,,,${totalAmount},${totalFee},,,,,\n`;
+  csvContent += `決済済み合計,${paidRows.length}件,,,,${paidTotal},${totalFee},,,,,\n`;
   
   // ダウンロード
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2356,6 +2766,602 @@ function exportToExcel() {
   document.body.removeChild(link);
   
   showToast(`${rows.length}件のデータをエクスポートしました`);
+}
+
+// ===== 患者情報編集機能（保存ボタンで一括更新） =====
+function setupDetailSaveButtonState() {
+  if(!s.originalDetail) return;
+  const saveBtn = document.querySelector('.btn-save-info');
+  if(!saveBtn) return;
+  const name = (document.getElementById('editName')?.value ?? '').trim();
+  const phone = (document.getElementById('editPhone')?.value ?? '').trim();
+  const symptoms = (document.getElementById('editSymptoms')?.value ?? '').trim();
+  const fee = Number(document.getElementById('editFee')?.value ?? 0);
+  const memo = (document.getElementById('memo')?.value ?? '').trim();
+  const payDateEl = document.getElementById('paymentDateInput');
+  const paymentDate = payDateEl ? (payDateEl.value || '') : '';
+  const o = s.originalDetail;
+  const changed = (name !== o.patient_name) || (phone !== o.phone) || (symptoms !== o.symptoms) ||
+    (fee !== o.fee) || (memo !== o.admin_memo) || (s.currentPaymentMethod !== o.payment_method) ||
+    (paymentDate !== (o.payment_date || ''));
+  saveBtn.style.background = changed ? '#3B82F6' : '#9CA3AF';
+  saveBtn.textContent = changed ? '保存（変更あり）' : '保存';
+}
+
+function setupPatientEditListeners() {
+  ['editName', 'editPhone', 'editSymptoms'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', setupDetailSaveButtonState);
+  });
+}
+
+async function savePatientInfo() {
+  if(!s.id) return;
+  
+  const newName = (document.getElementById('editName')?.value ?? '').trim();
+  const newPhone = (document.getElementById('editPhone')?.value ?? '').trim();
+  const newSymptoms = (document.getElementById('editSymptoms')?.value ?? '').trim();
+  const newFee = Number(document.getElementById('editFee')?.value ?? 0);
+  const newMemo = (document.getElementById('memo')?.value ?? '').trim();
+  const payDateEl = document.getElementById('paymentDateInput');
+  const paymentDate = payDateEl ? (payDateEl.value || '').trim() : '';
+  
+  if(!newName) { showToast('氏名を入力してください'); return; }
+  if(newFee < 0) { showToast('料金は0以上で入力してください'); return; }
+  const isDeferred = s.currentPaymentMethod && DEFERRED_PAYMENT_METHODS.indexOf(s.currentPaymentMethod) >= 0;
+  if(isDeferred && !paymentDate) { showToast('ツケ払い・保険の場合は決済日を選択してください'); return; }
+  
+  const o = s.originalDetail || {};
+  const changes = [];
+  if(newName !== (o.patient_name || '')) changes.push(`氏名`);
+  if(newPhone !== (o.phone || '')) changes.push(`電話`);
+  if(newSymptoms !== (o.symptoms || '')) changes.push(`症状`);
+  if(newFee !== (o.fee || 0)) changes.push(`料金`);
+  if(newMemo !== (o.admin_memo || '')) changes.push(`メモ`);
+  if(s.currentPaymentMethod !== (o.payment_method || '')) changes.push(`決済方法`);
+  if((paymentDate || '') !== (o.payment_date || '')) changes.push(`決済日`);
+  
+  if(changes.length === 0) {
+    showToast('変更はありません');
+    return;
+  }
+  
+  const payload = {
+    patient_name: newName,
+    phone: newPhone,
+    symptoms: newSymptoms,
+    fee: newFee,
+    admin_memo: newMemo,
+    payment_method: s.currentPaymentMethod || null
+  };
+  if(isDeferred) payload.payment_date = paymentDate || null;
+  
+  const { error } = await db.from('bookings').update(payload).eq('id', s.id);
+  
+  if(!error) {
+    addAuditLog(s.id, '詳細更新', changes.join('・') + ' を更新');
+    s.originalPatientData = { patient_name: newName, phone: newPhone, symptoms: newSymptoms };
+    s.originalDetail = { patient_name: newName, phone: newPhone, symptoms: newSymptoms, fee: newFee, admin_memo: newMemo, payment_method: s.currentPaymentMethod || '', payment_date: paymentDate || '' };
+    s.currentPaymentDate = paymentDate;
+    clearAdminCache();
+    if(currentTab === 'schedule') load();
+    showToast('保存しました');
+    const saveBtn = document.querySelector('.btn-save-info');
+    if(saveBtn) { saveBtn.style.background = '#10B981'; saveBtn.textContent = '保存完了'; }
+  } else {
+    showToast('更新に失敗しました: ' + (error.message || ''));
+  }
+}
+
+// ===== 監査ログ機能 =====
+async function addAuditLog(bookingId, action, details) {
+  try {
+    const now = new Date();
+    const timestamp = now.toISOString();
+    const { data: { session } } = await db.auth.getSession();
+    const userEmail = session?.user?.email || 'unknown';
+    
+    await db.from('audit_logs').insert({
+      booking_id: bookingId,
+      action: action,
+      details: details,
+      user_email: userEmail,
+      created_at: timestamp
+    });
+  } catch(e) {
+    console.warn('監査ログの記録に失敗:', e.message);
+  }
+}
+
+async function loadAuditLogs(bookingId) {
+  const container = document.getElementById('auditLogList');
+  if(!container) return;
+  
+  container.innerHTML = '<div class="audit-empty">ログを読み込み中...</div>';
+  
+  try {
+    const { data, error } = await db.from('audit_logs')
+      .select('action, details, created_at, user_email')
+      .eq('booking_id', bookingId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    if(error) throw error;
+    
+    if(!data || data.length === 0) {
+      container.innerHTML = '<div class="audit-empty">編集履歴はありません</div>';
+      return;
+    }
+    
+    let html = '';
+    data.forEach(log => {
+      const dt = new Date(log.created_at);
+      const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
+      const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+      html += `
+        <div class="audit-entry">
+          <span class="audit-time">${dateStr} ${timeStr}</span>
+          <span class="audit-action"><strong>${log.action}</strong> ${log.details || ''}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div class="audit-empty">履歴を取得できません（SQLで audit_logs テーブルを作成してください）</div>';
+    console.warn('監査ログ取得エラー:', e.message);
+  }
+}
+
+// 小口経費カテゴリ（登録・編集・フィルタで使用）
+const EXPENSE_CATEGORIES = ['銀行手数料', '駐車場代', '代引き', 'その他'];
+
+// ===== 経費機能 =====
+function toggleExpenseItemField(which) {
+  const isExp = which === 'exp';
+  const catEl = document.getElementById(isExp ? 'expCategory' : 'expEditCategory');
+  const groupEl = document.getElementById(isExp ? 'expItemGroup' : 'expEditItemGroup');
+  if(!catEl || !groupEl) return;
+  groupEl.style.display = (catEl.value === 'その他') ? 'block' : 'none';
+}
+
+function openExpenseModal() {
+  document.getElementById('expDate').value = fmtLocal(new Date());
+  document.getElementById('expCategory').value = '駐車場代';
+  document.getElementById('expItem').value = '';
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expMemo').value = '';
+  
+  const staffSelect = document.getElementById('expStaff');
+  staffSelect.innerHTML = '<option value="">未選択</option>';
+  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${st}">${st}</option>`);
+  
+  toggleExpenseItemField('exp');
+  openMod('expenseMod');
+}
+
+async function saveExpense() {
+  const date = document.getElementById('expDate').value;
+  const category = document.getElementById('expCategory').value;
+  const itemRaw = document.getElementById('expItem').value.trim();
+  const item = (category === 'その他') ? itemRaw : category;
+  const amount = Number(document.getElementById('expAmount').value);
+  const staff = document.getElementById('expStaff').value;
+  const memo = (document.getElementById('expMemo')?.value || '').trim() || null;
+  
+  if(!date) { showToast('日付を選択してください'); return; }
+  if(category === 'その他' && !itemRaw) { showToast('項目名（その他の内容）を入力してください'); return; }
+  if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  
+  showLoad(true);
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const userEmail = session?.user?.email || 'unknown';
+    
+    const { data: inserted, error } = await db.from('expenses').insert({
+      date: date,
+      category: category,
+      item_name: item,
+      amount: amount,
+      staff: staff || null,
+      memo: memo,
+      created_by: userEmail,
+      created_at: new Date().toISOString()
+    }).select('id').single();
+    
+    if(error) throw error;
+    
+    if(inserted && inserted.id) {
+      addExpenseAuditLog(inserted.id, '登録', `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
+    }
+    
+    closeAll();
+    showToast(`経費「${item}」¥${amount.toLocaleString()} を登録しました`);
+    
+    if(currentTab === 'dashboard') loadDashboard();
+    if(currentTab === 'expenses') loadExpensesPage();
+  } catch(e) {
+    showToast('経費の登録に失敗しました: ' + e.message);
+    console.error('経費登録エラー:', e);
+  } finally {
+    showLoad(false);
+  }
+}
+
+async function deleteExpense(expenseId) {
+  if(!confirm('この経費を削除（計上から除外）しますか？\nレコードは残り、編集履歴で確認できます。')) return;
+  
+  try {
+    const { data: row } = await db.from('expenses').select('date, category, item_name, amount').eq('id', expenseId).single();
+    const details = row ? `${row.date} ${row.category} ${row.item_name} ¥${Number(row.amount).toLocaleString()} を削除（計上から除外）` : '削除';
+    addExpenseAuditLog(expenseId, '削除', details);
+    const { error } = await db.from('expenses').update({ deleted_at: new Date().toISOString() }).eq('id', expenseId);
+    if(error) throw error;
+    showToast('経費を削除しました（計上から除外）');
+    closeAll();
+    if(currentTab === 'dashboard') loadDashboard();
+    if(currentTab === 'expenses') loadExpensesPage();
+  } catch(e) {
+    showToast('削除に失敗しました: ' + e.message);
+  }
+}
+
+// 小口経費ページ: 期間の初期値
+function initExpensesPageDates() {
+  const fromEl = document.getElementById('expListDateFrom');
+  const toEl = document.getElementById('expListDateTo');
+  if(!fromEl || !toEl) return;
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  if(!fromEl.value) fromEl.value = fmtLocal(firstDay);
+  if(!toEl.value) toEl.value = fmtLocal(today);
+}
+
+// 小口経費ページ: 一覧取得（フィルタ・ソート）
+async function loadExpensesPage() {
+  const fromVal = document.getElementById('expListDateFrom')?.value;
+  const toVal = document.getElementById('expListDateTo')?.value;
+  const categoryVal = document.getElementById('expListCategory')?.value;
+  const sortVal = document.getElementById('expListSort')?.value || 'date_desc';
+  
+  const container = document.getElementById('expensesPageList');
+  if(!container) return;
+  
+  if(!fromVal || !toVal) {
+    container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">期間を選択して「検索」を押してください</div>';
+    return;
+  }
+  
+  showLoad(true);
+  try {
+    let query = db.from('expenses')
+      .select('id, date, category, item_name, amount, staff, memo, created_at')
+      .gte('date', fromVal)
+      .lte('date', toVal)
+      .is('deleted_at', null);
+    if(categoryVal) query = query.eq('category', categoryVal);
+    const orderMap = {
+      date_desc: { column: 'date', ascending: false },
+      date_asc: { column: 'date', ascending: true },
+      amount_desc: { column: 'amount', ascending: false },
+      amount_asc: { column: 'amount', ascending: true },
+      category: { column: 'category', ascending: true },
+      created_desc: { column: 'created_at', ascending: false }
+    };
+    const order = orderMap[sortVal] || orderMap.date_desc;
+    query = query.order(order.column, { ascending: order.ascending });
+    let list, error;
+    ({ data: list, error } = await query);
+    if(error) {
+      let q2 = db.from('expenses').select('id, date, category, item_name, amount, staff, memo, created_at').gte('date', fromVal).lte('date', toVal);
+      if(categoryVal) q2 = q2.eq('category', categoryVal);
+      const r2 = await q2.order(order.column, { ascending: order.ascending });
+      list = r2.data || []; error = r2.error;
+    }
+    if(error) throw error;
+    const expenses = list || [];
+    
+    if(expenses.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当する経費はありません</div>';
+      showLoad(false);
+      return;
+    }
+    
+    const total = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    let html = `
+      <div style="margin-bottom:16px; font-size:12px; font-weight:700; color:var(--sub);">${expenses.length}件 / 合計 ¥${total.toLocaleString()}</div>
+      <table class="expense-list-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>カテゴリ</th>
+            <th>項目名</th>
+            <th>金額</th>
+            <th>担当</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    
+    expenses.forEach(e => {
+      const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
+      html += `
+        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
+          <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
+          <td style="font-weight:600;">${e.item_name}</td>
+          <td style="font-family:var(--font-en); font-weight:700; color:#EF4444;">¥${Number(e.amount).toLocaleString()}</td>
+          <td>${e.staff || '-'}</td>
+        </tr>`;
+    });
+    
+    html += `
+        </tbody>
+        <tfoot>
+          <tr style="background:#F3F4F6;">
+            <td colspan="3" style="font-weight:700;">合計</td>
+            <td style="font-family:var(--font-en); font-weight:800; color:#EF4444; font-size:14px;">¥${total.toLocaleString()}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>`;
+    
+    container.innerHTML = html;
+  } catch(e) {
+    console.warn('経費一覧取得エラー:', e.message);
+    container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">経費テーブルが未作成です（SQLを実行してください）</div>';
+  }
+  showLoad(false);
+}
+
+// 小口経費 編集モーダルを開く
+async function openExpenseEdit(expenseId) {
+  const { data: row, error } = await db.from('expenses').select('*').eq('id', expenseId).single();
+  if(error || !row) {
+    showToast('経費データの取得に失敗しました');
+    return;
+  }
+  
+  document.getElementById('expEditId').value = expenseId;
+  document.getElementById('expEditDate').value = row.date;
+  document.getElementById('expEditCategory').value = row.category || 'その他';
+  document.getElementById('expEditItem').value = row.item_name || '';
+  document.getElementById('expEditAmount').value = row.amount || '';
+  document.getElementById('expEditMemo').value = row.memo || '';
+  
+  const staffSelect = document.getElementById('expEditStaff');
+  staffSelect.innerHTML = '<option value="">未選択</option>';
+  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${st}" ${row.staff===st?'selected':''}>${st}</option>`);
+  
+  toggleExpenseItemField('expEdit');
+  loadExpenseAuditLogs(expenseId);
+  openMod('expenseEditMod');
+}
+
+// 小口経費 編集保存
+async function saveExpenseEdit() {
+  const id = document.getElementById('expEditId').value;
+  if(!id) return;
+  
+  const date = document.getElementById('expEditDate').value;
+  const category = document.getElementById('expEditCategory').value;
+  const itemRaw = document.getElementById('expEditItem').value.trim();
+  const item = (category === 'その他') ? itemRaw : category;
+  const amount = Number(document.getElementById('expEditAmount').value);
+  const staff = document.getElementById('expEditStaff').value;
+  const memo = (document.getElementById('expEditMemo')?.value || '').trim() || null;
+  
+  if(!date) { showToast('日付を選択してください'); return; }
+  if(category === 'その他' && !itemRaw) { showToast('項目名（その他の内容）を入力してください'); return; }
+  if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  
+  showLoad(true);
+  try {
+    const { data: oldRow } = await db.from('expenses').select('date, category, item_name, amount, staff, memo').eq('id', id).single();
+    
+    const { error } = await db.from('expenses').update({
+      date: date,
+      category: category,
+      item_name: item,
+      amount: amount,
+      staff: staff || null,
+      memo: memo
+    }).eq('id', id);
+    
+    if(error) throw error;
+    
+    const details = [];
+    if(oldRow) {
+      if(oldRow.date !== date) details.push(`日付: ${oldRow.date}→${date}`);
+      if(oldRow.category !== category) details.push(`カテゴリ: ${oldRow.category}→${category}`);
+      if(oldRow.item_name !== item) details.push(`項目: ${oldRow.item_name}→${item}`);
+      if(Number(oldRow.amount) !== amount) details.push(`金額: ¥${Number(oldRow.amount).toLocaleString()}→¥${amount.toLocaleString()}`);
+      if((oldRow.staff||'') !== (staff||'')) details.push(`担当: ${oldRow.staff||'-'}→${staff||'-'}`);
+      if((oldRow.memo||'') !== (memo||'')) details.push('メモを変更');
+    }
+    addExpenseAuditLog(Number(id), '編集', details.length ? details.join(' / ') : `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
+    
+    closeAll();
+    showToast('経費を更新しました');
+    if(currentTab === 'dashboard') loadDashboard();
+    if(currentTab === 'expenses') loadExpensesPage();
+  } catch(e) {
+    showToast('更新に失敗しました: ' + e.message);
+  } finally {
+    showLoad(false);
+  }
+}
+
+// 小口経費 編集履歴を記録
+async function addExpenseAuditLog(expenseId, action, details) {
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const userEmail = session?.user?.email || 'unknown';
+    await db.from('expense_audit_logs').insert({
+      expense_id: expenseId,
+      action: action,
+      details: details || '',
+      user_email: userEmail,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {
+    console.warn('小口経費 編集履歴の記録に失敗:', e.message);
+  }
+}
+
+function confirmDeleteExpenseFromModal() {
+  const id = document.getElementById('expEditId')?.value;
+  if(!id) return;
+  deleteExpense(Number(id));
+}
+
+// 小口経費 編集履歴を表示
+async function loadExpenseAuditLogs(expenseId) {
+  const container = document.getElementById('expenseEditAuditList');
+  if(!container) return;
+  
+  container.innerHTML = '<div class="audit-empty">読み込み中...</div>';
+  
+  try {
+    const { data, error } = await db.from('expense_audit_logs')
+      .select('action, details, created_at')
+      .eq('expense_id', expenseId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    if(error) throw error;
+    
+    if(!data || data.length === 0) {
+      container.innerHTML = '<div class="audit-empty">編集履歴はありません</div>';
+      return;
+    }
+    
+    let html = '';
+    data.forEach(log => {
+      const dt = new Date(log.created_at);
+      const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
+      const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+      html += `
+        <div class="audit-entry">
+          <span class="audit-time">${dateStr} ${timeStr}</span>
+          <span class="audit-action"><strong>${log.action}</strong> ${log.details || ''}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div class="audit-empty">履歴を取得できません（expense_audit_logs テーブルを作成してください）</div>';
+    console.warn('小口経費 編集履歴取得エラー:', e.message);
+  }
+}
+
+const EXPENSE_CATEGORY_CLASSES = {
+  '銀行手数料': 'bank',
+  '駐車場代': 'parking',
+  '代引き': 'cod',
+  'その他': 'other',
+  'レジ出金': 'register',
+  '消耗品': 'supplies',
+  '交通費': 'transport',
+  '備品': 'equipment'
+};
+
+async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
+  try {
+    let result = await db.from('expenses')
+      .select('id, date, category, item_name, amount, staff, memo, created_by, created_at')
+      .gte('date', start)
+      .lte('date', end)
+      .is('deleted_at', null)
+      .order('date', { ascending: false });
+    if(result.error) {
+      result = await db.from('expenses')
+        .select('id, date, category, item_name, amount, staff, memo, created_by, created_at')
+        .gte('date', start)
+        .lte('date', end)
+        .order('date', { ascending: false });
+    }
+    if(result.error) throw result.error;
+    const expenseList = result.data || [];
+    const totalExpenses = expenseList.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    
+    // 経費バッジ
+    document.getElementById('expenseTotalBadge').textContent = 
+      expenseList.length > 0 ? `${expenseList.length}件 / 合計 ¥${totalExpenses.toLocaleString()}` : '';
+    
+    // 経費テーブル表示
+    const area = document.getElementById('expenseListArea');
+    if(expenseList.length === 0) {
+      area.innerHTML = '<div style="text-align:center; padding:20px; color:var(--sub); font-size:12px;">この期間の経費はありません</div>';
+      return;
+    }
+    
+    // カテゴリ別集計
+    const catStats = {};
+    expenseList.forEach(e => {
+      if(!catStats[e.category]) catStats[e.category] = { count: 0, amount: 0 };
+      catStats[e.category].count++;
+      catStats[e.category].amount += Number(e.amount || 0);
+    });
+    
+    let catSummary = '<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">';
+    Object.keys(catStats).forEach(cat => {
+      const cls = EXPENSE_CATEGORY_CLASSES[cat] || 'other';
+      catSummary += `<span class="expense-category-badge ${cls}" style="padding:4px 12px; font-size:11px;">
+        ${cat}: ${catStats[cat].count}件 / ¥${catStats[cat].amount.toLocaleString()}</span>`;
+    });
+    catSummary += '</div>';
+    
+    let tableHtml = catSummary + `
+      <table class="expense-list-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>カテゴリ</th>
+            <th>項目</th>
+            <th>金額</th>
+            <th>担当</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    
+    expenseList.forEach(e => {
+      const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
+      tableHtml += `
+        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
+          <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
+          <td style="font-weight:600;">${e.item_name}</td>
+          <td style="font-family:var(--font-en); font-weight:700; color:#EF4444;">¥${Number(e.amount).toLocaleString()}</td>
+          <td>${e.staff || '-'}</td>
+        </tr>`;
+    });
+    
+    tableHtml += `
+        </tbody>
+        <tfoot>
+          <tr style="background:#F3F4F6;">
+            <td colspan="3" style="font-weight:700;">合計</td>
+            <td style="font-family:var(--font-en); font-weight:800; color:#EF4444; font-size:14px;">¥${totalExpenses.toLocaleString()}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>`;
+    
+    area.innerHTML = tableHtml;
+    
+  } catch(e) {
+    console.warn('経費データ取得エラー:', e.message);
+    document.getElementById('expenseListArea').innerHTML = 
+      '<div style="text-align:center; padding:20px; color:var(--sub); font-size:12px;">⚠️ 経費テーブルが未作成です（SQLを実行してください）</div>';
+  }
+}
+
+// ===== ダッシュボード更新ボタン =====
+function refreshDashboard() {
+  const btn = document.querySelector('.btn-dash-refresh');
+  if(btn) {
+    btn.classList.add('spinning');
+    setTimeout(() => btn.classList.remove('spinning'), 800);
+  }
+  clearAdminCache();
+  loadDashboard();
 }
 
 // カーソルに追従する小さい「89」（遅めの補間）

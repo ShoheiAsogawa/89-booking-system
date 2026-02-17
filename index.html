@@ -1054,6 +1054,18 @@ async function createBooking() {
 
     if(error) alert('エラーが発生しました: ' + error.message); 
     else { 
+      // 編集履歴に患者の予約アクションを記録
+      const [y, m, d] = dStr.split('-');
+      const dateLabel = `${parseInt(m)}月${parseInt(d)}日`;
+      try {
+        await db.from('audit_logs').insert({
+          booking_id: id,
+          action: '患者が予約',
+          details: `${dateLabel} ${p.time}〜${endTime} ${p.staff} の予約を登録`,
+          user_email: null,
+          created_at: new Date().toISOString()
+        });
+      } catch (e) { console.warn('audit_log:', e.message); }
       // キャッシュをクリアして最新データを取得
       clearCache();
       closeAll(); 
@@ -1090,6 +1102,19 @@ async function cancelBooking() {
   const { error } = await db.from('bookings').update({ status: 'キャンセル' }).eq('id', state.pending.id).eq('user_id', state.uid);
   if(error) alert('エラーが発生しました: ' + error.message); 
   else { 
+    // 編集履歴に患者のキャンセルアクションを記録
+    const dStr = fmt(state.date);
+    const [y, m, d] = dStr.split('-');
+    const dateLabel = `${parseInt(m)}月${parseInt(d)}日`;
+    try {
+      await db.from('audit_logs').insert({
+        booking_id: state.pending.id,
+        action: '患者がキャンセル',
+        details: `${dateLabel} ${state.pending.time} ${state.pending.staff} の予約をキャンセル`,
+        user_email: null,
+        created_at: new Date().toISOString()
+      });
+    } catch (e) { console.warn('audit_log:', e.message); }
     // キャッシュをクリアして最新データを取得
     clearCache();
     closeAll(); 
