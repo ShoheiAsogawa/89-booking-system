@@ -652,6 +652,8 @@
     .expense-category-badge.parking { background: #F0FDF4; color: #16A34A; }
     .expense-category-badge.cod { background: #FEF2F2; color: #DC2626; }
     .expense-category-badge.other { background: #F3F4F6; color: #6B7280; }
+    .expense-list-table tr.expense-row-deleted td { background: #F3F4F6; color: var(--sub); }
+    .expense-list-table tr.expense-row-deleted .expense-deleted-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #FEE2E2; color: #B91C1C; }
     /* 旧カテゴリ互換 */
     .expense-category-badge.register { background: #FEF2F2; color: #DC2626; }
     .expense-category-badge.supplies { background: #EFF6FF; color: #2563EB; }
@@ -941,14 +943,30 @@
             <option value="代引き">代引き</option>
             <option value="その他">その他</option>
           </select>
+          <label class="expenses-filter-label">担当</label>
+          <select id="expListStaff" class="inp expenses-filter-select">
+            <option value="">すべて</option>
+          </select>
+          <label class="expenses-filter-label">キーワード</label>
+          <input type="text" id="expListKeyword" class="inp expenses-filter-inp" placeholder="項目名・メモ・カテゴリ・担当" style="min-width:160px;">
           <label class="expenses-filter-label">ソート</label>
           <select id="expListSort" class="inp expenses-filter-select">
             <option value="date_desc">日付の新しい順</option>
             <option value="date_asc">日付の古い順</option>
             <option value="amount_desc">金額の高い順</option>
             <option value="amount_asc">金額の低い順</option>
-            <option value="category">カテゴリ順</option>
+            <option value="category_asc">カテゴリ昇順</option>
+            <option value="category_desc">カテゴリ降順</option>
+            <option value="item_asc">項目名あいうえお順</option>
+            <option value="item_desc">項目名逆順</option>
+            <option value="staff_asc">担当昇順</option>
+            <option value="staff_desc">担当降順</option>
+            <option value="memo_asc">メモ昇順</option>
+            <option value="memo_desc">メモ降順</option>
             <option value="created_desc">登録日の新しい順</option>
+            <option value="created_asc">登録日の古い順</option>
+            <option value="deleted_desc">削除日の新しい順</option>
+            <option value="deleted_asc">削除日の古い順</option>
           </select>
           <button class="btn btn-primary" onclick="loadExpensesPage()">検索</button>
         </div>
@@ -3073,13 +3091,19 @@ function initExpensesPageDates() {
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   if(!fromEl.value) fromEl.value = fmtLocal(firstDay);
   if(!toEl.value) toEl.value = fmtLocal(today);
+  const staffEl = document.getElementById('expListStaff');
+  if(staffEl && staffEl.options.length === 1) {
+    STAFFS.forEach(s => staffEl.add(new Option(s, s)));
+  }
 }
 
-// 小口経費ページ: 一覧取得（フィルタ・ソート）
+// 小口経費ページ: 一覧取得（フィルタ・ソート・削除済み含む）
 async function loadExpensesPage() {
   const fromVal = document.getElementById('expListDateFrom')?.value;
   const toVal = document.getElementById('expListDateTo')?.value;
   const categoryVal = document.getElementById('expListCategory')?.value;
+  const staffVal = document.getElementById('expListStaff')?.value;
+  const keywordVal = (document.getElementById('expListKeyword')?.value || '').trim();
   const sortVal = document.getElementById('expListSort')?.value || 'date_desc';
   
   const container = document.getElementById('expensesPageList');
@@ -3093,31 +3117,53 @@ async function loadExpensesPage() {
   showLoad(true);
   try {
     let query = db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, created_at')
+      .select('id, date, category, item_name, amount, staff, memo, created_at, deleted_at')
       .gte('date', fromVal)
-      .lte('date', toVal)
-      .is('deleted_at', null);
+      .lte('date', toVal);
     if(categoryVal) query = query.eq('category', categoryVal);
-    const orderMap = {
-      date_desc: { column: 'date', ascending: false },
-      date_asc: { column: 'date', ascending: true },
-      amount_desc: { column: 'amount', ascending: false },
-      amount_asc: { column: 'amount', ascending: true },
-      category: { column: 'category', ascending: true },
-      created_desc: { column: 'created_at', ascending: false }
-    };
-    const order = orderMap[sortVal] || orderMap.date_desc;
-    query = query.order(order.column, { ascending: order.ascending });
+    if(staffVal) query = query.eq('staff', staffVal);
     let list, error;
     ({ data: list, error } = await query);
     if(error) {
-      let q2 = db.from('expenses').select('id, date, category, item_name, amount, staff, memo, created_at').gte('date', fromVal).lte('date', toVal);
+      let q2 = db.from('expenses').select('id, date, category, item_name, amount, staff, memo, created_at, deleted_at').gte('date', fromVal).lte('date', toVal);
       if(categoryVal) q2 = q2.eq('category', categoryVal);
-      const r2 = await q2.order(order.column, { ascending: order.ascending });
+      if(staffVal) q2 = q2.eq('staff', staffVal);
+      const r2 = await q2;
       list = r2.data || []; error = r2.error;
     }
     if(error) throw error;
-    const expenses = list || [];
+    let expenses = list || [];
+    
+    if(keywordVal) {
+      const k = keywordVal.toLowerCase();
+      expenses = expenses.filter(e =>
+        (e.item_name || '').toLowerCase().includes(k) ||
+        (e.memo || '').toLowerCase().includes(k) ||
+        (e.category || '').toLowerCase().includes(k) ||
+        (e.staff || '').toLowerCase().includes(k)
+      );
+    }
+    
+    const orderMap = {
+      date_desc: (a, b) => (b.date || '').localeCompare(a.date || ''),
+      date_asc: (a, b) => (a.date || '').localeCompare(b.date || ''),
+      amount_desc: (a, b) => Number(b.amount || 0) - Number(a.amount || 0),
+      amount_asc: (a, b) => Number(a.amount || 0) - Number(b.amount || 0),
+      category_asc: (a, b) => (a.category || '').localeCompare(b.category || ''),
+      category_desc: (a, b) => (b.category || '').localeCompare(a.category || ''),
+      item_asc: (a, b) => (a.item_name || '').localeCompare(b.item_name || ''),
+      item_desc: (a, b) => (b.item_name || '').localeCompare(a.item_name || ''),
+      staff_asc: (a, b) => (a.staff || '').localeCompare(b.staff || ''),
+      staff_desc: (a, b) => (b.staff || '').localeCompare(a.staff || ''),
+      memo_asc: (a, b) => (a.memo || '').localeCompare(b.memo || ''),
+      memo_desc: (a, b) => (b.memo || '').localeCompare(a.memo || ''),
+      created_desc: (a, b) => (b.created_at || '').localeCompare(a.created_at || ''),
+      created_asc: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
+      deleted_desc: (a, b) => (b.deleted_at || '').localeCompare(a.deleted_at || ''),
+      deleted_asc: (a, b) => (a.deleted_at || '').localeCompare(b.deleted_at || '')
+    };
+    const sortFn = orderMap[sortVal] || orderMap.date_desc;
+    expenses.sort(sortFn);
     
     if(expenses.length === 0) {
       container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当する経費はありません</div>';
@@ -3126,11 +3172,13 @@ async function loadExpensesPage() {
     }
     
     const total = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const deletedCount = expenses.filter(e => e.deleted_at).length;
     let html = `
-      <div style="margin-bottom:16px; font-size:12px; font-weight:700; color:var(--sub);">${expenses.length}件 / 合計 ¥${total.toLocaleString()}</div>
+      <div style="margin-bottom:16px; font-size:12px; font-weight:700; color:var(--sub);">${expenses.length}件 / 合計 ¥${total.toLocaleString()}${deletedCount ? '（うち削除済み ' + deletedCount + ' 件）' : ''}</div>
       <table class="expense-list-table">
         <thead>
           <tr>
+            <th>状態</th>
             <th>日付</th>
             <th>カテゴリ</th>
             <th>項目名</th>
@@ -3142,8 +3190,12 @@ async function loadExpensesPage() {
     
     expenses.forEach(e => {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
+      const deleted = !!e.deleted_at;
+      const rowClass = deleted ? 'expense-row-clickable expense-row-deleted' : 'expense-row-clickable';
+      const statusHtml = deleted ? '<span class="expense-deleted-badge">削除済み</span>' : '<span style="color:var(--sub); font-size:11px;">-</span>';
       html += `
-        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+        <tr class="${rowClass}" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+          <td>${statusHtml}</td>
           <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
           <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
           <td style="font-weight:600;">${e.item_name}</td>
