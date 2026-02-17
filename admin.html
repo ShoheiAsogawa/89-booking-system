@@ -562,6 +562,7 @@
       color: var(--sub); font-size: 13px; padding: 14px 0; font-weight: 500;
     }
     .audit-details-block { white-space: pre-wrap; word-break: break-word; }
+    .audit-details-block.audit-details-collapsed { max-height: 4.5em; overflow: hidden; }
     .audit-toggle-more { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 12px; padding: 2px 0; margin-top: 4px; font-weight: 600; }
     .audit-toggle-more:hover { text-decoration: underline; }
 
@@ -2906,17 +2907,19 @@ async function loadAuditLogs(bookingId) {
       const dt = new Date(log.created_at);
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
-      const lines = (log.details || '').split('\n').filter(Boolean);
+      let lines = (log.details || '').split('\n').filter(Boolean);
+      if (lines.length === 1 && lines[0].includes('・')) { lines = lines[0].split('・').map(s => s.trim()).filter(Boolean); }
       const over3 = lines.length > 3;
       const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
       const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
-      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${bookingId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='none'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${bookingId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+      const blockClass = over3 ? 'audit-details-block audit-details-collapsed' : 'audit-details-block';
       html += `
         <div class="audit-entry">
           <span class="audit-time">${dateStr} ${timeStr}</span>
           <div class="audit-action">
             <strong>${_auditEscape(log.action)}</strong>
-            <div class="audit-details-block">${shortHtml}</div>
+            <div class="${blockClass}">${shortHtml}</div>
             ${toggleBtn}
           </div>
         </div>`;
@@ -3256,17 +3259,20 @@ async function loadExpenseAuditLogs(expenseId) {
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
       const detailsStr = (log.details || '').replace(/\s*\/\s*/g, '\n');
-      const lines = detailsStr.split('\n').filter(Boolean);
+      let lines = detailsStr.split('\n').filter(Boolean);
+      if (lines.length === 1 && lines[0].includes('・')) { lines = lines[0].split('・').map(s => s.trim()).filter(Boolean); }
       const over3 = lines.length > 3;
       const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
       const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
-      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-e-${expenseId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='none'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-e-${expenseId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+      const safeId = String(expenseId).replace(/"/g, '');
+      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-e-${safeId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-e-${safeId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+      const blockClass = over3 ? 'audit-details-block audit-details-collapsed' : 'audit-details-block';
       html += `
         <div class="audit-entry">
           <span class="audit-time">${dateStr} ${timeStr}</span>
           <div class="audit-action">
             <strong>${_auditEscape(log.action)}</strong>
-            <div class="audit-details-block">${shortHtml}</div>
+            <div class="${blockClass}">${shortHtml}</div>
             ${toggleBtn}
           </div>
         </div>`;
