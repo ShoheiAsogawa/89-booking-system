@@ -2809,7 +2809,7 @@ async function savePatientInfo() {
   if(!newName) { showToast('氏名を入力してください'); return; }
   if(newFee < 0) { showToast('料金は0以上で入力してください'); return; }
   const isDeferred = s.currentPaymentMethod && DEFERRED_PAYMENT_METHODS.indexOf(s.currentPaymentMethod) >= 0;
-  if(isDeferred && !paymentDate) { showToast('ツケ払い・保険の場合は決済日を選択してください'); return; }
+  // ツケ払い・保険は決済日を後から記入できる（未入力でも保存可）
   
   const o = s.originalDetail || {};
   const changes = [];
