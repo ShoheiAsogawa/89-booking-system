@@ -2902,8 +2902,10 @@ async function loadAuditLogs(bookingId) {
       return;
     }
     
-    let html = '';
-    data.forEach((log, idx) => {
+    const listOver3 = data.length > 3;
+    const visible = listOver3 ? data.slice(0, 3) : data;
+    const hidden = listOver3 ? data.slice(3) : [];
+    let listHtml = visible.map((log, i) => {
       const dt = new Date(log.created_at);
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
@@ -2912,19 +2914,30 @@ async function loadAuditLogs(bookingId) {
       const over3 = lines.length > 3;
       const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
       const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
-      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${String(bookingId).replace(/"/g,'')}-${i}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${String(bookingId).replace(/"/g,'')}-${i}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
       const blockClass = over3 ? 'audit-details-block audit-details-collapsed' : 'audit-details-block';
-      html += `
-        <div class="audit-entry">
-          <span class="audit-time">${dateStr} ${timeStr}</span>
-          <div class="audit-action">
-            <strong>${_auditEscape(log.action)}</strong>
-            <div class="${blockClass}">${shortHtml}</div>
-            ${toggleBtn}
-          </div>
-        </div>`;
-    });
-    container.innerHTML = html;
+      return `<div class="audit-entry"><span class="audit-time">${dateStr} ${timeStr}</span><div class="audit-action"><strong>${_auditEscape(log.action)}</strong><div class="${blockClass}">${shortHtml}</div>${toggleBtn}</div></div>`;
+    }).join('');
+    if (listOver3) {
+      const moreCount = hidden.length;
+      const hiddenHtml = hidden.map((log, i) => {
+        const idx = 3 + i;
+        const dt = new Date(log.created_at);
+        const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
+        const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+        let lines = (log.details || '').split('\n').filter(Boolean);
+        if (lines.length === 1 && lines[0].includes('・')) { lines = lines[0].split('・').map(s => s.trim()).filter(Boolean); }
+        const over3 = lines.length > 3;
+        const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
+        const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
+        const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${String(bookingId).replace(/"/g,'')}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
+        const blockClass = over3 ? 'audit-details-block audit-details-collapsed' : 'audit-details-block';
+        return `<div class="audit-entry"><span class="audit-time">${dateStr} ${timeStr}</span><div class="audit-action"><strong>${_auditEscape(log.action)}</strong><div class="${blockClass}">${shortHtml}</div>${toggleBtn}</div></div>`;
+      }).join('');
+      const listMoreId = 'audit-list-more-b-' + String(bookingId).replace(/"/g, '');
+      listHtml += `<button type="button" class="audit-toggle-more" data-more-count="${moreCount}" onclick="var d=document.getElementById('${listMoreId}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る（あと'+this.getAttribute('data-more-count')+'件）'">もっと見る（あと${moreCount}件）</button><div id="${listMoreId}" style="display:none">${hiddenHtml}</div>`;
+    }
+    container.innerHTML = listHtml;
   } catch(e) {
     container.innerHTML = '<div class="audit-empty">履歴を取得できません（SQLで audit_logs テーブルを作成してください）</div>';
     console.warn('監査ログ取得エラー:', e.message);
@@ -3253,8 +3266,11 @@ async function loadExpenseAuditLogs(expenseId) {
       return;
     }
     
-    let html = '';
-    data.forEach((log, idx) => {
+    const listOver3 = data.length > 3;
+    const visible = listOver3 ? data.slice(0, 3) : data;
+    const hidden = listOver3 ? data.slice(3) : [];
+    const safeId = String(expenseId).replace(/"/g, '');
+    function buildEntry(log, idx) {
       const dt = new Date(log.created_at);
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
@@ -3264,20 +3280,18 @@ async function loadExpenseAuditLogs(expenseId) {
       const over3 = lines.length > 3;
       const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
       const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
-      const safeId = String(expenseId).replace(/"/g, '');
       const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-e-${safeId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-e-${safeId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
       const blockClass = over3 ? 'audit-details-block audit-details-collapsed' : 'audit-details-block';
-      html += `
-        <div class="audit-entry">
-          <span class="audit-time">${dateStr} ${timeStr}</span>
-          <div class="audit-action">
-            <strong>${_auditEscape(log.action)}</strong>
-            <div class="${blockClass}">${shortHtml}</div>
-            ${toggleBtn}
-          </div>
-        </div>`;
-    });
-    container.innerHTML = html;
+      return `<div class="audit-entry"><span class="audit-time">${dateStr} ${timeStr}</span><div class="audit-action"><strong>${_auditEscape(log.action)}</strong><div class="${blockClass}">${shortHtml}</div>${toggleBtn}</div></div>`;
+    }
+    let listHtml = visible.map((log, i) => buildEntry(log, i)).join('');
+    if (listOver3) {
+      const moreCount = hidden.length;
+      const hiddenHtml = hidden.map((log, i) => buildEntry(log, 3 + i)).join('');
+      const listMoreId = 'audit-list-more-e-' + safeId;
+      listHtml += `<button type="button" class="audit-toggle-more" data-more-count="${moreCount}" onclick="var d=document.getElementById('${listMoreId}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='block'?'閉じる':'もっと見る（あと'+this.getAttribute('data-more-count')+'件）'">もっと見る（あと${moreCount}件）</button><div id="${listMoreId}" style="display:none">${hiddenHtml}</div>`;
+    }
+    container.innerHTML = listHtml;
   } catch(e) {
     container.innerHTML = '<div class="audit-empty">履歴を取得できません（expense_audit_logs テーブルを作成してください）</div>';
     console.warn('小口経費 編集履歴取得エラー:', e.message);
