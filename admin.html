@@ -654,6 +654,18 @@
     .expense-category-badge.other { background: #F3F4F6; color: #6B7280; }
     .expense-list-table tr.expense-row-deleted td { background: #F3F4F6; color: var(--sub); }
     .expense-list-table tr.expense-row-deleted .expense-deleted-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #FEE2E2; color: #B91C1C; }
+    /* 小口経費一覧 検索結果サマリー（売上ページ風BOX） */
+    .expense-list-summary-box {
+      background: var(--surface); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+      border: 1px solid var(--line); display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    .expense-list-summary-box .summary-label { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.05em; }
+    .expense-list-summary-box .summary-value { font-size: 22px; font-weight: 800; color: var(--text); font-family: var(--font-en); margin-top: 2px; }
+    .expense-list-summary-box .summary-item { padding-right: 24px; border-right: 1px solid var(--line); }
+    .expense-list-summary-box .summary-item:last-child,
+    .expense-list-summary-box .summary-item.summary-total { border-right: none; padding-right: 0; }
+    .expense-list-summary-box .summary-total .summary-value { color: #DC2626; }
+    .expense-list-summary-box .summary-deleted { font-size: 12px; color: var(--sub); font-weight: 600; margin-left: auto; }
     /* 旧カテゴリ互換 */
     .expense-category-badge.register { background: #FEF2F2; color: #DC2626; }
     .expense-category-badge.supplies { background: #EFF6FF; color: #2563EB; }
@@ -3173,8 +3185,19 @@ async function loadExpensesPage() {
     
     const total = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const deletedCount = expenses.filter(e => e.deleted_at).length;
+    const summaryDeletedHtml = deletedCount ? `<span class="summary-deleted">うち削除済み ${deletedCount} 件</span>` : '';
     let html = `
-      <div style="margin-bottom:16px; font-size:12px; font-weight:700; color:var(--sub);">${expenses.length}件 / 合計 ¥${total.toLocaleString()}${deletedCount ? '（うち削除済み ' + deletedCount + ' 件）' : ''}</div>
+      <div class="expense-list-summary-box">
+        <div class="summary-item">
+          <div class="summary-label">検索結果</div>
+          <div class="summary-value">${expenses.length} 件</div>
+        </div>
+        <div class="summary-item summary-total">
+          <div class="summary-label">合計金額</div>
+          <div class="summary-value">¥${total.toLocaleString()}</div>
+        </div>
+        ${summaryDeletedHtml}
+      </div>
       <table class="expense-list-table">
         <thead>
           <tr>
@@ -3206,13 +3229,6 @@ async function loadExpensesPage() {
     
     html += `
         </tbody>
-        <tfoot>
-          <tr style="background:#F3F4F6;">
-            <td colspan="3" style="font-weight:700;">合計</td>
-            <td style="font-family:var(--font-en); font-weight:800; color:#EF4444; font-size:14px;">¥${total.toLocaleString()}</td>
-            <td></td>
-          </tr>
-        </tfoot>
       </table>`;
     
     container.innerHTML = html;
