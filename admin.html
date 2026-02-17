@@ -561,6 +561,9 @@
     #auditLogSection .audit-empty, #expenseEditAuditSection .audit-empty {
       color: var(--sub); font-size: 13px; padding: 14px 0; font-weight: 500;
     }
+    .audit-details-block { white-space: pre-wrap; word-break: break-word; }
+    .audit-toggle-more { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 12px; padding: 2px 0; margin-top: 4px; font-weight: 600; }
+    .audit-toggle-more:hover { text-decoration: underline; }
 
     .expense-form-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px;
@@ -2812,16 +2815,16 @@ async function savePatientInfo() {
   // ツケ払い・保険は決済日を後から記入できる（未入力でも保存可）
   
   const o = s.originalDetail || {};
-  const changes = [];
-  if(newName !== (o.patient_name || '')) changes.push(`氏名`);
-  if(newPhone !== (o.phone || '')) changes.push(`電話`);
-  if(newSymptoms !== (o.symptoms || '')) changes.push(`症状`);
-  if(newFee !== (o.fee || 0)) changes.push(`料金`);
-  if(newMemo !== (o.admin_memo || '')) changes.push(`メモ`);
-  if(s.currentPaymentMethod !== (o.payment_method || '')) changes.push(`決済方法`);
-  if((paymentDate || '') !== (o.payment_date || '')) changes.push(`決済日`);
+  const changeLines = [];
+  if(newName !== (o.patient_name || '')) changeLines.push(`氏名: ${(o.patient_name || '') || '(空)'} → ${newName || '(空)'}`);
+  if(newPhone !== (o.phone || '')) changeLines.push(`電話: ${(o.phone || '') || '(空)'} → ${newPhone || '(空)'}`);
+  if(newSymptoms !== (o.symptoms || '')) changeLines.push(`症状: ${(o.symptoms || '') || '(空)'} → ${newSymptoms || '(空)'}`);
+  if(newFee !== (o.fee || 0)) changeLines.push(`料金: ¥${Number(o.fee || 0).toLocaleString()} → ¥${newFee.toLocaleString()}`);
+  if(newMemo !== (o.admin_memo || '')) changeLines.push(`メモ: ${(o.admin_memo || '') || '(空)'} → ${newMemo || '(空)'}`);
+  if(s.currentPaymentMethod !== (o.payment_method || '')) changeLines.push(`決済方法: ${(o.payment_method || '') || '(未選択)'} → ${(s.currentPaymentMethod || '') || '(未選択)'}`);
+  if((paymentDate || '') !== (o.payment_date || '')) changeLines.push(`決済日: ${(o.payment_date || '') || '(未入力)'} → ${(paymentDate || '') || '(未入力)'}`);
   
-  if(changes.length === 0) {
+  if(changeLines.length === 0) {
     showToast('変更はありません');
     return;
   }
@@ -2839,7 +2842,7 @@ async function savePatientInfo() {
   const { error } = await db.from('bookings').update(payload).eq('id', s.id);
   
   if(!error) {
-    addAuditLog(s.id, '詳細更新', changes.join('・') + ' を更新');
+    addAuditLog(s.id, '詳細更新', changeLines.join('\n'));
     s.originalPatientData = { patient_name: newName, phone: newPhone, symptoms: newSymptoms };
     s.originalDetail = { patient_name: newName, phone: newPhone, symptoms: newSymptoms, fee: newFee, admin_memo: newMemo, payment_method: s.currentPaymentMethod || '', payment_date: paymentDate || '' };
     s.currentPaymentDate = paymentDate;
@@ -2873,6 +2876,11 @@ async function addAuditLog(bookingId, action, details) {
   }
 }
 
+function _auditEscape(s) {
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function loadAuditLogs(bookingId) {
   const container = document.getElementById('auditLogList');
   if(!container) return;
@@ -2894,14 +2902,23 @@ async function loadAuditLogs(bookingId) {
     }
     
     let html = '';
-    data.forEach(log => {
+    data.forEach((log, idx) => {
       const dt = new Date(log.created_at);
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+      const lines = (log.details || '').split('\n').filter(Boolean);
+      const over3 = lines.length > 3;
+      const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
+      const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
+      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-b-${bookingId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='none'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-b-${bookingId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
       html += `
         <div class="audit-entry">
           <span class="audit-time">${dateStr} ${timeStr}</span>
-          <span class="audit-action"><strong>${log.action}</strong> ${log.details || ''}</span>
+          <div class="audit-action">
+            <strong>${_auditEscape(log.action)}</strong>
+            <div class="audit-details-block">${shortHtml}</div>
+            ${toggleBtn}
+          </div>
         </div>`;
     });
     container.innerHTML = html;
@@ -3174,9 +3191,9 @@ async function saveExpenseEdit() {
       if(oldRow.item_name !== item) details.push(`項目: ${oldRow.item_name}→${item}`);
       if(Number(oldRow.amount) !== amount) details.push(`金額: ¥${Number(oldRow.amount).toLocaleString()}→¥${amount.toLocaleString()}`);
       if((oldRow.staff||'') !== (staff||'')) details.push(`担当: ${oldRow.staff||'-'}→${staff||'-'}`);
-      if((oldRow.memo||'') !== (memo||'')) details.push('メモを変更');
+      if((oldRow.memo||'') !== (memo||'')) details.push(`メモ: ${(oldRow.memo||'-').slice(0,40)}${(oldRow.memo&&oldRow.memo.length>40)?'…':''} → ${(memo||'-').slice(0,40)}${(memo&&memo.length>40)?'…':''}`);
     }
-    addExpenseAuditLog(Number(id), '編集', details.length ? details.join(' / ') : `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
+    addExpenseAuditLog(Number(id), '編集', details.length ? details.join('\n') : `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
     
     closeAll();
     showToast('経費を更新しました');
@@ -3234,14 +3251,24 @@ async function loadExpenseAuditLogs(expenseId) {
     }
     
     let html = '';
-    data.forEach(log => {
+    data.forEach((log, idx) => {
       const dt = new Date(log.created_at);
       const dateStr = `${dt.getMonth()+1}月${dt.getDate()}日`;
       const timeStr = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}`;
+      const detailsStr = (log.details || '').replace(/\s*\/\s*/g, '\n');
+      const lines = detailsStr.split('\n').filter(Boolean);
+      const over3 = lines.length > 3;
+      const shortHtml = (over3 ? lines.slice(0, 3) : lines).map(l => _auditEscape(l)).join('<br>');
+      const moreHtml = over3 ? lines.slice(3).map(l => _auditEscape(l)).join('<br>') : '';
+      const toggleBtn = over3 ? `<button type="button" class="audit-toggle-more" onclick="var d=document.getElementById('audit-more-e-${expenseId}-${idx}'); d.style.display=d.style.display==='none'?'block':'none'; this.textContent=d.style.display==='none'?'閉じる':'もっと見る'">もっと見る</button><div id="audit-more-e-${expenseId}-${idx}" class="audit-details-block" style="display:none">${moreHtml}</div>` : '';
       html += `
         <div class="audit-entry">
           <span class="audit-time">${dateStr} ${timeStr}</span>
-          <span class="audit-action"><strong>${log.action}</strong> ${log.details || ''}</span>
+          <div class="audit-action">
+            <strong>${_auditEscape(log.action)}</strong>
+            <div class="audit-details-block">${shortHtml}</div>
+            ${toggleBtn}
+          </div>
         </div>`;
     });
     container.innerHTML = html;
