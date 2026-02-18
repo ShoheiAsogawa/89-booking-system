@@ -1126,6 +1126,10 @@
           </div>
         </div>
         <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">📆 曜日（未選択で全曜日）</label>
+          <div class="staff-checks" id="blkWeekdays" style="display:flex; flex-wrap:wrap; gap:8px 16px;"></div>
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">⏰ 時間帯</label>
           <div class="inp-row">
             <select id="blkStart" class="inp" style="margin:0;"></select>
@@ -1488,6 +1492,10 @@ window.onload = async () => {
   // スタッフチェックボックスの設定
   const sc=document.getElementById('blkStaff');
   STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
+  // 曜日チェックボックスの設定（月〜日、未選択＝全曜日）
+  const wc=document.getElementById('blkWeekdays');
+  const WEEKDAY_LABELS = [{v:1,l:'月'},{v:2,l:'火'},{v:3,l:'水'},{v:4,l:'木'},{v:5,l:'金'},{v:6,l:'土'},{v:0,l:'日'}];
+  WEEKDAY_LABELS.forEach(({v,l}) => { wc.innerHTML += `<label class="s-chk"><input type="checkbox" name="blkWeekday" value="${v}"> ${l}</label>`; });
   
   // ダッシュボード期間選択の設定（日付ピッカー）
   const ddFrom=document.getElementById('dashDateFrom'), ddTo=document.getElementById('dashDateTo'), today=new Date();
@@ -2065,7 +2073,13 @@ async function runBulk(enable) {
   showLoad(true);
   
   const dStart=new Date(from), dEnd=new Date(to), dates=[];
-  for(let d=dStart; d<=dEnd; d.setDate(d.getDate()+1)) dates.push(fmtLocal(d));
+  for(let d=new Date(dStart); d<=dEnd; d.setDate(d.getDate()+1)) dates.push(fmtLocal(d));
+  const selectedWeekdays = []; document.querySelectorAll('#blkWeekdays input:checked').forEach(c=>selectedWeekdays.push(Number(c.value)));
+  if(selectedWeekdays.length > 0) {
+    const filtered = dates.filter(dStr => selectedWeekdays.includes(new Date(dStr + 'T12:00:00').getDay()));
+    dates.length = 0; filtered.forEach(d => dates.push(d));
+    if(dates.length === 0) { showLoad(false); alert('指定期間に該当する曜日がありません'); return; }
+  }
   
   const tStart=document.getElementById('blkStart').value, tEnd=document.getElementById('blkEnd').value, tr=[];
   let rec=false; TIMES.forEach(t=>{ if(t===tStart)rec=true; if(rec)tr.push(t); if(t===tEnd)rec=false; });
