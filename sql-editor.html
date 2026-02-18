@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQLマイグレーション - 89CENTER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#F9FAFB; --surface:#FFF; --text:#111827; --sub:#6B7280; --line:#E5E7EB; --accent:#111827; --green:#10B981; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); font-family: "Noto Sans JP", sans-serif; font-size: 14px; color: var(--text); }
+    h1 { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+    .subtitle { color: var(--sub); font-size: 12px; margin-bottom: 24px; }
+    .card { background: var(--surface); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { font-size: 14px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; justify-content: space-between; }
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-copy { background: var(--accent); color: #fff; }
+    .btn-copy:hover { opacity: 0.9; }
+    .btn-copy.copied { background: var(--green); }
+    pre { font-family: "Roboto Mono", monospace; font-size: 12px; line-height: 1.5; overflow-x: auto; background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; margin: 0; white-space: pre-wrap; word-break: break-all; }
+    .link-box { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; margin-bottom: 16px; }
+    .link-box a { color: #1D4ED8; font-weight: 700; text-decoration: none; }
+    .link-box a:hover { text-decoration: underline; }
+    .note { font-size: 12px; color: var(--sub); margin-top: 12px; padding: 12px; background: #FEF3C7; border-radius: 8px; border: 1px solid #FCD34D; }
+  </style>
+</head>
+<body>
+  <h1>📋 SQLマイグレーション</h1>
+  <p class="subtitle">小口経費システムのスキーマ更新用SQLです。SupabaseのSQLエディターで実行してください。</p>
+
+  <div class="link-box">
+    <span>🔗</span>
+    <a href="https://supabase.com/dashboard" target="_blank" rel="noopener">Supabase Dashboard</a>
+    <span>→ プロジェクト選択 → SQL Editor</span>
+  </div>
+
+  <div class="card">
+    <h2>
+      <span>小口経費 大型アップデート</span>
+      <button class="btn btn-copy" onclick="copySql('sql-petty-cash')">コピー</button>
+    </h2>
+    <p style="font-size:12px; color:var(--sub); margin:0 0 12px;">出金・入金対応 / 税貯項目 / 削除済み非表示対応</p>
+    <pre id="sql-petty-cash"><!-- SQL will be loaded --></pre>
+  </div>
+
+  <div class="note">
+    <strong>実行手順:</strong> 上記SQLをコピーし、SupabaseのSQL Editorに貼り付けて「Run」をクリックしてください。既存のexpensesテーブルに transaction_type、tax_savings、deleted_at カラムが追加されます。既存データはすべて「出金」として扱われます。
+  </div>
+
+  <script>
+    const SQL_PETTY_CASH = `-- 小口経費システム 大型アップデート
+-- 出金・入金対応 / 税貯項目 / 削除済み非表示対応
+
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS transaction_type TEXT NOT NULL DEFAULT '出金';
+COMMENT ON COLUMN expenses.transaction_type IS '種別: 出金=支出, 入金=収入';
+UPDATE expenses SET transaction_type = '出金' WHERE transaction_type IS NULL;
+CREATE INDEX IF NOT EXISTS idx_expenses_transaction_type ON expenses(transaction_type);
+
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS tax_savings INTEGER NOT NULL DEFAULT 0;
+COMMENT ON COLUMN expenses.tax_savings IS '税貯: 消費税分の貯金額（円）';
+
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL;
+COMMENT ON COLUMN expenses.deleted_at IS '論理削除日時。NULLのときは有効';
+CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses(deleted_at) WHERE deleted_at IS NOT NULL;`;
+
+    document.getElementById('sql-petty-cash').textContent = SQL_PETTY_CASH;
+
+    function copySql(id) {
+      const el = document.getElementById(id);
+      const sql = el.textContent;
+      navigator.clipboard.writeText(sql).then(() => {
+        const btn = el.closest('.card').querySelector('.btn-copy');
+        const orig = btn.textContent;
+        btn.textContent = 'コピーしました！';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

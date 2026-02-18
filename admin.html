@@ -671,6 +671,9 @@
     .expense-category-badge.supplies { background: #EFF6FF; color: #2563EB; }
     .expense-category-badge.transport { background: #F0FDF4; color: #16A34A; }
     .expense-category-badge.equipment { background: #FFF7ED; color: #EA580C; }
+    .expense-category-badge.taxsavings { background: #EFF6FF; color: #1D4ED8; }
+    .expense-type-badge.outcome { background: #FEE2E2; color: #DC2626; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .expense-type-badge.income { background: #D1FAE5; color: #059669; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 
     @media (max-width: 768px) {
       .expense-section-dashboard { padding: 16px; }
@@ -935,10 +938,13 @@
     <div id="viewExpenses" class="hidden">
       <div class="expenses-page-header" style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
         <h2 style="font-size:18px; font-weight:800; margin:0;">小口経費一覧</h2>
-        <button type="button" class="btn-expense-refresh" id="btnExpenseRefresh" onclick="refreshExpensesPage()" title="一覧を再取得">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a href="sql-editor.html" target="_blank" class="btn btn-ghost" style="font-size:11px; padding:6px 12px;" title="SQLマイグレーション">SQL</a>
+          <button type="button" class="btn-expense-refresh" id="btnExpenseRefresh" onclick="refreshExpensesPage()" title="一覧を再取得">
           <span class="refresh-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
           更新
         </button>
+        </div>
       </div>
       <div class="expenses-filter-bar">
         <div class="expenses-filter-title">フィルター条件</div>
@@ -947,12 +953,19 @@
           <input type="date" id="expListDateFrom" class="inp expenses-filter-inp">
           <span class="expenses-filter-sep">〜</span>
           <input type="date" id="expListDateTo" class="inp expenses-filter-inp">
+          <label class="expenses-filter-label">種別</label>
+          <select id="expListTransactionType" class="inp expenses-filter-select">
+            <option value="">すべて</option>
+            <option value="出金">出金</option>
+            <option value="入金">入金</option>
+          </select>
           <label class="expenses-filter-label">カテゴリ</label>
           <select id="expListCategory" class="inp expenses-filter-select">
             <option value="">すべて</option>
             <option value="銀行手数料">銀行手数料</option>
             <option value="駐車場代">駐車場代</option>
             <option value="代引き">代引き</option>
+            <option value="税貯">税貯</option>
             <option value="その他">その他</option>
           </select>
           <label class="expenses-filter-label">担当</label>
@@ -977,8 +990,8 @@
             <option value="memo_desc">メモ降順</option>
             <option value="created_desc">登録日の新しい順</option>
             <option value="created_asc">登録日の古い順</option>
-            <option value="deleted_desc">削除日の新しい順</option>
-            <option value="deleted_asc">削除日の古い順</option>
+            <option value="type_asc">種別（出金→入金）</option>
+            <option value="type_desc">種別（入金→出金）</option>
           </select>
           <button class="btn btn-primary" onclick="loadExpensesPage()">検索</button>
         </div>
@@ -1176,11 +1189,19 @@
           <input type="date" id="expDate" class="inp" style="margin:0;">
         </div>
         <div class="inp-group">
+          <label class="inp-lbl">📤 種別</label>
+          <select id="expTransactionType" class="inp" style="margin:0;">
+            <option value="出金">出金</option>
+            <option value="入金">入金</option>
+          </select>
+        </div>
+        <div class="inp-group">
           <label class="inp-lbl">📂 カテゴリ</label>
           <select id="expCategory" class="inp" style="margin:0;" onchange="toggleExpenseItemField('exp')">
             <option value="銀行手数料">銀行手数料</option>
             <option value="駐車場代">駐車場代</option>
             <option value="代引き">代引き</option>
+            <option value="税貯">税貯</option>
             <option value="その他">その他</option>
           </select>
         </div>
@@ -1191,6 +1212,10 @@
         <div class="inp-group">
           <label class="inp-lbl">💴 金額</label>
           <input type="number" id="expAmount" class="inp" placeholder="0" step="100" min="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">🏦 税貯（消費税分）</label>
+          <input type="number" id="expTaxSavings" class="inp" placeholder="0" step="1" min="0" style="margin:0;" title="消費税分の貯金額（円）">
         </div>
         <div class="inp-group">
           <label class="inp-lbl">👤 担当者</label>
@@ -1221,11 +1246,19 @@
           <input type="date" id="expEditDate" class="inp" style="margin:0;">
         </div>
         <div class="inp-group">
+          <label class="inp-lbl">📤 種別</label>
+          <select id="expEditTransactionType" class="inp" style="margin:0;">
+            <option value="出金">出金</option>
+            <option value="入金">入金</option>
+          </select>
+        </div>
+        <div class="inp-group">
           <label class="inp-lbl">📂 カテゴリ</label>
           <select id="expEditCategory" class="inp" style="margin:0;" onchange="toggleExpenseItemField('expEdit')">
             <option value="銀行手数料">銀行手数料</option>
             <option value="駐車場代">駐車場代</option>
             <option value="代引き">代引き</option>
+            <option value="税貯">税貯</option>
             <option value="その他">その他</option>
           </select>
         </div>
@@ -1236,6 +1269,10 @@
         <div class="inp-group">
           <label class="inp-lbl">💴 金額</label>
           <input type="number" id="expEditAmount" class="inp" placeholder="0" step="100" min="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">🏦 税貯（消費税分）</label>
+          <input type="number" id="expEditTaxSavings" class="inp" placeholder="0" step="1" min="0" style="margin:0;" title="消費税分の貯金額（円）">
         </div>
         <div class="inp-group">
           <label class="inp-lbl">👤 担当者</label>
@@ -3016,7 +3053,7 @@ async function loadAuditLogs(bookingId) {
 }
 
 // 小口経費カテゴリ（登録・編集・フィルタで使用）
-const EXPENSE_CATEGORIES = ['銀行手数料', '駐車場代', '代引き', 'その他'];
+const EXPENSE_CATEGORIES = ['銀行手数料', '駐車場代', '代引き', '税貯', 'その他'];
 
 // ===== 経費機能 =====
 function toggleExpenseItemField(which) {
@@ -3029,9 +3066,11 @@ function toggleExpenseItemField(which) {
 
 function openExpenseModal() {
   document.getElementById('expDate').value = fmtLocal(new Date());
+  document.getElementById('expTransactionType').value = '出金';
   document.getElementById('expCategory').value = '駐車場代';
   document.getElementById('expItem').value = '';
   document.getElementById('expAmount').value = '';
+  document.getElementById('expTaxSavings').value = '';
   document.getElementById('expMemo').value = '';
   
   const staffSelect = document.getElementById('expStaff');
@@ -3044,10 +3083,12 @@ function openExpenseModal() {
 
 async function saveExpense() {
   const date = document.getElementById('expDate').value;
+  const transactionType = document.getElementById('expTransactionType').value || '出金';
   const category = document.getElementById('expCategory').value;
   const itemRaw = document.getElementById('expItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expAmount').value);
+  const taxSavings = Number(document.getElementById('expTaxSavings')?.value || 0) || 0;
   const staff = document.getElementById('expStaff').value;
   const memo = (document.getElementById('expMemo')?.value || '').trim() || null;
   
@@ -3060,25 +3101,28 @@ async function saveExpense() {
     const { data: { session } } = await db.auth.getSession();
     const userEmail = session?.user?.email || 'unknown';
     
-    const { data: inserted, error } = await db.from('expenses').insert({
+    const insertData = {
       date: date,
+      transaction_type: transactionType,
       category: category,
       item_name: item,
       amount: amount,
+      tax_savings: taxSavings >= 0 ? taxSavings : 0,
       staff: staff || null,
       memo: memo,
       created_by: userEmail,
       created_at: new Date().toISOString()
-    }).select('id').single();
+    };
+    const { data: inserted, error } = await db.from('expenses').insert(insertData).select('id').single();
     
     if(error) throw error;
     
     if(inserted && inserted.id) {
-      addExpenseAuditLog(inserted.id, '登録', `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
+      addExpenseAuditLog(inserted.id, '登録', `${transactionType} ${date} ${category} ${item} ¥${amount.toLocaleString()}${taxSavings > 0 ? ' (税貯¥' + taxSavings.toLocaleString() + ')' : ''}`);
     }
     
     closeAll();
-    showToast(`経費「${item}」¥${amount.toLocaleString()} を登録しました`);
+    showToast(`${transactionType}「${item}」¥${amount.toLocaleString()} を登録しました`);
     
     if(currentTab === 'dashboard') loadDashboard();
     if(currentTab === 'expenses') loadExpensesPage();
@@ -3123,10 +3167,11 @@ function initExpensesPageDates() {
   }
 }
 
-// 小口経費ページ: 一覧取得（フィルタ・ソート・削除済み含む）
+// 小口経費ページ: 一覧取得（フィルタ・ソート・削除済みは非表示）
 async function loadExpensesPage() {
   const fromVal = document.getElementById('expListDateFrom')?.value;
   const toVal = document.getElementById('expListDateTo')?.value;
+  const transactionTypeVal = document.getElementById('expListTransactionType')?.value;
   const categoryVal = document.getElementById('expListCategory')?.value;
   const staffVal = document.getElementById('expListStaff')?.value;
   const keywordVal = (document.getElementById('expListKeyword')?.value || '').trim();
@@ -3142,23 +3187,33 @@ async function loadExpensesPage() {
   
   showLoad(true);
   try {
+    const selectCols = 'id, date, transaction_type, category, item_name, amount, tax_savings, staff, memo, created_at, deleted_at';
     let query = db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, created_at, deleted_at')
+      .select(selectCols)
       .gte('date', fromVal)
-      .lte('date', toVal);
+      .lte('date', toVal)
+      .is('deleted_at', null);
+    if(transactionTypeVal) query = query.eq('transaction_type', transactionTypeVal);
     if(categoryVal) query = query.eq('category', categoryVal);
     if(staffVal) query = query.eq('staff', staffVal);
     let list, error;
     ({ data: list, error } = await query);
     if(error) {
-      let q2 = db.from('expenses').select('id, date, category, item_name, amount, staff, memo, created_at, deleted_at').gte('date', fromVal).lte('date', toVal);
+      const legacyCols = 'id, date, category, item_name, amount, staff, memo, created_at, deleted_at';
+      let q2 = db.from('expenses').select(legacyCols).gte('date', fromVal).lte('date', toVal);
       if(categoryVal) q2 = q2.eq('category', categoryVal);
       if(staffVal) q2 = q2.eq('staff', staffVal);
       const r2 = await q2;
-      list = r2.data || []; error = r2.error;
+      if(!r2.error) {
+        list = (r2.data || []).map(e => ({ ...e, transaction_type: '出金', tax_savings: 0 })).filter(e => !e.deleted_at);
+        error = null;
+      } else {
+        list = [];
+        error = r2.error;
+      }
     }
     if(error) throw error;
-    let expenses = list || [];
+    let expenses = (list || []).filter(e => !e.deleted_at);
     
     if(keywordVal) {
       const k = keywordVal.toLowerCase();
@@ -3166,7 +3221,8 @@ async function loadExpensesPage() {
         (e.item_name || '').toLowerCase().includes(k) ||
         (e.memo || '').toLowerCase().includes(k) ||
         (e.category || '').toLowerCase().includes(k) ||
-        (e.staff || '').toLowerCase().includes(k)
+        (e.staff || '').toLowerCase().includes(k) ||
+        ((e.transaction_type || '') + '').toLowerCase().includes(k)
       );
     }
     
@@ -3185,8 +3241,8 @@ async function loadExpensesPage() {
       memo_desc: (a, b) => (b.memo || '').localeCompare(a.memo || ''),
       created_desc: (a, b) => (b.created_at || '').localeCompare(a.created_at || ''),
       created_asc: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
-      deleted_desc: (a, b) => (b.deleted_at || '').localeCompare(a.deleted_at || ''),
-      deleted_asc: (a, b) => (a.deleted_at || '').localeCompare(b.deleted_at || '')
+      type_asc: (a, b) => (a.transaction_type || '出金').localeCompare(b.transaction_type || '出金'),
+      type_desc: (a, b) => (b.transaction_type || '出金').localeCompare(a.transaction_type || '出金')
     };
     const sortFn = orderMap[sortVal] || orderMap.date_desc;
     expenses.sort(sortFn);
@@ -3197,29 +3253,39 @@ async function loadExpensesPage() {
       return;
     }
     
-    const total = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const deletedCount = expenses.filter(e => e.deleted_at).length;
-    const summaryDeletedHtml = deletedCount ? `<span class="summary-deleted">うち削除済み ${deletedCount} 件</span>` : '';
+    const totalOut = expenses.filter(e => (e.transaction_type || '出金') === '出金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalIn = expenses.filter(e => (e.transaction_type || '出金') === '入金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const netTotal = totalIn - totalOut;
+    const totalTaxSavings = expenses.reduce((sum, e) => sum + Number(e.tax_savings || 0), 0);
     let html = `
       <div class="expense-list-summary-box">
         <div class="summary-item">
           <div class="summary-label">検索結果</div>
           <div class="summary-value">${expenses.length} 件</div>
         </div>
-        <div class="summary-item summary-total">
-          <div class="summary-label">合計金額</div>
-          <div class="summary-value">¥${total.toLocaleString()}</div>
+        <div class="summary-item">
+          <div class="summary-label">出金合計</div>
+          <div class="summary-value" style="color:#EF4444;">¥${totalOut.toLocaleString()}</div>
         </div>
-        ${summaryDeletedHtml}
+        <div class="summary-item">
+          <div class="summary-label">入金合計</div>
+          <div class="summary-value" style="color:#10B981;">¥${totalIn.toLocaleString()}</div>
+        </div>
+        <div class="summary-item summary-total">
+          <div class="summary-label">差引</div>
+          <div class="summary-value">¥${netTotal.toLocaleString()}</div>
+        </div>
+        ${totalTaxSavings > 0 ? `<div class="summary-item"><div class="summary-label">税貯合計</div><div class="summary-value" style="color:#2563EB;">¥${totalTaxSavings.toLocaleString()}</div></div>` : ''}
       </div>
       <table class="expense-list-table">
         <thead>
           <tr>
-            <th>状態</th>
+            <th>種別</th>
             <th>日付</th>
             <th>カテゴリ</th>
             <th>項目名</th>
             <th>金額</th>
+            <th>税貯</th>
             <th>担当</th>
           </tr>
         </thead>
@@ -3227,16 +3293,19 @@ async function loadExpensesPage() {
     
     expenses.forEach(e => {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
-      const deleted = !!e.deleted_at;
-      const rowClass = deleted ? 'expense-row-clickable expense-row-deleted' : 'expense-row-clickable';
-      const statusHtml = deleted ? '<span class="expense-deleted-badge">削除済み</span>' : '<span style="color:var(--sub); font-size:11px;">-</span>';
+      const txType = e.transaction_type || '出金';
+      const isIn = txType === '入金';
+      const amountColor = isIn ? '#10B981' : '#EF4444';
+      const amountSign = isIn ? '+' : '-';
+      const taxSavings = Number(e.tax_savings || 0);
       html += `
-        <tr class="${rowClass}" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
-          <td>${statusHtml}</td>
+        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+          <td><span class="expense-type-badge ${isIn ? 'income' : 'outcome'}">${txType}</span></td>
           <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
           <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
           <td style="font-weight:600;">${e.item_name}</td>
-          <td style="font-family:var(--font-en); font-weight:700; color:#EF4444;">¥${Number(e.amount).toLocaleString()}</td>
+          <td style="font-family:var(--font-en); font-weight:700; color:${amountColor};">${amountSign}¥${Number(e.amount).toLocaleString()}</td>
+          <td>${taxSavings > 0 ? '¥' + taxSavings.toLocaleString() : '-'}</td>
           <td>${e.staff || '-'}</td>
         </tr>`;
     });
@@ -3263,9 +3332,11 @@ async function openExpenseEdit(expenseId) {
   
   document.getElementById('expEditId').value = expenseId;
   document.getElementById('expEditDate').value = row.date;
+  document.getElementById('expEditTransactionType').value = row.transaction_type || '出金';
   document.getElementById('expEditCategory').value = row.category || 'その他';
   document.getElementById('expEditItem').value = row.item_name || '';
   document.getElementById('expEditAmount').value = row.amount || '';
+  document.getElementById('expEditTaxSavings').value = row.tax_savings || '';
   document.getElementById('expEditMemo').value = row.memo || '';
   
   const staffSelect = document.getElementById('expEditStaff');
@@ -3283,10 +3354,12 @@ async function saveExpenseEdit() {
   if(!id) return;
   
   const date = document.getElementById('expEditDate').value;
+  const transactionType = document.getElementById('expEditTransactionType').value || '出金';
   const category = document.getElementById('expEditCategory').value;
   const itemRaw = document.getElementById('expEditItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expEditAmount').value);
+  const taxSavings = Number(document.getElementById('expEditTaxSavings')?.value || 0) || 0;
   const staff = document.getElementById('expEditStaff').value;
   const memo = (document.getElementById('expEditMemo')?.value || '').trim() || null;
   
@@ -3296,29 +3369,34 @@ async function saveExpenseEdit() {
   
   showLoad(true);
   try {
-    const { data: oldRow } = await db.from('expenses').select('date, category, item_name, amount, staff, memo').eq('id', id).single();
+    const { data: oldRow } = await db.from('expenses').select('date, transaction_type, category, item_name, amount, tax_savings, staff, memo').eq('id', id).single();
     
-    const { error } = await db.from('expenses').update({
+    const updateData = {
       date: date,
+      transaction_type: transactionType,
       category: category,
       item_name: item,
       amount: amount,
+      tax_savings: taxSavings >= 0 ? taxSavings : 0,
       staff: staff || null,
       memo: memo
-    }).eq('id', id);
+    };
+    const { error } = await db.from('expenses').update(updateData).eq('id', id);
     
     if(error) throw error;
     
     const details = [];
     if(oldRow) {
       if(oldRow.date !== date) details.push(`日付: ${oldRow.date}→${date}`);
+      if((oldRow.transaction_type||'出金') !== transactionType) details.push(`種別: ${oldRow.transaction_type||'出金'}→${transactionType}`);
       if(oldRow.category !== category) details.push(`カテゴリ: ${oldRow.category}→${category}`);
       if(oldRow.item_name !== item) details.push(`項目: ${oldRow.item_name}→${item}`);
       if(Number(oldRow.amount) !== amount) details.push(`金額: ¥${Number(oldRow.amount).toLocaleString()}→¥${amount.toLocaleString()}`);
+      if(Number(oldRow.tax_savings||0) !== taxSavings) details.push(`税貯: ¥${Number(oldRow.tax_savings||0).toLocaleString()}→¥${taxSavings.toLocaleString()}`);
       if((oldRow.staff||'') !== (staff||'')) details.push(`担当: ${oldRow.staff||'-'}→${staff||'-'}`);
       if((oldRow.memo||'') !== (memo||'')) details.push(`メモ: ${(oldRow.memo||'-').slice(0,40)}${(oldRow.memo&&oldRow.memo.length>40)?'…':''} → ${(memo||'-').slice(0,40)}${(memo&&memo.length>40)?'…':''}`);
     }
-    addExpenseAuditLog(Number(id), '編集', details.length ? details.join('\n') : `${date} ${category} ${item} ¥${amount.toLocaleString()}`);
+    addExpenseAuditLog(Number(id), '編集', details.length ? details.join('\n') : `${transactionType} ${date} ${category} ${item} ¥${amount.toLocaleString()}`);
     
     closeAll();
     showToast('経費を更新しました');
@@ -3411,6 +3489,7 @@ const EXPENSE_CATEGORY_CLASSES = {
   '銀行手数料': 'bank',
   '駐車場代': 'parking',
   '代引き': 'cod',
+  '税貯': 'taxsavings',
   'その他': 'other',
   'レジ出金': 'register',
   '消耗品': 'supplies',
@@ -3420,8 +3499,9 @@ const EXPENSE_CATEGORY_CLASSES = {
 
 async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
   try {
+    const selectCols = 'id, date, transaction_type, category, item_name, amount, tax_savings, staff, memo, created_by, created_at';
     let result = await db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, created_by, created_at')
+      .select(selectCols)
       .gte('date', start)
       .lte('date', end)
       .is('deleted_at', null)
@@ -3435,11 +3515,13 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
     }
     if(result.error) throw result.error;
     const expenseList = result.data || [];
-    const totalExpenses = expenseList.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalOut = expenseList.filter(e => (e.transaction_type || '出金') === '出金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalIn = expenseList.filter(e => (e.transaction_type || '出金') === '入金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalExpenses = totalIn - totalOut;
     
-    // 経費バッジ
+    // 経費バッジ（出金-入金の差引）
     document.getElementById('expenseTotalBadge').textContent = 
-      expenseList.length > 0 ? `${expenseList.length}件 / 合計 ¥${totalExpenses.toLocaleString()}` : '';
+      expenseList.length > 0 ? `${expenseList.length}件 / 差引 ¥${totalExpenses.toLocaleString()}（出金¥${totalOut.toLocaleString()} - 入金¥${totalIn.toLocaleString()}）` : '';
     
     // 経費テーブル表示
     const area = document.getElementById('expenseListArea');
@@ -3448,12 +3530,13 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
       return;
     }
     
-    // カテゴリ別集計
+    // カテゴリ別集計（出金はマイナス、入金はプラスで集計）
     const catStats = {};
     expenseList.forEach(e => {
       if(!catStats[e.category]) catStats[e.category] = { count: 0, amount: 0 };
       catStats[e.category].count++;
-      catStats[e.category].amount += Number(e.amount || 0);
+      const amt = Number(e.amount || 0);
+      catStats[e.category].amount += ((e.transaction_type || '出金') === '入金') ? amt : -amt;
     });
     
     let catSummary = '<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">';
@@ -3469,6 +3552,7 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
         <thead>
           <tr>
             <th>日付</th>
+            <th>種別</th>
             <th>カテゴリ</th>
             <th>項目</th>
             <th>金額</th>
@@ -3479,12 +3563,17 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
     
     expenseList.forEach(e => {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
+      const txType = e.transaction_type || '出金';
+      const isIn = txType === '入金';
+      const amountColor = isIn ? '#10B981' : '#EF4444';
+      const amountSign = isIn ? '+' : '-';
       tableHtml += `
         <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
           <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
+          <td><span class="expense-type-badge ${isIn ? 'income' : 'outcome'}">${txType}</span></td>
           <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
           <td style="font-weight:600;">${e.item_name}</td>
-          <td style="font-family:var(--font-en); font-weight:700; color:#EF4444;">¥${Number(e.amount).toLocaleString()}</td>
+          <td style="font-family:var(--font-en); font-weight:700; color:${amountColor};">${amountSign}¥${Number(e.amount).toLocaleString()}</td>
           <td>${e.staff || '-'}</td>
         </tr>`;
     });
@@ -3493,8 +3582,8 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
         </tbody>
         <tfoot>
           <tr style="background:#F3F4F6;">
-            <td colspan="3" style="font-weight:700;">合計</td>
-            <td style="font-family:var(--font-en); font-weight:800; color:#EF4444; font-size:14px;">¥${totalExpenses.toLocaleString()}</td>
+            <td colspan="4" style="font-weight:700;">差引合計</td>
+            <td style="font-family:var(--font-en); font-weight:800; color:${totalExpenses >= 0 ? '#10B981' : '#EF4444'}; font-size:14px;">¥${totalExpenses.toLocaleString()}</td>
             <td></td>
           </tr>
         </tfoot>
