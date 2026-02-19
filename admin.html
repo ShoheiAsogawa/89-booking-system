@@ -107,6 +107,7 @@
     .cal-icon { width: 18px; height: 18px; opacity: 0.4; transition: opacity 0.2s; }
     .date-wrapper:hover .cal-icon { opacity: 1; }
     #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .date-today-btn { min-width: 48px; font-size: 12px; font-weight: 700; }
 
     .grid-wrap { background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow); overflow-x: auto; border: 1px solid var(--line); }
     table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
@@ -345,6 +346,10 @@
     .overlay.open .box { transform: scale(1); }
     .box-h { margin-bottom: 20px; text-align: center; padding-bottom: 16px; border-bottom: 2px solid var(--line); }
     .box-ttl { font-size: 20px; font-weight: 800; }
+    .mod-slot-info { display: none; margin-bottom: 16px; padding: 10px 14px; background: var(--bg); border-radius: 10px; font-size: 14px; color: var(--sub); text-align: center; }
+    .mod-slot-info .mod-slot-staff { font-weight: 700; color: var(--text); margin-right: 8px; }
+    .mod-slot-info .mod-slot-date { font-weight: 700; color: var(--text); margin-right: 8px; }
+    .mod-slot-info .mod-slot-time { font-weight: 700; color: var(--text); }
     
     /* 予約詳細モーダル専用スタイル */
     #detailMod .box { width: 520px; }
@@ -771,6 +776,7 @@
           <input type="date" id="datePicker">
         </div>
         <button class="nav-btn" onclick="move(1)">›</button>
+        <button type="button" class="nav-btn date-today-btn" onclick="goToToday()" title="今日">今日</button>
       </div>
       <div class="grid-wrap">
         <table id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
@@ -1074,6 +1080,7 @@
   <div class="overlay" id="actionMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
       <div class="box-h"><h3 class="box-ttl">スロット操作</h3></div>
+      <div id="actionModSlotInfo" class="mod-slot-info"></div>
       <div style="text-align:center; margin-bottom:24px; font-weight:700;" id="actTarget"></div>
       <div class="btns">
         <button class="btn" onclick="openMod('blockMod')">ブロック</button>
@@ -1086,6 +1093,7 @@
   <div class="overlay" id="createMod" onclick="if(event.target===this)closeAll()">
     <div class="box" style="width:500px;">
       <div class="box-h"><h3 class="box-ttl">➕ 新規予約作成</h3></div>
+      <div id="createModSlotInfo" class="mod-slot-info"></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
         <div class="inp-group">
           <label class="inp-lbl">👤 氏名</label>
@@ -1549,7 +1557,7 @@ window.onload = async () => {
   }
 
   // 日付ピッカーの設定
-  document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value); load(); } };
+  document.getElementById('datePicker').onchange = (e) => { if(e.target.value){ s.date = new Date(e.target.value + 'T12:00:00'); load(); } };
   
   // 時間選択の設定
   const ts=document.getElementById('blkStart'), te=document.getElementById('blkEnd');
@@ -1660,6 +1668,8 @@ async function load() {
   const dow = WEEKDAY_JA[s.date.getDay()];
   const dateDisplay = `${y}年${m}月${d}日(${dow})`;
   document.getElementById('dDisp').textContent = dateDisplay;
+  const pickerEl = document.getElementById('datePicker');
+  if(pickerEl) pickerEl.value = dStr;
   
   // キャッシュチェック
   const cached = getAdminCachedData(dStr);
@@ -1834,7 +1844,19 @@ async function cellClick(nm, t) {
     } else if(c.status === 'outside') {
       extraLabel = ' (時間外)';
     }
-    document.getElementById('actTarget').textContent = `${nm} ${t}${extraLabel}`;
+    var y = s.date.getFullYear();
+    var m = s.date.getMonth() + 1;
+    var d = s.date.getDate();
+    var dowLabel = WEEKDAY_JA[s.date.getDay()];
+    var timeStr = s.cur.time;
+    var staffName = nm;
+    var slotHtml = '<span class="mod-slot-staff">' + staffName + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + timeStr + '</span>';
+    var actSlotEl = document.getElementById('actionModSlotInfo');
+    if(actSlotEl) { actSlotEl.innerHTML = slotHtml; actSlotEl.style.display = 'block'; }
+    var actTargetEl = document.getElementById('actTarget');
+    if(actTargetEl) actTargetEl.style.display = 'none';
+    var createSlotEl = document.getElementById('createModSlotInfo');
+    if(createSlotEl) { createSlotEl.innerHTML = slotHtml; createSlotEl.style.display = 'block'; }
     openMod('actionMod');
     // Clear create form
     document.getElementById('cName').value = '';
@@ -2589,6 +2611,12 @@ async function loadDashboard() {
 
 // UTILS
 function move(n) { s.date.setDate(s.date.getDate()+n); load(); }
+function goToToday() {
+  s.date = new Date();
+  const pickerEl = document.getElementById('datePicker');
+  if(pickerEl) pickerEl.value = fmtLocal(s.date);
+  load();
+}
 function openMod(id) { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); document.getElementById(id).classList.add('open'); }
 function closeAll() { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
 function showLoad(b){ 
