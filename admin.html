@@ -839,7 +839,7 @@
               <option value="現金">現金</option>
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
-              <option value="商品券">商品券</option>
+              <option value="チケット">チケット</option>
               <option value="ツケ払い">ツケ払い</option>
               <option value="保険">保険</option>
               <option value="未選択">未選択</option>
@@ -1050,7 +1050,7 @@
           <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
-          <button class="payment-btn" data-method="商品券" onclick="selectPayment('商品券')"><span style="font-size:20px;">🎫</span>商品券</button>
+          <button class="payment-btn" data-method="チケット" onclick="selectPayment('チケット')"><span style="font-size:20px;">🎫</span>チケット</button>
           <button class="payment-btn" data-method="ツケ払い" onclick="selectPayment('ツケ払い')"><span style="font-size:18px;">📋</span>ツケ払い</button>
           <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
         </div>
@@ -1418,7 +1418,7 @@ const STAFF_HOURS = {
   '松田': { start: '11:00', end: '21:00' },
   '山口': { start: '09:00', end: '19:00' },
   '岡野': { start: '09:00', end: '19:00' },
-  '堀江': { start: '09:00', end: '21:00' }
+  '堀江': { start: '09:00', end: '19:00' }
 };
 
 // スタッフ別定休日（曜日: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土）
@@ -1792,7 +1792,7 @@ async function cellClick(nm, t) {
       .single();
     
     const d = detail || c.detail || {};
-    s.currentPaymentMethod = d.payment_method || '';
+    s.currentPaymentMethod = (d.payment_method === '商品券' ? 'チケット' : d.payment_method) || '';
     s.currentPaymentDate = d.payment_date || '';
     s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
     document.getElementById('info').innerHTML = `
@@ -1821,7 +1821,7 @@ async function cellClick(nm, t) {
     document.getElementById('editSaveArea').style.display = 'block';
     setupPatientEditListeners();
     
-    updatePaymentButtons(d.payment_method);
+    updatePaymentButtons(s.currentPaymentMethod);
     const payDateEl = document.getElementById('paymentDateInput');
     if(payDateEl) payDateEl.value = s.currentPaymentDate || '';
     
@@ -2059,7 +2059,7 @@ async function openSearchDetail(bookingId) {
   
   if(!detail) return;
   
-  s.currentPaymentMethod = detail.payment_method || '';
+  s.currentPaymentMethod = (detail.payment_method === '商品券' ? 'チケット' : detail.payment_method) || '';
   s.currentPaymentDate = detail.payment_date || '';
   s.originalPatientData = { patient_name: detail.patient_name || '', phone: detail.phone || '', symptoms: detail.symptoms || '' };
   document.getElementById('info').innerHTML = `
@@ -2096,7 +2096,7 @@ async function openSearchDetail(bookingId) {
   document.getElementById('editSaveArea').style.display = 'block';
   setupPatientEditListeners();
   
-  updatePaymentButtons(detail.payment_method);
+  updatePaymentButtons(s.currentPaymentMethod);
   const payDateEl = document.getElementById('paymentDateInput');
   if(payDateEl) payDateEl.value = s.currentPaymentDate || '';
   
@@ -2325,8 +2325,9 @@ async function runSearch() {
     sortedData.forEach(b => {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
-      const paymentHtml = b.payment_method 
-        ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${b.payment_method}</span>` 
+      const paymentLabel = (b.payment_method === '商品券' ? 'チケット' : b.payment_method) || '';
+      const paymentHtml = paymentLabel 
+        ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${paymentLabel}</span>` 
         : `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">未決済</span>`;
       const endTime = b.end_time || addTime(b.start_time, 60);
       list.innerHTML += `
@@ -2352,7 +2353,7 @@ const PAYMENT_FEES = {
   '現金': 0,
   'ペイペイ': 0.018,  // 1.8%
   'クレジット': 0.0325, // 3.25%
-  '商品券': 0,
+  'チケット': 0,
   'ツケ払い': 0,
   '保険': 0
 };
@@ -2427,7 +2428,7 @@ async function loadDashboard() {
   (booksByPaymentDate || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
   const mergedList = Array.from(mergedMap.values());
   
-  // 売上カウント日: 現金・クレジット・PayPay・商品券はその日(予約日)、ツケ払い・保険は決済日
+  // 売上カウント日: 現金・クレジット・PayPay・チケットはその日(予約日)、ツケ払い・保険は決済日
   function getReportDate(b) {
     if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0 && b.payment_date) return b.payment_date;
     return b.date;
@@ -2478,14 +2479,14 @@ async function loadDashboard() {
     '現金': { count: 0, amount: 0, fee: 0 },
     'ペイペイ': { count: 0, amount: 0, fee: 0 },
     'クレジット': { count: 0, amount: 0, fee: 0 },
-    '商品券': { count: 0, amount: 0, fee: 0 },
+    'チケット': { count: 0, amount: 0, fee: 0 },
     'ツケ払い': { count: 0, amount: 0, fee: 0 },
     '保険': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
   
   listInRange.forEach(b => {
-    let method = b.payment_method || '未選択';
+    let method = (b.payment_method === '商品券' ? 'チケット' : b.payment_method) || '未選択';
     if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
     const amount = Number(b.fee || 0);
     const feeRate = PAYMENT_FEES[method] || 0;
@@ -2501,12 +2502,12 @@ async function loadDashboard() {
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', '商品券': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', '商品券': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'チケット': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'チケット': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', '商品券', 'ツケ払い', '保険'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', 'チケット', 'ツケ払い', '保険'].forEach(method => {
     const stat = payStats[method];
     const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
