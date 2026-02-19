@@ -94,6 +94,8 @@
     }
     .btn-refresh:hover .refresh-icon { transform: rotate(180deg); }
     .btn-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
+    .schedule-top-btns { position: absolute; top: 24px; right: 24px; display: flex; gap: 16px; align-items: center; }
+    .schedule-top-btns .btn-refresh { position: static; }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewExpenses { background: #FFFBF7; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
@@ -122,19 +124,30 @@
     /* 1時間ごとの区切り線を太くする */
     tr.hour-start td { border-top: 2px solid var(--text); }
     
-    /* スタッフごとの予約済みセルの背景色（白黒グラデーション） */
-    .cell.booked.staff-0 { background: #FAFAFA; color: var(--text); } /* 麻生川 - 最も白 */
-    .cell.booked.staff-1 { background: #E8E8E8; color: var(--text); } /* 岡野 */
-    .cell.booked.staff-2 { background: #D0D0D0; color: var(--text); } /* 堀江 */
-    .cell.booked.staff-3 { background: #B8B8B8; color: var(--text); } /* 松田 */
-    .cell.booked.staff-4 { background: #A0A0A0; color: #fff; } /* 山口 - 最も黒に近い */
+    /* スタッフ別テーマ: デフォルト＝パステル＋黒字 */
+    .cell.booked.staff-0 { background: #FFF4D6; color: #111827; } /* 麻生川・金パステル */
+    .cell.booked.staff-1 { background: #FEE2E2; color: #111827; } /* 岡野・赤パステル */
+    .cell.booked.staff-2 { background: #DCFCE7; color: #111827; } /* 堀江・緑パステル */
+    .cell.booked.staff-3 { background: #DBEAFE; color: #111827; } /* 松田・青パステル */
+    .cell.booked.staff-4 { background: #EDE9FE; color: #111827; } /* 山口・紫パステル */
+    /* 決済選択済み＝通常テーマ色＋白字 */
+    .cell.booked.staff-0.paid { background: #D4A017 !important; color: #fff !important; } /* 麻生川・金 */
+    .cell.booked.staff-1.paid { background: #DC2626 !important; color: #fff !important; } /* 岡野・赤 */
+    .cell.booked.staff-2.paid { background: #16A34A !important; color: #fff !important; } /* 堀江・緑 */
+    .cell.booked.staff-3.paid { background: #2563EB !important; color: #fff !important; } /* 松田・青 */
+    .cell.booked.staff-4.paid { background: #7C3AED !important; color: #fff !important; } /* 山口・紫 */
+    /* 同一患者の複数セル：濃いテーマ色の枠線（カード影と併用） */
+    .cell.booked.staff-0.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #A67C00; }
+    .cell.booked.staff-1.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #B91C1C; }
+    .cell.booked.staff-2.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #15803D; }
+    .cell.booked.staff-3.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #1D4ED8; }
+    .cell.booked.staff-4.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #6D28D9; }
 
     .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
     .free:hover { background: #F3F4F6; }
     .booked { background: var(--text); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    /* スタッフごとの色が指定されている場合は上書き */
     .cell.booked.staff-0,
     .cell.booked.staff-1,
     .cell.booked.staff-2,
@@ -373,8 +386,6 @@
     #paymentDateSection { margin-top: 12px; display: none; }
     #paymentDateSection.show { display: block; }
     
-    /* 決済済みの予約セル（薄いオレンジ背景） */
-    .cell.booked.paid { background: #FFF3E0 !important; color: #E65100 !important; }
 
     .inp { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: #FAFAFA; margin-bottom: 12px; }
     .inp:focus { border-color: var(--text); background: #fff; }
@@ -767,7 +778,10 @@
 
     <!-- SCHEDULE -->
     <div id="viewSchedule">
-      <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
+      <div class="schedule-top-btns">
+        <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
+        <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
+      </div>
       <div class="date-nav">
         <button class="nav-btn" onclick="move(-1)">‹</button>
         <div class="date-wrapper" onclick="document.getElementById('datePicker').showPicker()">
@@ -776,7 +790,6 @@
           <input type="date" id="datePicker">
         </div>
         <button class="nav-btn" onclick="move(1)">›</button>
-        <button type="button" class="nav-btn date-today-btn" onclick="goToToday()" title="今日">今日</button>
       </div>
       <div class="grid-wrap">
         <table id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
@@ -1738,45 +1751,79 @@ function formatTimeDisplay(t) {
 function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   const dow = s.date.getDay(); // 曜日を取得
+  // 同日に2件以上いる患者名（同一患者の枠線用）
+  const patientCounts = {};
+  STAFFS.forEach(nm => {
+    TIMES.forEach(t => {
+      const c = s.data[nm][t];
+      if(c.status === 'booked' && c.label) patientCounts[c.label] = (patientCounts[c.label] || 0) + 1;
+    });
+  });
+  const multiPatientNames = new Set(Object.keys(patientCounts).filter(name => patientCounts[name] > 1));
+  // 同じ患者名の連続セルを結合するための「 run 開始」情報（スタッフ別・時刻→run）
+  const runByStaffTime = [];
+  STAFFS.forEach((nm, idx) => {
+    runByStaffTime[idx] = {};
+    let run = null;
+    TIMES.forEach((t, tIdx) => {
+      const c = s.data[nm][t];
+      if(c.status === 'booked' && c.label) {
+        const prevT = tIdx > 0 ? TIMES[tIdx - 1] : null;
+        const prev = prevT ? s.data[nm][prevT] : null;
+        const prevSame = prev && prev.status === 'booked' && prev.label === c.label;
+        if(prevSame && run) {
+          run.slotCount++;
+        } else {
+          run = { startTime: t, slotCount: 1, label: c.label, firstCell: c };
+          runByStaffTime[idx][t] = run;
+        }
+      } else {
+        run = null;
+      }
+    });
+  });
+  // 行ごとに、スタッフ列で「rowspan で隠れている残り行数」
+  const skipCount = STAFFS.map(() => 0);
   TIMES.forEach((t, tIdx) => {
     const tr=document.createElement('tr');
-    // 1時間の区切り（:00で始まる行）に太い線を追加
     if(t.endsWith(':00')) tr.classList.add('hour-start');
     const timeDisplay = formatTimeDisplay(t);
     let h=`<td>${timeDisplay}</td>`;
     STAFFS.forEach((nm, idx) => {
-      let c = s.data[nm][t];
+      if(skipCount[idx] > 0) {
+        skipCount[idx]--;
+        return;
+      }
+      const run = runByStaffTime[idx][t];
+      const c = run ? run.firstCell : s.data[nm][t];
       let displayLabel = '';
       let cellStatus = c.status;
-      
-      // 定休日チェック（予約がない場合のみ定休日表示、ただしクリックは可能）
+      const slotTime = run ? run.startTime : t;
       if(WEEKLY_OFF[nm] === dow && c.status !== 'booked') {
         cellStatus = 'dayoff';
         displayLabel = '定休日';
-      }
-      // 診療時間外チェック（予約がない場合のみ時間外表示、ただしクリックは可能）
-      else {
+      } else {
         const hours = STAFF_HOURS[nm];
         if(hours && (t < hours.start || t >= hours.end) && c.status !== 'booked') {
           cellStatus = 'outside';
           displayLabel = '時間外';
         }
       }
-      
-      const lbl = c.status === 'booked' ? c.label : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
-      // 予約済みの場合はスタッフインデックスのクラスを追加
+      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
-      // 決済選択済みの予約は薄いオレンジで表示
-      if(c.status === 'booked' && c.detail && c.detail.payment_method) {
-        staffClass += ' paid';
-      }
-      // 名前の長さに応じてフォントサイズを調整
+      if(c.status === 'booked' && c.detail && c.detail.payment_method) staffClass += ' paid';
+      if(c.status === 'booked' && c.label && multiPatientNames.has(c.label)) staffClass += ' patient-group';
       let nameClass = '';
       if(lbl.length > 5) nameClass = ' name-long';
       if(lbl.length > 7) nameClass = ' name-very-long';
-      h+=`<td><div class="cell ${cellStatus}${staffClass}${nameClass}" onclick="cellClick('${nm}','${t}')">${lbl}</div></td>`;
+      const clickTime = run ? run.startTime : t;
+      if(run && run.slotCount > 1) {
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + nm + '\',\'' + clickTime + '\')">' + lbl + '</div></td>';
+        skipCount[idx] = run.slotCount - 1;
+      } else {
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + nm + '\',\'' + clickTime + '\')">' + lbl + '</div></td>';
+      }
     });
-    // 右端にも時間表記を追加
     h+=`<td class="time-right">${timeDisplay}</td>`;
     tr.innerHTML=h; b.appendChild(tr);
   });
