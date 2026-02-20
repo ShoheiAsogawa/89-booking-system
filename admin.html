@@ -431,6 +431,65 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* 新規予約通知バー（白ベース・スタッフ色左バー・×はボタンBOX中央・浮き影） */
+    #notificationBars {
+      position: fixed; top: 24px; left: 24px; z-index: 9998;
+      display: flex; flex-direction: column; gap: 10px;
+      max-width: min(420px, calc(100vw - 48px));
+      pointer-events: none;
+    }
+    #notificationBars .notification-bar {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px 14px 16px;
+      background: #ffffff;
+      color: #111827;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08), 0 10px 28px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: notificationBarIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    #notificationBars .notification-bar::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      border-radius: 12px 0 0 12px;
+    }
+    #notificationBars .notification-bar.staff-0::before { background: #D4A017; }
+    #notificationBars .notification-bar.staff-1::before { background: #991B1B; }
+    #notificationBars .notification-bar.staff-2::before { background: #166534; }
+    #notificationBars .notification-bar.staff-3::before { background: #1E40AF; }
+    #notificationBars .notification-bar.staff-4::before { background: #5B21B6; }
+    #notificationBars .notification-bar.staff-unknown::before { background: #6B7280; }
+    #notificationBars .notification-bar:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 16px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    #notificationBars .notification-bar .notification-close {
+      flex-shrink: 0;
+      width: 36px; height: 36px; border: none; border-radius: 10px;
+      background: #F3F4F6; color: #6B7280;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; line-height: 1; padding: 0; transition: background 0.2s, color 0.2s;
+    }
+    #notificationBars .notification-bar .notification-close:hover {
+      background: #FEE2E2; color: #B91C1C;
+    }
+    #notificationBars .notification-bar .notification-body {
+      flex: 1; min-width: 0;
+      font-size: 13px; line-height: 1.5; font-weight: 500;
+    }
+    #notificationBars .notification-bar .notification-body .n-who { font-weight: 700; color: #111827; }
+    #notificationBars .notification-bar .notification-body .n-staff,
+    #notificationBars .notification-bar .notification-body .n-time { font-weight: 600; color: #374151; }
+    #notificationBars .notification-bar .notification-body .n-meta { color: #6B7280; font-size: 12px; margin-top: 4px; }
+    @keyframes notificationBarIn {
+      from { opacity: 0; transform: translateX(-24px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
     /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -759,6 +818,7 @@
   <div id="toast" class="toast"></div>
 
   <div class="wrap" id="mainApp">
+    <div id="notificationBars" aria-live="polite"></div>
     <header>
       <div class="header-left">
         <h1>89CENTER<span class="badge">管理画面</span></h1>
@@ -1615,6 +1675,47 @@ async function handleLogout() {
 }
 
 var _realtimeBookingsSub = null;
+function formatDurationMinutes(startTime, endTime) {
+  if (!startTime || !endTime) return '';
+  var p = function(t) { var a = t.split(':').map(Number); return a[0] * 60 + (a[1] || 0); };
+  var m = p(endTime) - p(startTime);
+  if (m <= 0) return '';
+  if (m >= 60 && m % 60 === 0) return (m / 60) + '時間';
+  if (m < 60) return m + '分';
+  return Math.floor(m / 60) + '時間' + (m % 60 ? (m % 60) + '分' : '');
+}
+function showNewBookingBar(row) {
+  var container = document.getElementById('notificationBars');
+  if (!container) return;
+  var who = (row.patient_name || '不明').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  var staff = (row.staff || '-').replace(/</g, '&lt;');
+  var timeStr = (row.start_time || '').replace(/</g, '&lt;');
+  var durationStr = formatDurationMinutes(row.start_time, row.end_time) || '';
+  var dateStr = (row.date || '').replace(/</g, '&lt;');
+  var bookingId = row.id;
+  var staffIdx = STAFFS.indexOf(row.staff);
+  var staffClass = staffIdx >= 0 ? 'staff-' + staffIdx : 'staff-unknown';
+  var line1 = '<span class="n-who">' + who + '</span> 様が <span class="n-staff">' + staff + '</span> に <span class="n-time">' + timeStr + '</span>' + (durationStr ? ' から ' + durationStr : '') + ' の予約が入りました';
+  var line2 = dateStr ? '<div class="n-meta">' + dateStr + '</div>' : '';
+  var bar = document.createElement('div');
+  bar.className = 'notification-bar ' + staffClass;
+  bar.setAttribute('data-booking-id', bookingId);
+  bar.innerHTML = '<div class="notification-body">' + line1 + line2 + '</div><button type="button" class="notification-close" aria-label="閉じる">×</button>';
+  bar.querySelector('.notification-close').addEventListener('click', function(e) { e.stopPropagation(); bar.remove(); });
+  bar.addEventListener('click', function(e) {
+    if (e.target.closest('.notification-close')) return;
+    bar.remove();
+    if (currentTab !== 'schedule') switchTab('schedule');
+    if (dateStr) {
+      s.date = new Date(dateStr + 'T12:00:00');
+      var pickerEl = document.getElementById('datePicker');
+      if (pickerEl) pickerEl.value = dateStr;
+      load();
+    }
+    if (typeof openSearchDetail === 'function') openSearchDetail(bookingId);
+  });
+  container.appendChild(bar);
+}
 // 患者予約時の音付き通知（Supabaseダッシュボードで Realtime → publications に bookings を追加してください）
 function setupNewBookingNotification() {
   if (!db || _realtimeBookingsSub) return;
@@ -1624,7 +1725,7 @@ function setupNewBookingNotification() {
       if (!row) return;
       if (row.status === 'キャンセル') return;
       if (!row.user_id) return;
-      showToast('新しい予約が入りました');
+      showNewBookingBar(row);
       playNotificationSound();
       if (currentTab === 'schedule') load();
     });
