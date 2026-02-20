@@ -883,6 +883,14 @@ function clearCache() {
   } catch (e) {}
 }
 
+// 通信が返らないとき用：指定ミリ秒でrejectしてloadingを必ず止める
+function withTimeout(p, ms) {
+  return Promise.race([
+    p,
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, ms); })
+  ]);
+}
+
 async function loadData() {
   // レート制限チェック
   const rateLimit = checkRateLimit();
@@ -907,14 +915,12 @@ async function loadData() {
       }
     }
     
-    // 必要なカラムのみ取得（コスト削減）
-    const { data: books } = await db.from('bookings')
-      .select('id, start_time, end_time, staff, user_id')
-      .eq('date', dStr)
-      .neq('status', 'キャンセル');
-    const { data: blocks } = await db.from('blocks')
-      .select('staff, time')
-      .eq('date', dStr);
+    // 必要なカラムのみ取得（12秒でタイムアウト＝ハング時もローディングが止まる）
+    var qBooks = db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).neq('status', 'キャンセル');
+    var qBlocks = db.from('blocks').select('staff, time').eq('date', dStr);
+    var both = await withTimeout(Promise.all([qBooks, qBlocks]), 12000);
+    var books = both[0].data;
+    var blocks = both[1].data;
     
     const res = {}; const slots = genSlots(); const dow = state.date.getDay();
     const isTodayCheck = dStr === fmt(now);
@@ -960,14 +966,15 @@ async function loadData() {
     }
     renderBody();
   } catch (e) {
-    // ネットワークエラー・APIエラー時も読み込みを止めてエラー表示
+    // ネットワークエラー・タイムアウト・APIエラー時も読み込みを止めてエラー表示
     console.error('loadData error', e);
+    var msg = e && e.message === 'timeout' ? '通信がタイムアウトしました。' : 'データの取得に失敗しました。';
     var slots = genSlots();
     var empty = {};
     STAFFS.forEach(function(s) { empty[s] = {}; slots.forEach(function(t) { empty[s][t] = { status: 'closed', id: '' }; }); });
     state.data = empty;
     renderBody();
-    alert('データの取得に失敗しました。しばらくしてから再度お試しください。');
+    alert(msg + ' しばらくしてから再度お試しください。');
   } finally {
     loading(false);
   }
