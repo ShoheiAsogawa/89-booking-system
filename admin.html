@@ -1695,7 +1695,7 @@ function showNewBookingBar(row) {
   var bookingId = row.id;
   var staffIdx = STAFFS.indexOf(row.staff);
   var staffClass = staffIdx >= 0 ? 'staff-' + staffIdx : 'staff-unknown';
-  var line1 = '<span class="n-who">' + who + '</span> 様が <span class="n-staff">' + staff + '</span> に <span class="n-time">' + timeStr + '</span>' + (durationStr ? ' から ' + durationStr : '') + ' の予約が入りました';
+  var line1 = '<span class="n-who">' + who + '</span>様より、<span class="n-staff">' + staff + '</span>に<span class="n-time">' + timeStr + '</span>' + (durationStr ? 'から' + durationStr : '') + 'の予約が入りました。';
   var line2 = dateStr ? '<div class="n-meta">' + dateStr + '</div>' : '';
   var bar = document.createElement('div');
   bar.className = 'notification-bar ' + staffClass;
