@@ -463,6 +463,13 @@
     #notificationBars .notification-bar.staff-3::before { background: #1E40AF; }
     #notificationBars .notification-bar.staff-4::before { background: #5B21B6; }
     #notificationBars .notification-bar.staff-unknown::before { background: #6B7280; }
+    /* バー全体はスタッフのパステル色 */
+    #notificationBars .notification-bar.staff-0 { background: #FFF4D6; } /* 麻生川 */
+    #notificationBars .notification-bar.staff-1 { background: #E8D4D4; } /* 岡野 */
+    #notificationBars .notification-bar.staff-2 { background: #C0E0CC; } /* 堀江 */
+    #notificationBars .notification-bar.staff-3 { background: #C8D8ED; } /* 松田 */
+    #notificationBars .notification-bar.staff-4 { background: #D8CEE8; } /* 山口 */
+    #notificationBars .notification-bar.staff-unknown { background: #F3F4F6; }
     #notificationBars .notification-bar:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 16px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06);
@@ -1692,15 +1699,19 @@ function showNewBookingBar(row) {
   var timeStr = (row.start_time || '').replace(/</g, '&lt;');
   var durationStr = formatDurationMinutes(row.start_time, row.end_time) || '';
   var dateStr = (row.date || '').replace(/</g, '&lt;');
+  var dateFormatted = '';
+  if (row.date) {
+    var p = row.date.split('-');
+    if (p.length === 3) dateFormatted = parseInt(p[1], 10) + '月' + parseInt(p[2], 10) + '日';
+  }
   var bookingId = row.id;
   var staffIdx = STAFFS.indexOf(row.staff);
   var staffClass = staffIdx >= 0 ? 'staff-' + staffIdx : 'staff-unknown';
-  var line1 = '<span class="n-who">' + who + '</span>様より、<span class="n-staff">' + staff + '</span>に<span class="n-time">' + timeStr + '</span>' + (durationStr ? 'から' + durationStr : '') + 'の予約が入りました。';
-  var line2 = dateStr ? '<div class="n-meta">' + dateStr + '</div>' : '';
+  var line1 = '<span class="n-who">' + who + '</span>様より、<span class="n-staff">' + staff + '</span>に' + (dateFormatted ? dateFormatted + ' ' : '') + '<span class="n-time">' + timeStr + '</span>' + (durationStr ? 'から' + durationStr : '') + 'の予約が入りました。更新して確認してください。';
   var bar = document.createElement('div');
   bar.className = 'notification-bar ' + staffClass;
   bar.setAttribute('data-booking-id', bookingId);
-  bar.innerHTML = '<div class="notification-body">' + line1 + line2 + '</div><button type="button" class="notification-close" aria-label="閉じる">×</button>';
+  bar.innerHTML = '<div class="notification-body">' + line1 + '</div><button type="button" class="notification-close" aria-label="閉じる">×</button>';
   bar.querySelector('.notification-close').addEventListener('click', function(e) { e.stopPropagation(); bar.remove(); });
   bar.addEventListener('click', function(e) {
     if (e.target.closest('.notification-close')) return;
