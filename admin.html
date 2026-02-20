@@ -1614,11 +1614,41 @@ async function handleLogout() {
   location.reload();
 }
 
+var _realtimeBookingsSub = null;
+// 患者予約時の音付き通知（Supabaseダッシュボードで Realtime → publications に bookings を追加してください）
+function setupNewBookingNotification() {
+  if (!db || _realtimeBookingsSub) return;
+  try {
+    var channel = db.channel('admin-new-bookings').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, function(payload) {
+      var row = payload && payload.new;
+      if (!row) return;
+      if (row.status === 'キャンセル') return;
+      if (!row.user_id) return;
+      showToast('新しい予約が入りました');
+      playNotificationSound();
+      if (currentTab === 'schedule') load();
+    });
+    channel.subscribe(function(s) { _realtimeBookingsSub = s; });
+  } catch (e) { console.warn('Realtime購読エラー:', e); }
+}
+function playNotificationSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.25);
+  } catch (e) {}
+}
 function showMain() {
   document.getElementById('loginScreen').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
   renderHead();
   load();
+  setupNewBookingNotification();
 }
 
 function switchTab(tab) {
