@@ -777,7 +777,7 @@ window.onload = async () => {
 
 // キャッシュ管理（ローカルストレージ）
 const CACHE_PREFIX = '89booking_';
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5分間キャッシュ有効
+const CACHE_EXPIRY = 1 * 60 * 1000; // 1分間キャッシュ有効（管理者キャンセルは約1分で反映）
 
 // レート制限管理（無料枠50,000リクエスト/月を超えないように）
 const RATE_LIMIT_KEY = '89booking_rate_limit';
@@ -911,14 +911,15 @@ async function loadData() {
       return;
     }
     
-    // キャッシュチェック（今日の日付は常に最新を取得）
+    // 1分キャッシュ：今日以外は1分以内のキャッシュがあれば表示、なければAPI取得
     const now = new Date();
-    const isToday = dStr === fmt(now);
-    if (!isToday) {
+    const isTodayCheck = dStr === fmt(now);
+    if (!isTodayCheck) {
       const cached = getCachedData(dStr);
       if (cached) {
         state.data = cached;
         renderBody();
+        loading(false);
         return;
       }
     }
@@ -931,7 +932,6 @@ async function loadData() {
     var blocks = both[1].data;
     
     const res = {}; const slots = genSlots(); const dow = state.date.getDay();
-    const isTodayCheck = dStr === fmt(now);
 
     STAFFS.forEach(s => {
       res[s] = {}; 
