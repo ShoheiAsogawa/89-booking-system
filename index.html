@@ -841,8 +841,10 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// 診療時間変更時にバージョンを上げて古いキャッシュを無効化
+const CACHE_VERSION = 'v2';
 function getCacheKey(dateStr) {
-  return CACHE_PREFIX + dateStr;
+  return CACHE_PREFIX + CACHE_VERSION + '_' + dateStr;
 }
 
 function getCachedData(dateStr) {
