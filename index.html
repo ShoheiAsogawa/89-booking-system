@@ -226,11 +226,13 @@
       cursor: pointer; position: relative; transition: background 0.1s;
     }
     
-    /* 空き: ○（×と同じ大きさ） */
+    /* 空き: ○（×と同じ大きさ・太めの輪郭） */
     .cell.free::after { 
-      content: '○'; font-size: 18px; color: #333; /* 濃いグレー */
-      font-weight: 400; line-height: 1;
+      content: '○'; font-size: 18px; color: #333;
+      font-weight: 700; line-height: 1;
       font-family: var(--font-en);
+      -webkit-text-stroke: 1.2px #333;
+      paint-order: stroke fill;
     }
     .cell.free:active { background-color: var(--surface); }
     
