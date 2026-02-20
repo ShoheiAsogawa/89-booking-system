@@ -811,18 +811,12 @@
           <span>📋</span> フィルター条件
         </div>
         
-        <!-- 期間選択（1行目） -->
+        <!-- 期間選択（1行目）開始日・終了日 -->
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
           <label style="font-size:11px; font-weight:700; color:var(--sub); min-width:50px;">期間</label>
-          <select id="sYearFrom" class="inp" style="margin:0; width:90px;"></select>
-          <span style="color:var(--sub);">年</span>
-          <select id="sMonthFrom" class="inp" style="margin:0; width:70px;"></select>
-          <span style="color:var(--sub);">月</span>
+          <input type="date" id="sDateFrom" class="inp" style="margin:0; width:140px;">
           <span style="font-weight:700; color:var(--sub);">〜</span>
-          <select id="sYearTo" class="inp" style="margin:0; width:90px;"></select>
-          <span style="color:var(--sub);">年</span>
-          <select id="sMonthTo" class="inp" style="margin:0; width:70px;"></select>
-          <span style="color:var(--sub);">月</span>
+          <input type="date" id="sDateTo" class="inp" style="margin:0; width:140px;">
         </div>
         
         <!-- 基本フィルター（2行目） -->
@@ -1592,23 +1586,13 @@ window.onload = async () => {
   ddFrom.value = fmtLocal(today);
   ddTo.value = fmtLocal(today);
   
-  // 検索画面の年月選択の設定
-  const syf=document.getElementById('sYearFrom'), syt=document.getElementById('sYearTo');
-  const smf=document.getElementById('sMonthFrom'), smt=document.getElementById('sMonthTo');
-  
-  // 年の選択（過去3年〜今年）
-  syf.add(new Option('', '')); syt.add(new Option('', ''));
-  for(let y=today.getFullYear(); y>=today.getFullYear()-3; y--) {
-    syf.add(new Option(y, y)); syt.add(new Option(y, y));
+  // 検索画面の期間（開始日・終了日）のデフォルト＝今月の1日〜末日
+  const sDateFrom=document.getElementById('sDateFrom'), sDateTo=document.getElementById('sDateTo');
+  if(sDateFrom && sDateTo) {
+    const y = today.getFullYear(), m = today.getMonth();
+    sDateFrom.value = [y, String(m+1).padStart(2,'0'), '01'].join('-');
+    sDateTo.value = fmtLocal(new Date(y, m+1, 0));
   }
-  // 月の選択（1〜12月）
-  smf.add(new Option('', '')); smt.add(new Option('', ''));
-  for(let m=1; m<=12; m++) {
-    smf.add(new Option(m, m)); smt.add(new Option(m, m));
-  }
-  // デフォルトは今月
-  syf.value = today.getFullYear(); syt.value = today.getFullYear();
-  smf.value = today.getMonth()+1; smt.value = today.getMonth()+1;
   
   // 検索画面の時間帯フィルター設定
   const stf=document.getElementById('sTimeFrom'), stt=document.getElementById('sTimeTo');
@@ -2267,11 +2251,12 @@ async function runBulk(enable) {
 // SEARCH
 function clearSearchFilters() {
   const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
   document.getElementById('sKeyword').value = '';
-  document.getElementById('sYearFrom').value = today.getFullYear();
-  document.getElementById('sMonthFrom').value = today.getMonth()+1;
-  document.getElementById('sYearTo').value = today.getFullYear();
-  document.getElementById('sMonthTo').value = today.getMonth()+1;
+  const sDateFrom = document.getElementById('sDateFrom');
+  const sDateTo = document.getElementById('sDateTo');
+  if(sDateFrom) sDateFrom.value = [y, String(m+1).padStart(2,'0'), '01'].join('-');
+  if(sDateTo) sDateTo.value = fmtLocal(new Date(y, m+1, 0));
   document.getElementById('sStaff').value = '';
   document.getElementById('sStatus').value = '';
   document.getElementById('sPayment').value = '';
@@ -2285,18 +2270,16 @@ async function runSearch() {
   
   const kw = document.getElementById('sKeyword').value.trim();
   const staff = document.getElementById('sStaff').value;
-  const yearFrom = document.getElementById('sYearFrom').value;
-  const monthFrom = document.getElementById('sMonthFrom').value;
-  const yearTo = document.getElementById('sYearTo').value;
-  const monthTo = document.getElementById('sMonthTo').value;
+  const dateFrom = document.getElementById('sDateFrom').value;
+  const dateTo = document.getElementById('sDateTo').value;
   const status = document.getElementById('sStatus').value;
   const payment = document.getElementById('sPayment').value;
   const timeFrom = document.getElementById('sTimeFrom').value;
   const timeTo = document.getElementById('sTimeTo').value;
   const memo = document.getElementById('sMemo').value.trim();
   
-  // 期間が設定されているかチェック
-  const hasPeriod = yearFrom && monthFrom && yearTo && monthTo;
+  // 期間が設定されているかチェック（開始日・終了日）
+  const hasPeriod = dateFrom && dateTo;
   
   // 検索条件が何もない場合は警告
   if(!kw && !staff && !hasPeriod && !status && !payment && !timeFrom && !timeTo && !memo) {
@@ -2318,14 +2301,9 @@ async function runSearch() {
     query = query.eq('staff', staff);
   }
   
-  // 期間フィルター（年月範囲）
+  // 期間フィルター（開始日〜終了日）
   if(hasPeriod) {
-    const startDate = `${yearFrom}-${String(monthFrom).padStart(2,'0')}-01`;
-    const endYear = parseInt(yearTo);
-    const endMonth = parseInt(monthTo);
-    const lastDay = new Date(endYear, endMonth, 0).getDate();
-    const endDate = `${yearTo}-${String(monthTo).padStart(2,'0')}-${lastDay}`;
-    query = query.gte('date', startDate).lte('date', endDate);
+    query = query.gte('date', dateFrom).lte('date', dateTo);
   }
   
   // ステータスフィルター
