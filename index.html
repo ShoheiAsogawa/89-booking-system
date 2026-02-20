@@ -731,8 +731,9 @@ window.onload = async () => {
   
   dp.onchange = (e) => { 
     if(e.target.value) { 
-      const d = new Date(e.target.value);
-      // Reset time components for date comparison
+      // T12:00:00 でローカル正午として解釈し、タイムゾーンで日付がずれないようにする
+      const d = new Date(e.target.value + 'T12:00:00');
+      if(isNaN(d.getTime())) { e.target.value = fmt(today); return; }
       const todayZero = new Date();
       todayZero.setHours(0,0,0,0);
       
@@ -904,6 +905,11 @@ async function loadData() {
   loading(true);
   try {
     const dStr = fmt(state.date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dStr)) {
+      loading(false);
+      alert('日付が正しくありません。再度お試しください。');
+      return;
+    }
     
     // キャッシュチェック（今日の日付は常に最新を取得）
     const now = new Date();
@@ -947,7 +953,7 @@ async function loadData() {
       if(WEEKLY_OFF[s] === dow) slots.forEach(t => res[s][t].status = 'closed');
     });
 
-    if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time].status = 'blocked'; });
+    if(blocks) blocks.forEach(b => { if(res[b.staff] && res[b.staff][b.time]) res[b.staff][b.time].status = 'blocked'; });
     if(books) books.forEach(b => {
       // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
       const startTime = b.start_time;
