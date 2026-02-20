@@ -892,73 +892,85 @@ async function loadData() {
   }
   
   loading(true);
-  const dStr = fmt(state.date);
-  
-  // キャッシュチェック（今日の日付は常に最新を取得）
-  const now = new Date();
-  const isToday = dStr === fmt(now);
-  if (!isToday) {
-    const cached = getCachedData(dStr);
-    if (cached) {
-      state.data = cached;
-      renderBody();
-      loading(false);
-      return;
+  try {
+    const dStr = fmt(state.date);
+    
+    // キャッシュチェック（今日の日付は常に最新を取得）
+    const now = new Date();
+    const isToday = dStr === fmt(now);
+    if (!isToday) {
+      const cached = getCachedData(dStr);
+      if (cached) {
+        state.data = cached;
+        renderBody();
+        return;
+      }
     }
-  }
-  
-  // 必要なカラムのみ取得（コスト削減）
-  const { data: books } = await db.from('bookings')
-    .select('id, start_time, end_time, staff, user_id')
-    .eq('date', dStr)
-    .neq('status', 'キャンセル');
-  const { data: blocks } = await db.from('blocks')
-    .select('staff, time')
-    .eq('date', dStr);
-  
-  const res = {}; const slots = genSlots(); const dow = state.date.getDay();
-  const isTodayCheck = dStr === fmt(now);
+    
+    // 必要なカラムのみ取得（コスト削減）
+    const { data: books } = await db.from('bookings')
+      .select('id, start_time, end_time, staff, user_id')
+      .eq('date', dStr)
+      .neq('status', 'キャンセル');
+    const { data: blocks } = await db.from('blocks')
+      .select('staff, time')
+      .eq('date', dStr);
+    
+    const res = {}; const slots = genSlots(); const dow = state.date.getDay();
+    const isTodayCheck = dStr === fmt(now);
 
-  STAFFS.forEach(s => {
-    res[s] = {}; 
-    const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
-    slots.forEach(t => {
-      let st = 'free';
-      // Past time logic
-      if (isTodayCheck) {
-        const [h, m] = t.split(':');
-        const timeDate = new Date(); timeDate.setHours(h, m, 0, 0);
-        if (timeDate < now) st = 'past';
-      }
-      // 診療時間外チェック
-      if (t < workHours.start || t >= workHours.end) {
-        st = 'closed';
-      }
-      res[s][t] = { status: st, id:'' };
+    STAFFS.forEach(s => {
+      res[s] = {}; 
+      const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
+      slots.forEach(t => {
+        let st = 'free';
+        // Past time logic
+        if (isTodayCheck) {
+          const [h, m] = t.split(':');
+          const timeDate = new Date(); timeDate.setHours(h, m, 0, 0);
+          if (timeDate < now) st = 'past';
+        }
+        // 診療時間外チェック
+        if (t < workHours.start || t >= workHours.end) {
+          st = 'closed';
+        }
+        res[s][t] = { status: st, id:'' };
+      });
+      if(WEEKLY_OFF[s] === dow) slots.forEach(t => res[s][t].status = 'closed');
     });
-    if(WEEKLY_OFF[s] === dow) slots.forEach(t => res[s][t].status = 'closed');
-  });
 
-  if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time].status = 'blocked'; });
-  if(books) books.forEach(b => {
-    // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
-    const startTime = b.start_time;
-    const endTime = b.end_time;
-    const bookingSlots = getTimeSlots(startTime, endTime);
-    bookingSlots.forEach(slot => {
-      if(res[b.staff] && res[b.staff][slot]) {
-        res[b.staff][slot].status = (b.user_id === state.uid) ? 'own' : 'booked';
-        res[b.staff][slot].id = b.id;
-      }
+    if(blocks) blocks.forEach(b => { if(res[b.staff]) res[b.staff][b.time].status = 'blocked'; });
+    if(books) books.forEach(b => {
+      // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
+      const startTime = b.start_time;
+      const endTime = b.end_time;
+      const bookingSlots = getTimeSlots(startTime, endTime);
+      bookingSlots.forEach(slot => {
+        if(res[b.staff] && res[b.staff][slot]) {
+          res[b.staff][slot].status = (b.user_id === state.uid) ? 'own' : 'booked';
+          res[b.staff][slot].id = b.id;
+        }
+      });
     });
-  });
 
-  state.data = res;
-  // 今日以外はキャッシュに保存
-  if (!isTodayCheck) {
-    setCachedData(dStr, res);
+    state.data = res;
+    // 今日以外はキャッシュに保存
+    if (!isTodayCheck) {
+      setCachedData(dStr, res);
+    }
+    renderBody();
+  } catch (e) {
+    // ネットワークエラー・APIエラー時も読み込みを止めてエラー表示
+    console.error('loadData error', e);
+    var slots = genSlots();
+    var empty = {};
+    STAFFS.forEach(function(s) { empty[s] = {}; slots.forEach(function(t) { empty[s][t] = { status: 'closed', id: '' }; }); });
+    state.data = empty;
+    renderBody();
+    alert('データの取得に失敗しました。しばらくしてから再度お試しください。');
+  } finally {
+    loading(false);
   }
-  renderBody(); loading(false);
 }
 
 // 電話番号の検証
