@@ -1078,7 +1078,7 @@ async function createBooking() {
     const { error } = await db.from('bookings').insert({
       id: id, date: dStr, start_time: p.time, end_time: endTime,
       staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
-      fee: FEES[p.staff], user_id: state.uid
+      fee: 0, user_id: state.uid
     });
 
     if(error) alert('エラーが発生しました: ' + error.message); 
