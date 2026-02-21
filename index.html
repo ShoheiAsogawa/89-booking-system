@@ -321,6 +321,14 @@
     .btn-danger { color: var(--error); border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.05); }
     .btn-full { width: 100%; margin-top: 12px; }
 
+    /* 予約完了・ご予約内容モーダル用 */
+    .completed-note {
+      margin-top: 20px; padding: 14px 16px; border-radius: 12px;
+      background: #FFF8E1; border: 1px solid #FFECB3;
+      font-size: 12px; color: #5D4037; line-height: 1.6; text-align: center;
+    }
+    .own-detail-loading { text-align: center; padding: 24px; color: var(--sub); font-size: 13px; }
+
     .chk-wrap { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; padding: 8px; border-radius: 8px; background: var(--surface); }
     .chk { width: 20px; height: 20px; accent-color: var(--text); margin: 0; flex-shrink: 0; }
     .chk-label { font-size: 12px; line-height: 1.5; color: var(--text); font-weight: 500; }
@@ -476,7 +484,7 @@
   <div class="overlay" id="modal" onclick="if(event.target===this)closeAll()">
     <div class="sheet">
       <div class="sheet-header"><div class="sheet-title" id="mTitle">予約確認</div><div class="sheet-sub" id="mSub">CONFIRMATION</div></div>
-      <div class="info-list">
+      <div class="info-list" id="modalTopInfo">
         <div class="info-item"><div class="info-label">日時</div><div class="info-value" id="mDate"></div></div>
         <div class="info-item"><div class="info-label">担当スタッフ</div><div class="info-value" id="mStaff"></div></div>
       </div>
@@ -522,6 +530,38 @@
           <button class="btn btn-danger" onclick="cancelBooking()">キャンセル実行<span class="en">EXECUTE</span></button>
         </div>
       </div>
+
+      <!-- 自分の予約詳細（オレンジセルクリック時） -->
+      <div id="formOwnDetail" class="hidden">
+        <div class="info-list" id="ownDetailList">
+          <div class="info-item"><div class="info-label">日時</div><div class="info-value" id="mOwnDate"></div></div>
+          <div class="info-item"><div class="info-label">担当スタッフ</div><div class="info-value" id="mOwnStaff"></div></div>
+          <div class="info-item"><div class="info-label">お名前</div><div class="info-value" id="mOwnName"></div></div>
+          <div class="info-item"><div class="info-label">電話番号</div><div class="info-value" id="mOwnPhone"></div></div>
+          <div class="info-item"><div class="info-label">施術時間</div><div class="info-value" id="mOwnDuration"></div></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="closeAll()">戻る<span class="en">BACK</span></button>
+          <button class="btn btn-danger" onclick="cancelBooking()">キャンセル実行<span class="en">EXECUTE</span></button>
+        </div>
+      </div>
+      <div id="formOwnDetailLoading" class="hidden own-detail-loading">読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- 予約完了モーダル -->
+  <div class="overlay" id="completedModal" onclick="if(event.target===this)closeCompletedModal()">
+    <div class="sheet">
+      <div class="sheet-header"><div class="sheet-title">予約が完了しました</div><div class="sheet-sub">COMPLETED</div></div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-label">日時</div><div class="info-value" id="cDate"></div></div>
+        <div class="info-item"><div class="info-label">担当スタッフ</div><div class="info-value" id="cStaff"></div></div>
+        <div class="info-item"><div class="info-label">お名前</div><div class="info-value" id="cName"></div></div>
+        <div class="info-item"><div class="info-label">電話番号</div><div class="info-value" id="cPhone"></div></div>
+        <div class="info-item"><div class="info-label">施術時間</div><div class="info-value" id="cDuration"></div></div>
+      </div>
+      <p class="completed-note">この画面のスクリーンショットを保存しておくと安心です。</p>
+      <button class="btn btn-full" onclick="closeCompletedModal()">閉じる<span class="en">CLOSE</span></button>
     </div>
   </div>
 
@@ -1095,11 +1135,17 @@ async function createBooking() {
           created_at: new Date().toISOString()
         });
       } catch (e) { console.warn('audit_log:', e.message); }
-      // キャッシュをクリアして最新データを取得
       clearCache();
-      closeAll(); 
-      loadData(); 
-      alert('予約が完了しました！'); 
+      // 予約完了モーダルを表示（日時・スタッフ・名前・電話・施術時間・スクショ促し）
+      const durationMin = duration;
+      const durationStr = durationMin >= 60 ? (Math.floor(durationMin / 60) + '時間' + (durationMin % 60 ? durationMin % 60 + '分' : '')) : (durationMin + '分');
+      document.getElementById('cDate').textContent = dateLabel + ' ' + p.time;
+      document.getElementById('cStaff').textContent = p.staff;
+      document.getElementById('cName').textContent = name;
+      document.getElementById('cPhone').textContent = phone;
+      document.getElementById('cDuration').textContent = durationStr;
+      document.getElementById('modal').classList.remove('open');
+      openModal('completedModal');
     }
     loading(false);
   } finally {
@@ -1208,36 +1254,87 @@ function tap(s, t, st, id) {
   state.pending = { staff:s, time:t, id:id };
   document.getElementById('mTitle').textContent = st==='own' ? 'ご予約内容' : '予約確認';
   document.getElementById('mSub').textContent = st==='own' ? 'YOUR BOOKING' : 'CONFIRMATION';
-  // XSS対策: textContentを使用（既に安全）
-  document.getElementById('mDate').textContent = `${document.getElementById('dMain').textContent} ${t}`;
+  var dMainText = document.getElementById('dMain').textContent || '';
+  document.getElementById('mDate').textContent = dMainText.replace(/\s+/g, ' ').trim() + ' ' + t;
   document.getElementById('mStaff').textContent = s;
-  
-  const isOwn = st==='own';
+
+  var isOwn = st==='own';
   document.getElementById('formCreate').classList.toggle('hidden', isOwn);
-  document.getElementById('formCancel').classList.toggle('hidden', !isOwn);
-  if(!isOwn) { 
+  document.getElementById('formCancel').classList.toggle('hidden', true);
+  document.getElementById('formOwnDetail').classList.add('hidden');
+  document.getElementById('formOwnDetailLoading').classList.add('hidden');
+  document.getElementById('modalTopInfo').classList.remove('hidden');
+
+  if(isOwn) {
+    document.getElementById('formOwnDetailLoading').classList.remove('hidden');
+    openModal('modal');
+    loadOwnDetailAndShow();
+    return;
+  }
+  document.getElementById('formCreate').classList.remove('hidden');
+  if(!isOwn) {
     document.getElementById('pName').value=''; document.getElementById('pPhone').value='';
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
-    
-    // 20:30の場合は30分のみ選択可能
-    const durationSelect = document.getElementById('pDuration');
-    const timeNotice = document.getElementById('timeNotice');
+    var durationSelect = document.getElementById('pDuration');
+    var timeNotice = document.getElementById('timeNotice');
     if(t === '20:30') {
       durationSelect.innerHTML = '<option value="30" selected>30分</option>';
       durationSelect.disabled = true;
       timeNotice.classList.remove('hidden');
     } else {
-      durationSelect.innerHTML = `
-        <option value="30">30分</option>
-        <option value="60" selected>60分（標準）</option>
-        <option value="90">90分</option>
-        <option value="120">120分</option>
-      `;
+      durationSelect.innerHTML = '<option value="30">30分</option><option value="60" selected>60分（標準）</option><option value="90">90分</option><option value="120">120分</option>';
       durationSelect.disabled = false;
       timeNotice.classList.add('hidden');
     }
   }
   openModal('modal');
+}
+
+function parseTimeToMinutes(t) {
+  if(!t) return 0;
+  var parts = (t + '').split(':');
+  var h = parseInt(parts[0], 10) || 0;
+  var m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+}
+function formatDurationForDisplay(startTime, endTime) {
+  var start = parseTimeToMinutes(startTime);
+  var end = parseTimeToMinutes(endTime);
+  var min = end - start;
+  if(min <= 0) return '0分';
+  if(min >= 60 && min % 60 === 0) return (min / 60) + '時間';
+  if(min < 60) return min + '分';
+  return Math.floor(min / 60) + '時間' + (min % 60 ? min % 60 + '分' : '');
+}
+
+async function loadOwnDetailAndShow() {
+  var id = state.pending && state.pending.id;
+  if(!id || !state.uid) {
+    document.getElementById('formOwnDetailLoading').classList.add('hidden');
+    document.getElementById('formOwnDetailLoading').textContent = '予約情報を取得できませんでした。';
+    return;
+  }
+  try {
+    var res = await db.from('bookings').select('date, start_time, end_time, staff, patient_name, phone').eq('id', id).eq('user_id', state.uid).neq('status', 'キャンセル').single();
+    var b = res.data;
+    if(res.error || !b) {
+      document.getElementById('formOwnDetailLoading').textContent = '予約情報を取得できませんでした。';
+      document.getElementById('formOwnDetailLoading').classList.remove('hidden');
+      return;
+    }
+    var p = b.date ? b.date.split('-') : [];
+    var dateLabel = (p.length === 3) ? (parseInt(p[1], 10) + '月' + parseInt(p[2], 10) + '日') : '';
+    document.getElementById('mOwnDate').textContent = dateLabel + ' ' + (b.start_time || '');
+    document.getElementById('mOwnStaff').textContent = b.staff || '';
+    document.getElementById('mOwnName').textContent = b.patient_name || '';
+    document.getElementById('mOwnPhone').textContent = b.phone || '';
+    document.getElementById('mOwnDuration').textContent = formatDurationForDisplay(b.start_time, b.end_time);
+    document.getElementById('formOwnDetailLoading').classList.add('hidden');
+    document.getElementById('modalTopInfo').classList.add('hidden');
+    document.getElementById('formOwnDetail').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('formOwnDetailLoading').textContent = '読み込みに失敗しました。';
+  }
 }
 
 function addDay(n) {
@@ -1313,6 +1410,10 @@ function closeAll(){
   document.body.classList.remove('modal-open');
   document.body.style.top = '';
   window.scrollTo(0, scrollPos);
+}
+function closeCompletedModal() {
+  closeAll();
+  loadData();
 }
 function loading(b){ const l=document.getElementById('loader'); if(b){l.style.display='flex';setTimeout(()=>l.style.opacity=1,10);}else{l.style.opacity=0;setTimeout(()=>l.style.display='none',400);} }
 
