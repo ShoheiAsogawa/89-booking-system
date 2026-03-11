@@ -74,6 +74,12 @@
 
     /* VIEW BACKGROUNDS (メニューごとの背景色) */
     #viewSchedule { position: relative; background: #E8EAED; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    /* 予約一覧で本日表示時のみ、金+グレーのボーダー背景 */
+    #viewSchedule.schedule-today {
+      background: #D4AF37;
+      border: none;
+      box-shadow: none;
+    }
     .btn-refresh {
       position: absolute; top: 24px; right: 24px;
       min-width: 100px; height: 40px; padding: 0 28px; border-radius: 99px;
@@ -500,32 +506,58 @@
     /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
-      #viewSchedule, #viewSearch, #viewDashboard { padding: 16px; }
+      #viewSchedule, #viewSearch, #viewDashboard, #viewExpenses { padding: 16px; }
       .btn-refresh { top: 16px; right: 16px; min-width: 80px; padding: 0 20px; height: 36px; font-size: 12px; }
       
       /* Header */
       header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
       .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
       h1 { font-size: 18px; }
-      .tabs { width: 100%; justify-content: center; }
+      .tabs { width: 100%; justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .tab { padding: 8px 14px; font-size: 11px; }
-      .header-right { width: 100%; justify-content: flex-end; }
-      .header-right .btn { padding: 8px 12px; font-size: 11px; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+      .header-right .btn { padding: 8px 12px; font-size: 11px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
       
       /* Navigation */
       .nav { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
       .nav .btn { padding: 8px 12px; font-size: 11px; }
       .date-display { font-size: 14px; }
       
-      /* Schedule Grid */
-      .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      table { min-width: 600px; }
-      th { font-size: 12px; padding: 10px 4px; }
-      td { height: 44px; }
-      td:first-child { font-size: 10px; width: 50px; }
-      .cell { font-size: 13px; padding: 2px; }
-      .cell.name-long { font-size: 11px; }
-      .cell.name-very-long { font-size: 10px; }
+      /* Schedule Grid: スマホで横スクロール不要にする */
+      .grid-wrap { overflow-x: hidden; -webkit-overflow-scrolling: auto; }
+      #tbl { table-layout: fixed; width: 100%; min-width: 0; }
+      #tbl th { font-size: 11px; padding: 8px 2px; }
+      #tbl td { height: 40px; padding: 2px; }
+      #tbl th:first-child,
+      #tbl td:first-child { width: 40px; min-width: 40px; font-size: 9px; padding: 0 1px; }
+      /* 右端の時間列はモバイルでは非表示 */
+      #tbl th:last-child,
+      #tbl td.time-right { display: none; }
+      /* スタッフ5列を等分して画面内に収める */
+      #tbl th:nth-child(2), #tbl th:nth-child(3), #tbl th:nth-child(4), #tbl th:nth-child(5), #tbl th:nth-child(6),
+      #tbl td:nth-child(2), #tbl td:nth-child(3), #tbl td:nth-child(4), #tbl td:nth-child(5), #tbl td:nth-child(6) {
+        width: calc((100% - 40px) / 5);
+      }
+      .cell { font-size: 11px; padding: 1px 2px; border-radius: 4px; }
+      .cell.name-long { font-size: 10px; }
+      .cell.name-very-long { font-size: 9px; }
+      th .en { font-size: 7px; transform: none; margin-top: 1px; }
+
+      /* Schedule top buttons を本文の上に出して潰れないように */
+      .schedule-top-btns {
+        position: static;
+        top: auto;
+        right: auto;
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .schedule-top-btns .btn-refresh {
+        width: auto;
+        flex: 1 1 48%;
+      }
       
       /* Dashboard Header */
       .dash-header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -565,6 +597,37 @@
       .box-h { margin-bottom: 16px; }
       .btns { flex-direction: column; gap: 8px; }
       .btns .btn { width: 100%; }
+      /* 主要アクションモーダルではフッターボタンを横並びでコンパクトに */
+      #detailMod .btns,
+      #actionMod .btns,
+      #createMod .btns,
+      #blockMod .btns,
+      #unblockMod .btns,
+      #bulkMod .btns,
+      #feeMod .btns,
+      #expenseMod .btns,
+      #expenseEditMod .btns,
+      #repeatMod .btns {
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      #detailMod .btns .btn,
+      #actionMod .btns .btn,
+      #createMod .btns .btn,
+      #blockMod .btns .btn,
+      #unblockMod .btns .btn,
+      #bulkMod .btns .btn,
+      #feeMod .btns .btn,
+      #expenseMod .btns .btn,
+      #expenseEditMod .btns .btn,
+      #repeatMod .btns .btn {
+        width: auto;
+        flex: 0 0 auto;
+        min-width: 120px;
+        padding-inline: 16px;
+      }
       
       /* Detail Modal */
       .info-grid { grid-template-columns: 1fr !important; }
@@ -582,13 +645,47 @@
     }
     
     @media (max-width: 480px) {
-      .tabs { flex-wrap: wrap; border-radius: 12px; }
-      .tab { flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px; }
+      body { padding: 8px; }
+      .wrap { margin: 0; }
+      .tabs { flex-wrap: nowrap; border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tab { flex: 0 0 auto; text-align: center; padding: 10px 8px; border-radius: 8px; white-space: nowrap; }
+      .header-right .btn { flex: 1 1 100%; min-width: 0; }
+      .date-nav { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
+      .date-disp { font-size: 13px; min-width: 0; }
+      #tbl { width: 100%; min-width: 0; table-layout: fixed; }
+      #tbl th { font-size: 9px; padding: 5px 1px; }
+      #tbl td { height: 32px; padding: 1px; }
+      #tbl th:first-child,
+      #tbl td:first-child { width: 32px; min-width: 32px; font-size: 8px; }
+      #tbl th:last-child,
+      #tbl td.time-right { display: none; }
+      #tbl th:nth-child(2), #tbl th:nth-child(3), #tbl th:nth-child(4), #tbl th:nth-child(5), #tbl th:nth-child(6),
+      #tbl td:nth-child(2), #tbl td:nth-child(3), #tbl td:nth-child(4), #tbl td:nth-child(5), #tbl td:nth-child(6) {
+        width: calc((100% - 32px) / 5);
+      }
+      .cell { font-size: 9px; border-radius: 3px; padding: 0 1px; }
+      .cell.name-long { font-size: 8px; }
+      .cell.name-very-long { font-size: 7px; }
+      th .en { display: none; }
       .payment-grid { grid-template-columns: 1fr; }
       .period-selector { padding: 10px; }
       .period-select { width: 100%; }
       .expense-list-table { font-size: 11px; }
       .expense-list-table th, .expense-list-table td { padding: 8px 6px; }
+      /* さらに小さい画面では主要モーダルのフッターボタンを等分してバランスを取る */
+      #detailMod .btns .btn,
+      #actionMod .btns .btn,
+      #createMod .btns .btn,
+      #blockMod .btns .btn,
+      #unblockMod .btns .btn,
+      #bulkMod .btns .btn,
+      #feeMod .btns .btn,
+      #expenseMod .btns .btn,
+      #expenseEditMod .btns .btn,
+      #repeatMod .btns .btn {
+        flex: 1 1 0;
+        min-width: 0;
+      }
     }
 
     /* ===== Dashboard Refresh Button ===== */
@@ -1809,6 +1906,7 @@ async function load() {
   const dow = WEEKDAY_JA[s.date.getDay()];
   const dateDisplay = `${y}年${m}月${d}日(${dow})`;
   document.getElementById('dDisp').textContent = dateDisplay;
+  applyScheduleTodayTheme();
   const pickerEl = document.getElementById('datePicker');
   if(pickerEl) pickerEl.value = dStr;
   
@@ -1945,6 +2043,7 @@ function renderGrid() {
       if(lbl.length > 5) nameClass = ' name-long';
       if(lbl.length > 7) nameClass = ' name-very-long';
       const clickTime = run ? run.startTime : t;
+
       if(run && run.slotCount > 1) {
         h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + nm + '\',\'' + clickTime + '\')">' + lbl + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
@@ -2786,6 +2885,15 @@ function goToToday() {
   const pickerEl = document.getElementById('datePicker');
   if(pickerEl) pickerEl.value = fmtLocal(s.date);
   load();
+}
+function applyScheduleTodayTheme() {
+  const scheduleEl = document.getElementById('viewSchedule');
+  if (!scheduleEl) return;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const current = new Date(s.date.getTime());
+  current.setHours(0,0,0,0);
+  scheduleEl.classList.toggle('schedule-today', current.getTime() === today.getTime());
 }
 function openMod(id) { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); document.getElementById(id).classList.add('open'); }
 function closeAll() { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
