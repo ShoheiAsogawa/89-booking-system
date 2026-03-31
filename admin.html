@@ -306,6 +306,11 @@
       font-family: var(--font-en);
     }
     .payment-stat-card .pay-fee-rate { font-size: 9px; color: var(--sub); font-weight: 600; }
+    .payment-stat-card .pay-voucher-note {
+      font-size: 9px; line-height: 1.4; color: #92400E; font-weight: 600;
+      margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(139, 92, 246, 0.35);
+      text-align: center; text-transform: none; letter-spacing: 0;
+    }
     
     /* PayPayロゴ */
     .paypay-logo { 
@@ -1025,7 +1030,7 @@
               <option value="現金">現金</option>
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
-              <option value="チケット">チケット</option>
+              <option value="マッサージ券">マッサージ券</option>
               <option value="ツケ払い">ツケ払い</option>
               <option value="保険">保険</option>
               <option value="未選択">未選択</option>
@@ -1096,7 +1101,7 @@
           <div class="kpi-content">
             <div class="kpi-label">Total Sales</div>
             <div class="kpi-value" id="kpiSales">¥0</div>
-            <div class="kpi-desc">売上合計</div>
+            <div class="kpi-desc">売上合計（マッサージ券除く）</div>
           </div>
           <div class="kpi-bg-icon">¥</div>
         </div>
@@ -1236,7 +1241,7 @@
           <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
-          <button class="payment-btn" data-method="チケット" onclick="selectPayment('チケット')"><span style="font-size:20px;">🎫</span>チケット</button>
+          <button class="payment-btn" data-method="マッサージ券" onclick="selectPayment('マッサージ券')"><span style="font-size:20px;">🎫</span>マッサージ券</button>
           <button class="payment-btn" data-method="ツケ払い" onclick="selectPayment('ツケ払い')"><span style="font-size:18px;">📋</span>ツケ払い</button>
           <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
         </div>
@@ -1672,6 +1677,13 @@ window.handleLogin = async function() {
 };
 
 let s = { date: new Date(), data: {}, cur: null, id: null, currentPaymentMethod: '', currentPaymentDate: '', currentPaymentBreakdown: [], isSplitPayment: false };
+function isVoucherPaymentMethod(m) {
+  return m === 'マッサージ券' || m === 'チケット' || m === '商品券';
+}
+function normalizeDisplayPaymentMethod(m) {
+  if(!m) return '';
+  return isVoucherPaymentMethod(m) ? 'マッサージ券' : m;
+}
 let chartInst = null;
 let currentTab = 'schedule';
 let FEES = {'麻生川':0,'岡野':0,'堀江':0,'松田':0,'山口':0}; // 動的に更新される
@@ -2098,7 +2110,7 @@ async function cellClick(nm, t) {
     const d = detail || c.detail || {};
     s.currentPaymentBreakdown = normalizePaymentBreakdown(d.payment_breakdown, d.payment_method, d.payment_date, Number(d.fee || 0));
     s.isSplitPayment = s.currentPaymentBreakdown.length > 1;
-    s.currentPaymentMethod = (d.payment_method === '商品券' ? 'チケット' : d.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
+    s.currentPaymentMethod = normalizeDisplayPaymentMethod(d.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
     s.currentPaymentDate = d.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
     s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
     document.getElementById('info').innerHTML = `
@@ -2381,7 +2393,7 @@ async function openSearchDetail(bookingId) {
   
   s.currentPaymentBreakdown = normalizePaymentBreakdown(detail.payment_breakdown, detail.payment_method, detail.payment_date, Number(detail.fee || 0));
   s.isSplitPayment = s.currentPaymentBreakdown.length > 1;
-  s.currentPaymentMethod = (detail.payment_method === '商品券' ? 'チケット' : detail.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
+  s.currentPaymentMethod = normalizeDisplayPaymentMethod(detail.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
   s.currentPaymentDate = detail.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
   s.originalPatientData = { patient_name: detail.patient_name || '', phone: detail.phone || '', symptoms: detail.symptoms || '' };
   document.getElementById('info').innerHTML = `
@@ -2606,10 +2618,12 @@ async function runSearch() {
     query = query.eq('status', status);
   }
   
-  // 決済方法フィルター
+  // 決済方法フィルター（旧DBのチケット・商品券もマッサージ券検索に含める）
   if(payment) {
     if(payment === '未選択') {
       query = query.is('payment_method', null);
+    } else if(payment === 'マッサージ券') {
+      query = query.or('payment_method.eq.マッサージ券,payment_method.eq.チケット,payment_method.eq.商品券');
     } else {
       query = query.eq('payment_method', payment);
     }
@@ -2647,7 +2661,7 @@ async function runSearch() {
     sortedData.forEach(b => {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
-      const paymentLabel = (b.payment_method === '商品券' ? 'チケット' : b.payment_method) || '';
+      const paymentLabel = normalizeDisplayPaymentMethod(b.payment_method) || '';
       const paymentHtml = paymentLabel 
         ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${paymentLabel}</span>` 
         : `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">未決済</span>`;
@@ -2675,10 +2689,35 @@ const PAYMENT_FEES = {
   '現金': 0,
   'ペイペイ': 0.018,  // 1.8%
   'クレジット': 0.0325, // 3.25%
-  'チケット': 0,
+  'マッサージ券': 0,
   'ツケ払い': 0,
   '保険': 0
 };
+
+function parseBookingBreakdownRows(b) {
+  if(!b || b.payment_breakdown == null || b.payment_breakdown === '') return null;
+  if(Array.isArray(b.payment_breakdown)) return b.payment_breakdown;
+  if(typeof b.payment_breakdown === 'string') {
+    try { const o = JSON.parse(b.payment_breakdown); return Array.isArray(o) ? o : null; } catch(e) { return null; }
+  }
+  return null;
+}
+
+/** 店舗総売上（KPI・グラフ）に含める金額。マッサージ券分は含めない。スタッフ別は fee 全額を別途集計。 */
+function amountCountingTowardTotalSales(b) {
+  const fee = Number(b.fee || 0);
+  const rows = parseBookingBreakdownRows(b);
+  if(rows && rows.length > 0) {
+    return rows.reduce((sum, r) => {
+      const amt = Number(r.amount || 0);
+      if(isVoucherPaymentMethod(r.method || '')) return sum;
+      return sum + amt;
+    }, 0);
+  }
+  if(b.payment_method === '分割') return fee;
+  if(isVoucherPaymentMethod(b.payment_method)) return 0;
+  return fee;
+}
 
 // ダッシュボード用データ保存
 let dashboardData = [];
@@ -2704,12 +2743,20 @@ async function loadDashboard() {
   // 予約日で期間内の予約を取得（payment_date / payment_method 列が無いDBでも動くよう段階的にフォールバック）
   const selectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo';
   const selectColsMin = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, admin_memo';
-  const r1 = await db.from('bookings')
-    .select(selectCols + ', payment_date')
+  let r1 = await db.from('bookings')
+    .select(selectCols + ', payment_date, payment_breakdown')
     .gte('date', start)
     .lte('date', end)
     .neq('status', 'キャンセル')
     .order('date', { ascending: true });
+  if(r1.error && r1.error.message && r1.error.message.indexOf('payment_breakdown') >= 0) {
+    r1 = await db.from('bookings')
+      .select(selectCols + ', payment_date')
+      .gte('date', start)
+      .lte('date', end)
+      .neq('status', 'キャンセル')
+      .order('date', { ascending: true });
+  }
   
   let booksByDate;
   if(r1.error) {
@@ -2737,12 +2784,20 @@ async function loadDashboard() {
   
   // 決済日で期間内のツケ払い・保険（payment_date 列が無い場合はスキップ）
   let booksByPaymentDate = [];
-  const r2 = await db.from('bookings')
-    .select(selectCols + ', payment_date')
+  let r2 = await db.from('bookings')
+    .select(selectCols + ', payment_date, payment_breakdown')
     .gte('payment_date', start)
     .lte('payment_date', end)
     .in('payment_method', DEFERRED_PAYMENT_METHODS)
     .neq('status', 'キャンセル');
+  if(r2.error && r2.error.message && r2.error.message.indexOf('payment_breakdown') >= 0) {
+    r2 = await db.from('bookings')
+      .select(selectCols + ', payment_date')
+      .gte('payment_date', start)
+      .lte('payment_date', end)
+      .in('payment_method', DEFERRED_PAYMENT_METHODS)
+      .neq('status', 'キャンセル');
+  }
   if(!r2.error) booksByPaymentDate = r2.data || [];
   
   const mergedMap = new Map();
@@ -2750,7 +2805,7 @@ async function loadDashboard() {
   (booksByPaymentDate || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
   const mergedList = Array.from(mergedMap.values());
   
-  // 売上カウント日: 現金・クレジット・PayPay・チケットはその日(予約日)、ツケ払い・保険は決済日
+  // 売上カウント日: 現金・クレジット・PayPay・マッサージ券はその日(予約日)、ツケ払い・保険は決済日
   function getReportDate(b) {
     if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0 && b.payment_date) return b.payment_date;
     return b.date;
@@ -2770,21 +2825,22 @@ async function loadDashboard() {
     return true;
   });
   
-  const totalSales = paidList.reduce((sum, b) => sum + Number(b.fee || 0), 0);
+  const totalSales = paidList.reduce((sum, b) => sum + amountCountingTowardTotalSales(b), 0);
   const paidCount = paidList.length;
   const totalCount = listInRange.length;
-  const avg = paidCount ? Math.round(totalSales / paidCount) : 0;
+  const contribAvg = paidList.filter(b => amountCountingTowardTotalSales(b) > 0).length;
+  const avg = contribAvg ? Math.round(totalSales / contribAvg) : 0;
   
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
   document.getElementById('kpiCount').textContent = paidCount + '件';
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
   
   const salesDesc = document.querySelector('.kpi-sales .kpi-desc');
-  if(salesDesc) salesDesc.textContent = `売上合計（決済済み ${paidCount}件）`;
+  if(salesDesc) salesDesc.textContent = `売上合計（決済済み ${paidCount}件・マッサージ券除く）`;
   const countDesc = document.querySelector('.kpi-bookings .kpi-desc');
   if(countDesc) countDesc.textContent = `決済済み / 全${totalCount}件`;
   const avgDesc = document.querySelector('.kpi-avg .kpi-desc');
-  if(avgDesc) avgDesc.textContent = `決済済みの平均客単価`;
+  if(avgDesc) avgDesc.textContent = `マッサージ券除く平均（対象 ${contribAvg}件）`;
   
   // 予約はあるが売上0円のとき案内（決済方法未選択 or payment_method 列なし）
   const dashZeroHint = document.getElementById('dashZeroHint');
@@ -2801,14 +2857,33 @@ async function loadDashboard() {
     '現金': { count: 0, amount: 0, fee: 0 },
     'ペイペイ': { count: 0, amount: 0, fee: 0 },
     'クレジット': { count: 0, amount: 0, fee: 0 },
-    'チケット': { count: 0, amount: 0, fee: 0 },
+    'マッサージ券': { count: 0, amount: 0, fee: 0 },
     'ツケ払い': { count: 0, amount: 0, fee: 0 },
     '保険': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
   
   listInRange.forEach(b => {
-    let method = (b.payment_method === '商品券' ? 'チケット' : b.payment_method) || '未選択';
+    const rows = parseBookingBreakdownRows(b);
+    if(rows && rows.length > 0) {
+      rows.forEach(r => {
+        let method = normalizeDisplayPaymentMethod(r.method || '') || '未選択';
+        if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
+        const amount = Number(r.amount || 0);
+        const feeRate = PAYMENT_FEES[method] || 0;
+        const fee = Math.round(amount * feeRate);
+        if(payStats[method]) {
+          payStats[method].count++;
+          payStats[method].amount += amount;
+          payStats[method].fee += fee;
+        } else {
+          payStats['未選択'].count++;
+          payStats['未選択'].amount += amount;
+        }
+      });
+      return;
+    }
+    let method = normalizeDisplayPaymentMethod(b.payment_method) || '未選択';
     if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
     const amount = Number(b.fee || 0);
     const feeRate = PAYMENT_FEES[method] || 0;
@@ -2824,12 +2899,12 @@ async function loadDashboard() {
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'チケット': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'チケット': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', 'チケット', 'ツケ払い', '保険'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険'].forEach(method => {
     const stat = payStats[method];
     const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
@@ -2838,6 +2913,9 @@ async function loadDashboard() {
           -¥${stat.fee.toLocaleString()}
           <div class="pay-fee-rate">(${feeRate % 1 === 0 ? feeRate : feeRate.toFixed(2)}%)</div>
         </div>` : '';
+    const voucherNote = method === 'マッサージ券'
+      ? '<div class="pay-voucher-note">スタッフ別の売上には加算されますが、全体の売上合計には含まれません。</div>'
+      : '';
     payHtml += `
       <div class="payment-stat-card ${payClasses[method]}">
         <div class="pay-icon">${payIcons[method]}</div>
@@ -2845,6 +2923,7 @@ async function loadDashboard() {
         <div class="pay-count">${stat.count}<span class="pay-count-unit">件</span></div>
         <div class="pay-amount">¥${stat.amount.toLocaleString()}</div>
         ${feeHtml}
+        ${voucherNote}
       </div>`;
   });
   
@@ -2893,7 +2972,7 @@ async function loadDashboard() {
   paidList.forEach(b => {
     const reportDate = getReportDate(b);
     if(dailyData.hasOwnProperty(reportDate)) {
-      dailyData[reportDate] += Number(b.fee || 0);
+      dailyData[reportDate] += amountCountingTowardTotalSales(b);
     }
   });
   
@@ -2914,7 +2993,7 @@ async function loadDashboard() {
     data: {
       labels: shortLabels,
       datasets: [{
-        label: '売上 累積（決済済みのみ）', data: cumData,
+        label: '売上 累積（マッサージ券除く・決済済み）', data: cumData,
         borderColor: '#111827', backgroundColor: 'rgba(17, 24, 39, 0.05)',
         tension: 0, fill: true, pointRadius: dateLabels.length > 60 ? 0 : 2
       }]
@@ -2980,12 +3059,12 @@ function getTimeSlots(startTime, endTime) {
 
 // 決済方法関連（ツケ払い・保険は決済日を売上カウント日に使用）
 const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
-const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'チケット', 'ツケ払い', '保険'];
+const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険'];
 
 function canonicalPaymentBreakdown(rows) {
   const normalized = (rows || [])
     .map(r => ({
-      method: String(r && r.method ? r.method : ''),
+      method: normalizeDisplayPaymentMethod(String(r && r.method ? r.method : '')),
       amount: Number(r && r.amount ? r.amount : 0),
       payment_date: String(r && r.payment_date ? r.payment_date : '')
     }))
@@ -3002,14 +3081,14 @@ function normalizePaymentBreakdown(raw, fallbackMethod, fallbackDate, fallbackFe
   }
   const normalized = (rows || [])
     .map(r => ({
-      method: String(r && r.method ? r.method : ''),
+      method: normalizeDisplayPaymentMethod(String(r && r.method ? r.method : '')),
       amount: Number(r && r.amount ? r.amount : 0),
       payment_date: String(r && r.payment_date ? r.payment_date : '')
     }))
     .filter(r => r.method && r.amount >= 0);
   if(normalized.length > 0) return normalized;
 
-  const method = (fallbackMethod === '商品券' ? 'チケット' : (fallbackMethod || '')).trim();
+  const method = normalizeDisplayPaymentMethod((fallbackMethod || '').trim());
   if(method) {
     return [{
       method: method,
@@ -3040,7 +3119,7 @@ function parsePaymentBreakdownText(text) {
 function normalizeRowsForSave(rows) {
   return (rows || [])
     .map(r => ({
-      method: String(r && r.method ? r.method : ''),
+      method: normalizeDisplayPaymentMethod(String(r && r.method ? r.method : '')),
       amount: Number(r && r.amount ? r.amount : 0),
       payment_date: String(r && r.payment_date ? r.payment_date : '')
     }))
@@ -3079,7 +3158,7 @@ function getOriginalPaymentCompareKey(o) {
   if(oldRows.length > 1 || (o && o.payment_method === '分割')) {
     return `split:${canonicalPaymentBreakdown(oldRows)}`;
   }
-  const oldMethod = ((o && o.payment_method) === '商品券' ? 'チケット' : ((o && o.payment_method) || ''));
+  const oldMethod = normalizeDisplayPaymentMethod((o && o.payment_method) || '');
   const oldDate = DEFERRED_PAYMENT_METHODS.indexOf(oldMethod) >= 0 ? ((o && o.payment_date) || '') : '';
   return `single:${oldMethod}:${oldDate}`;
 }
@@ -3417,7 +3496,7 @@ function exportToExcel() {
   
   const rows = dashboardData.map(b => {
     const fee = Number(b.fee || 0);
-    const method = b.payment_method || '';
+    const method = normalizeDisplayPaymentMethod(b.payment_method || '');
     const feeRate = PAYMENT_FEES[method] || 0;
     const paymentFee = Math.round(fee * feeRate);
     const paymentDate = (method && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0) ? (b.payment_date || '') : '';
