@@ -1122,6 +1122,21 @@ async function createBooking() {
       }
     }
 
+    // ブロックチェック: 施術時間内のどこか1枠でもブロックがあれば予約不可
+    const { data: existingBlocks } = await db.from('blocks')
+      .select('time')
+      .eq('date', dStr)
+      .eq('staff', p.staff);
+    if(existingBlocks && existingBlocks.length > 0) {
+      for(const slot of requiredSlots) {
+        if(existingBlocks.some(b => b.time === slot)) {
+          loading(false);
+          alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）にはブロックされた枠が含まれています。別の時間を選択してください。`);
+          return;
+        }
+      }
+    }
+
     const id = Math.random().toString(36).substr(2, 9).toUpperCase();
     const { error } = await db.from('bookings').insert({
       id: id, date: dStr, start_time: p.time, end_time: endTime,
