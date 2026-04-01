@@ -1121,7 +1121,7 @@ async function createBooking() {
           const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
           if(bookingSlots.includes(slot)) {
             loading(false);
-            alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っています。別の時間を選択してください。`);
+            alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
             return;
           }
         }
