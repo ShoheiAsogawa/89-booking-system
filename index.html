@@ -1121,7 +1121,7 @@ async function createBooking() {
           const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
           if(bookingSlots.includes(slot)) {
             loading(false);
-            alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
+            alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っております。別の時間帯を選択してください。`);
             return;
           }
         }
@@ -1137,7 +1137,7 @@ async function createBooking() {
       for(const slot of requiredSlots) {
         if(existingBlocks.some(b => b.time === slot)) {
           loading(false);
-          alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
+          alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っております。別の時間帯を選択してください。`);
           return;
         }
       }
