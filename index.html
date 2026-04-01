@@ -1131,7 +1131,7 @@ async function createBooking() {
       for(const slot of requiredSlots) {
         if(existingBlocks.some(b => b.time === slot)) {
           loading(false);
-          alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）にはブロックされた枠が含まれています。別の時間を選択してください。`);
+          alert(`選択した時間帯（${p.time}〜${endTime}）にはブロックされた時間が含まれています。別の時間帯を選択してください。`);
           return;
         }
       }
