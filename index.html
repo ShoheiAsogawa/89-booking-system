@@ -1097,6 +1097,12 @@ async function createBooking() {
     const duration = parseInt(document.getElementById('pDuration').value) || 60;
     const endTime = addTime(p.time, duration);
     const dStr = fmt(state.date);
+    const workHours = WORK_HOURS[p.staff] || { start: '09:00', end: '21:00' };
+    if(endTime > workHours.end) {
+      loading(false);
+      alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
+      return;
+    }
     
     // 重複チェック: 選択した時間帯に既存の予約がないか確認
     const requiredSlots = getTimeSlots(p.time, endTime);
@@ -1131,7 +1137,7 @@ async function createBooking() {
       for(const slot of requiredSlots) {
         if(existingBlocks.some(b => b.time === slot)) {
           loading(false);
-          alert(`選択した時間帯（${p.time}〜${endTime}）にはブロックされた時間が含まれています。別の時間帯を選択してください。`);
+          alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
           return;
         }
       }
@@ -1300,14 +1306,26 @@ function tap(s, t, st, id) {
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
     var durationSelect = document.getElementById('pDuration');
     var timeNotice = document.getElementById('timeNotice');
-    if(t === '20:30') {
+    const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
+    const startMin = parseTimeToMinutes(t);
+    const endMin = parseTimeToMinutes(workHours.end);
+    const remainMin = endMin - startMin;
+    const allDurations = [30, 60, 90, 120];
+    const availableDurations = allDurations.filter(function(d) { return d <= remainMin; });
+    if(availableDurations.length === 0) {
       durationSelect.innerHTML = '<option value="30" selected>30分</option>';
       durationSelect.disabled = true;
       timeNotice.classList.remove('hidden');
     } else {
-      durationSelect.innerHTML = '<option value="30">30分</option><option value="60" selected>60分（標準）</option><option value="90">90分</option><option value="120">120分</option>';
-      durationSelect.disabled = false;
-      timeNotice.classList.add('hidden');
+      durationSelect.innerHTML = availableDurations.map(function(d) {
+        const selected = d === 60 ? ' selected' : '';
+        const label = d === 60 ? '60分（標準）' : (d + '分');
+        return '<option value="' + d + '"' + selected + '>' + label + '</option>';
+      }).join('');
+      // 60分が選べない場合は最初の候補を選択
+      if(availableDurations.indexOf(60) < 0) durationSelect.value = String(availableDurations[0]);
+      durationSelect.disabled = availableDurations.length === 1;
+      timeNotice.classList.toggle('hidden', availableDurations.length > 1);
     }
   }
   openModal('modal');
