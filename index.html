@@ -13,6 +13,9 @@
   <!-- Libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link rel="stylesheet" href="jp-custom-calendar.css">
+  <script src="vendor/japanese-holidays.js"></script>
+  <script src="jp-custom-calendar.js"></script>
   
   <style>
     /* --- 89CENTER MOBILE DESIGN v28 (Strictly Fixed Width) --- */
@@ -109,7 +112,7 @@
     }
     .cal-btn:active { background: var(--line); }
     .cal-icon { width: 14px; height: 14px; }
-    #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 10; }
+    #datePicker { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 10; pointer-events: none; }
 
     /* LEGEND (凡例) */
     .legend { 
@@ -429,7 +432,7 @@
     <div class="fixed-section">
       <div class="nav">
         <button class="nav-btn" id="prevBtn" onclick="addDay(-1)">‹</button>
-        <div class="date-display" onclick="document.getElementById('datePicker').showPicker()">
+        <div class="date-display" onclick="openBookingDateCalendar()" role="button" tabindex="0">
           <div class="date-main" id="dMain">
             --月--日
             <!-- カレンダーボタン -->
@@ -758,6 +761,23 @@ async function loadFees() {
       } catch(e) {}
     }
   }
+}
+
+function openBookingDateCalendar() {
+  if (typeof JpCustomCalendar === 'undefined') return;
+  var dp = document.getElementById('datePicker');
+  JpCustomCalendar.open({
+    anchorDate: state.date,
+    inputEl: dp,
+    showEra: true,
+    onSelect: function (d) {
+      var ymd = fmt(d);
+      state.date = new Date(ymd + 'T12:00:00');
+      dp.value = ymd;
+      renderDate();
+      loadData();
+    }
+  });
 }
 
 window.onload = async () => {
