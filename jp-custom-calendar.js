@@ -1,6 +1,6 @@
 /**
  * ネイティブ date ピッカーの代わりに表示するカスタムカレンダー。
- * 当月セル＝薄緑、日曜＝赤、土曜＝青、祝日＝赤（japanese-holidays 利用）
+ * 日曜＝赤、土曜＝青、祝日＝赤（japanese-holidays 利用）
  */
 (function (global) {
   'use strict';
@@ -44,6 +44,7 @@
   var maxD = null;
   var onSelectCb = null;
   var showEra = true;
+  var isDateDisabledCb = null;
 
   function ensureDom() {
     if (root) return;
@@ -106,6 +107,11 @@
   function inRange(d) {
     if (minD && d < minD) return false;
     if (maxD && d > maxD) return false;
+    if (typeof isDateDisabledCb === 'function') {
+      try {
+        if (isDateDisabledCb(startOfDay(d))) return false;
+      } catch (e) {}
+    }
     return true;
   }
 
@@ -147,13 +153,6 @@
     for (i = used; i < cells; i++) {
       grid.appendChild(makeCell(ny, nm + 1, nextDay, true));
       nextDay++;
-    }
-
-    var now = new Date();
-    var panel = root.querySelector('.jp-cal-panel');
-    if (panel) {
-      var isViewingRealThisMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-      panel.classList.toggle('jp-cal-panel--this-real-month', isViewingRealThisMonth);
     }
 
     updateNavDisabled();
@@ -223,6 +222,7 @@
     ensureDom();
     onSelectCb = opts.onSelect || null;
     showEra = opts.showEra !== false;
+    isDateDisabledCb = typeof opts.isDateDisabled === 'function' ? opts.isDateDisabled : null;
 
     var base = opts.anchorDate ? startOfDay(opts.anchorDate) : startOfDay(new Date());
     selected = base;
@@ -244,6 +244,7 @@
   function close() {
     if (root) root.classList.remove('jp-cal-open');
     onSelectCb = null;
+    isDateDisabledCb = null;
   }
 
   global.JpCustomCalendar = { open: open, close: close };

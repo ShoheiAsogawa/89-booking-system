@@ -1435,8 +1435,8 @@
         <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">💰 種別</label>
           <div class="exp-flow-btns">
-            <label class="exp-flow-btn-out"><input type="radio" name="expFlow" id="expFlowOut" value="out" checked onchange="updateExpenseAmountFlow()"> 出金</label>
-            <label class="exp-flow-btn-in"><input type="radio" name="expFlow" id="expFlowIn" value="in" onchange="updateExpenseAmountFlow()"> 入金</label>
+            <label class="exp-flow-btn-out"><input type="radio" name="expFlow" id="expFlowOut" value="out" checked onchange="updateExpenseAmountFlow(); toggleExpenseInflowMethod('exp');"> 出金</label>
+            <label class="exp-flow-btn-in"><input type="radio" name="expFlow" id="expFlowIn" value="in" onchange="updateExpenseAmountFlow(); toggleExpenseInflowMethod('exp');"> 入金</label>
           </div>
         </div>
         <div class="inp-group">
@@ -1470,6 +1470,16 @@
             <option value="">未選択</option>
           </select>
         </div>
+        <div class="inp-group full" id="expInflowMethodGroup" style="display:none;">
+          <label class="inp-lbl" id="expMethodLabel">💳 決済方法</label>
+          <select id="expInflowMethod" class="inp" style="margin:0;">
+            <option value="">選択してください</option>
+            <option value="現金">現金</option>
+            <option value="カード">カード</option>
+            <option value="PayPay">PayPay</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
         <div class="inp-group full">
           <label class="inp-lbl">📎 メモ</label>
           <textarea id="expMemo" class="inp" placeholder="備考（任意）" style="margin:0; min-height:60px;"></textarea>
@@ -1491,8 +1501,8 @@
         <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">💰 種別</label>
           <div class="exp-flow-btns">
-            <label class="exp-flow-btn-out"><input type="radio" name="expEditFlow" id="expEditFlowOut" value="out" onchange="updateExpenseEditAmountFlow()"> 出金</label>
-            <label class="exp-flow-btn-in"><input type="radio" name="expEditFlow" id="expEditFlowIn" value="in" onchange="updateExpenseEditAmountFlow()"> 入金</label>
+            <label class="exp-flow-btn-out"><input type="radio" name="expEditFlow" id="expEditFlowOut" value="out" onchange="updateExpenseEditAmountFlow(); toggleExpenseInflowMethod('expEdit');"> 出金</label>
+            <label class="exp-flow-btn-in"><input type="radio" name="expEditFlow" id="expEditFlowIn" value="in" onchange="updateExpenseEditAmountFlow(); toggleExpenseInflowMethod('expEdit');"> 入金</label>
           </div>
         </div>
         <div class="inp-group">
@@ -1524,6 +1534,16 @@
           <label class="inp-lbl">👤 担当者</label>
           <select id="expEditStaff" class="inp" style="margin:0;">
             <option value="">未選択</option>
+          </select>
+        </div>
+        <div class="inp-group full" id="expEditInflowMethodGroup" style="display:none;">
+          <label class="inp-lbl" id="expEditMethodLabel">💳 決済方法</label>
+          <select id="expEditInflowMethod" class="inp" style="margin:0;">
+            <option value="">選択してください</option>
+            <option value="現金">現金</option>
+            <option value="カード">カード</option>
+            <option value="PayPay">PayPay</option>
+            <option value="その他">その他</option>
           </select>
         </div>
         <div class="inp-group full">
@@ -3820,11 +3840,24 @@ function updateExpenseEditAmountFlow() {
   wrap.classList.toggle('flow-in', !!isIn);
   wrap.classList.toggle('has-value', !!document.getElementById('expEditAmount')?.value?.trim());
 }
+function toggleExpenseInflowMethod(which) {
+  const isExp = which === 'exp';
+  const groupEl = document.getElementById(isExp ? 'expInflowMethodGroup' : 'expEditInflowMethodGroup');
+  const selectEl = document.getElementById(isExp ? 'expInflowMethod' : 'expEditInflowMethod');
+  const labelEl = document.getElementById(isExp ? 'expMethodLabel' : 'expEditMethodLabel');
+  const inRadio = document.getElementById(isExp ? 'expFlowIn' : 'expEditFlowIn');
+  if(!groupEl || !selectEl || !labelEl) return;
+  groupEl.style.display = 'block';
+  labelEl.textContent = inRadio?.checked ? '💳 入金方法' : '💳 出金方法';
+}
 function openExpenseModal() {
+  document.getElementById('expFlowOut').checked = true;
+  document.getElementById('expFlowIn').checked = false;
   document.getElementById('expDate').value = fmtLocal(new Date());
   document.getElementById('expCategory').value = '駐車場代';
   document.getElementById('expItem').value = '';
   document.getElementById('expAmount').value = '';
+  document.getElementById('expInflowMethod').value = '';
   document.getElementById('expMemo').value = '';
   
   const staffSelect = document.getElementById('expStaff');
@@ -3833,6 +3866,7 @@ function openExpenseModal() {
   
   toggleExpenseItemField('exp');
   updateExpenseAmountFlow();
+  toggleExpenseInflowMethod('exp');
   openMod('expenseMod');
 }
 
@@ -3843,12 +3877,14 @@ async function saveExpense() {
   const itemRaw = document.getElementById('expItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expAmount').value);
+  const inflowMethod = (flow === 'in') ? (document.getElementById('expInflowMethod')?.value || '') : '';
   const staff = document.getElementById('expStaff').value;
   const memo = (document.getElementById('expMemo')?.value || '').trim() || null;
   
   if(!date) { showToast('日付を選択してください'); return; }
   if(category === 'その他' && !itemRaw) { showToast('項目名（その他の内容）を入力してください'); return; }
   if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  if(!inflowMethod) { showToast(flow === 'in' ? '入金方法を選択してください' : '出金方法を選択してください'); return; }
   
   showLoad(true);
   try {
@@ -3861,6 +3897,7 @@ async function saveExpense() {
       category: category,
       item_name: item,
       amount: amount,
+      inflow_method: inflowMethod || null,
       staff: staff || null,
       memo: memo,
       created_by: userEmail,
@@ -3879,6 +3916,10 @@ async function saveExpense() {
     if(currentTab === 'dashboard') loadDashboard();
     if(currentTab === 'expenses') loadExpensesPage();
   } catch(e) {
+    if(String(e?.message || '').includes('inflow_method')) {
+      showToast('DBに入金方法カラムがありません。supabase_expenses_inflow_method.sql を実行してください');
+      return;
+    }
     showToast('経費の登録に失敗しました: ' + e.message);
     console.error('経費登録エラー:', e);
   } finally {
@@ -3939,7 +3980,7 @@ async function loadExpensesPage() {
   showLoad(true);
   try {
     let query = db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, created_at, flow')
+      .select('id, date, category, item_name, amount, staff, memo, created_at, flow, inflow_method')
       .gte('date', fromVal)
       .lte('date', toVal)
       .is('deleted_at', null);
@@ -3952,7 +3993,7 @@ async function loadExpensesPage() {
       if(categoryVal) q2 = q2.eq('category', categoryVal);
       if(staffVal) q2 = q2.eq('staff', staffVal);
       const r2 = await q2;
-      list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out' }));
+      list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
       error = r2.error;
     }
     if(error) throw error;
@@ -3995,6 +4036,14 @@ async function loadExpensesPage() {
     
     const totalOut = expenses.filter(e => (e.flow || 'out') === 'out').reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const totalIn = expenses.filter(e => e.flow === 'in').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCash = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === '現金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCard = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'カード').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outPayPay = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'PayPay').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outOther = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'その他').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCash = expenses.filter(e => e.flow === 'in' && e.inflow_method === '現金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCard = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'カード').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inPayPay = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'PayPay').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inOther = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'その他').reduce((sum, e) => sum + Number(e.amount || 0), 0);
     let html = `
       <div class="expense-list-summary-box">
         <div class="summary-item">
@@ -4004,16 +4053,19 @@ async function loadExpensesPage() {
         <div class="summary-item">
           <div class="summary-label">出金合計</div>
           <div class="summary-value expense-flow-out">-¥${totalOut.toLocaleString()}</div>
+          <div style="font-size:11px; color:var(--sub); margin-top:4px;">現金: ¥${outCash.toLocaleString()} / カード: ¥${outCard.toLocaleString()} / PayPay: ¥${outPayPay.toLocaleString()} / その他: ¥${outOther.toLocaleString()}</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">入金合計</div>
           <div class="summary-value expense-flow-in">¥${totalIn.toLocaleString()}</div>
+          <div style="font-size:11px; color:var(--sub); margin-top:4px;">現金: ¥${inCash.toLocaleString()} / カード: ¥${inCard.toLocaleString()} / PayPay: ¥${inPayPay.toLocaleString()} / その他: ¥${inOther.toLocaleString()}</div>
         </div>
       </div>
       <table class="expense-list-table">
         <thead>
           <tr>
             <th>種別</th>
+            <th>決済方法</th>
             <th>日付</th>
             <th>カテゴリ</th>
             <th>項目名</th>
@@ -4027,11 +4079,13 @@ async function loadExpensesPage() {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
       const isIn = e.flow === 'in';
       const flowLabel = isIn ? '入金' : '出金';
+      const paymentMethodLabel = e.inflow_method || '-';
       const amountClass = isIn ? 'expense-flow-in' : 'expense-flow-out';
       const amountDisplay = isIn ? `¥${Number(e.amount).toLocaleString()}` : `-¥${Number(e.amount).toLocaleString()}`;
       html += `
         <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
           <td style="font-size:11px; font-weight:700;" class="${amountClass}">${flowLabel}</td>
+          <td style="font-size:11px; font-weight:600;">${paymentMethodLabel}</td>
           <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
           <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
           <td style="font-weight:600;">${e.item_name}</td>
@@ -4068,6 +4122,7 @@ async function openExpenseEdit(expenseId) {
   document.getElementById('expEditCategory').value = row.category || 'その他';
   document.getElementById('expEditItem').value = row.item_name || '';
   document.getElementById('expEditAmount').value = row.amount || '';
+  document.getElementById('expEditInflowMethod').value = row.inflow_method || '';
   document.getElementById('expEditMemo').value = row.memo || '';
   
   const staffSelect = document.getElementById('expEditStaff');
@@ -4076,6 +4131,7 @@ async function openExpenseEdit(expenseId) {
   
   toggleExpenseItemField('expEdit');
   updateExpenseEditAmountFlow();
+  toggleExpenseInflowMethod('expEdit');
   loadExpenseAuditLogs(expenseId);
   openMod('expenseEditMod');
 }
@@ -4091,16 +4147,18 @@ async function saveExpenseEdit() {
   const itemRaw = document.getElementById('expEditItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expEditAmount').value);
+  const inflowMethod = (flow === 'in') ? (document.getElementById('expEditInflowMethod')?.value || '') : '';
   const staff = document.getElementById('expEditStaff').value;
   const memo = (document.getElementById('expEditMemo')?.value || '').trim() || null;
   
   if(!date) { showToast('日付を選択してください'); return; }
   if(category === 'その他' && !itemRaw) { showToast('項目名（その他の内容）を入力してください'); return; }
   if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  if(!inflowMethod) { showToast(flow === 'in' ? '入金方法を選択してください' : '出金方法を選択してください'); return; }
   
   showLoad(true);
   try {
-    const { data: oldRow } = await db.from('expenses').select('flow, date, category, item_name, amount, staff, memo').eq('id', id).single();
+    const { data: oldRow } = await db.from('expenses').select('flow, inflow_method, date, category, item_name, amount, staff, memo').eq('id', id).single();
     
     const { error } = await db.from('expenses').update({
       flow: flow,
@@ -4108,6 +4166,7 @@ async function saveExpenseEdit() {
       category: category,
       item_name: item,
       amount: amount,
+      inflow_method: inflowMethod || null,
       staff: staff || null,
       memo: memo
     }).eq('id', id);
@@ -4117,6 +4176,7 @@ async function saveExpenseEdit() {
     const details = [];
     if(oldRow) {
       if((oldRow.flow||'out') !== flow) details.push(`種別: ${oldRow.flow==='in'?'入金':'出金'}→${flow==='in'?'入金':'出金'}`);
+      if((oldRow.inflow_method||'') !== (inflowMethod||'')) details.push(`決済方法: ${oldRow.inflow_method||'-'}→${inflowMethod||'-'}`);
       if(oldRow.date !== date) details.push(`日付: ${oldRow.date}→${date}`);
       if(oldRow.category !== category) details.push(`カテゴリ: ${oldRow.category}→${category}`);
       if(oldRow.item_name !== item) details.push(`項目: ${oldRow.item_name}→${item}`);
@@ -4131,6 +4191,10 @@ async function saveExpenseEdit() {
     if(currentTab === 'dashboard') loadDashboard();
     if(currentTab === 'expenses') loadExpensesPage();
   } catch(e) {
+    if(String(e?.message || '').includes('inflow_method')) {
+      showToast('DBに入金方法カラムがありません。supabase_expenses_inflow_method.sql を実行してください');
+      return;
+    }
     showToast('更新に失敗しました: ' + e.message);
   } finally {
     showLoad(false);
@@ -4228,26 +4292,40 @@ const EXPENSE_CATEGORY_CLASSES = {
 async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
   try {
     let result = await db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, flow, created_by, created_at')
+      .select('id, date, category, item_name, amount, staff, memo, flow, inflow_method, created_by, created_at')
       .gte('date', start)
       .lte('date', end)
       .is('deleted_at', null)
       .order('date', { ascending: false });
     if(result.error) {
       result = await db.from('expenses')
-        .select('id, date, category, item_name, amount, staff, memo, created_by, created_at')
+        .select('id, date, category, item_name, amount, staff, memo, inflow_method, created_by, created_at')
         .gte('date', start)
         .lte('date', end)
         .order('date', { ascending: false });
     }
     if(result.error) throw result.error;
-    const expenseList = result.data || [];
+    const expenseList = (result.data || []).map(e => ({
+      ...e,
+      flow: e.flow || 'out',
+      inflow_method: e.inflow_method || null
+    }));
     const totalOut = expenseList.filter(e => (e.flow || 'out') === 'out').reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const totalIn = expenseList.filter(e => e.flow === 'in').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCash = expenseList.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === '現金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCard = expenseList.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'カード').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outPayPay = expenseList.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'PayPay').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outOther = expenseList.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'その他').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCash = expenseList.filter(e => e.flow === 'in' && e.inflow_method === '現金').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCard = expenseList.filter(e => e.flow === 'in' && e.inflow_method === 'カード').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inPayPay = expenseList.filter(e => e.flow === 'in' && e.inflow_method === 'PayPay').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inOther = expenseList.filter(e => e.flow === 'in' && e.inflow_method === 'その他').reduce((sum, e) => sum + Number(e.amount || 0), 0);
     
     // 経費バッジ（出金/入金）
     document.getElementById('expenseTotalBadge').textContent = 
-      expenseList.length > 0 ? `${expenseList.length}件 / 出金 -¥${totalOut.toLocaleString()} / 入金 ¥${totalIn.toLocaleString()}` : '';
+      expenseList.length > 0
+        ? `${expenseList.length}件 / 出金 -¥${totalOut.toLocaleString()}（現金 ¥${outCash.toLocaleString()}・カード ¥${outCard.toLocaleString()}・PayPay ¥${outPayPay.toLocaleString()}・その他 ¥${outOther.toLocaleString()}） / 入金 ¥${totalIn.toLocaleString()}（現金 ¥${inCash.toLocaleString()}・カード ¥${inCard.toLocaleString()}・PayPay ¥${inPayPay.toLocaleString()}・その他 ¥${inOther.toLocaleString()}）`
+        : '';
     
     // 経費テーブル表示
     const area = document.getElementById('expenseListArea');
@@ -4277,6 +4355,7 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
         <thead>
           <tr>
             <th>種別</th>
+            <th>決済方法</th>
             <th>日付</th>
             <th>カテゴリ</th>
             <th>項目</th>
@@ -4290,11 +4369,13 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
       const isIn = e.flow === 'in';
       const flowLabel = isIn ? '入金' : '出金';
+      const paymentMethodLabel = e.inflow_method || '-';
       const amountClass = isIn ? 'expense-flow-in' : 'expense-flow-out';
       const amountDisplay = isIn ? `¥${Number(e.amount).toLocaleString()}` : `-¥${Number(e.amount).toLocaleString()}`;
       tableHtml += `
         <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
           <td style="font-size:11px; font-weight:700;" class="${amountClass}">${flowLabel}</td>
+          <td style="font-size:11px; font-weight:600;">${paymentMethodLabel}</td>
           <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
           <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
           <td style="font-weight:600;">${e.item_name}</td>
@@ -4311,7 +4392,10 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
             <td></td>
             <td></td>
             <td></td>
-            <td style="font-family:var(--font-en); font-weight:800; color:#DC2626; font-size:14px;">-¥${totalOut.toLocaleString()}</td>
+            <td style="font-family:var(--font-en); font-weight:800; color:#DC2626; font-size:14px;">
+              -¥${totalOut.toLocaleString()}<br><span style="font-size:11px; font-weight:600; color:var(--sub);">現金: ¥${outCash.toLocaleString()} / カード: ¥${outCard.toLocaleString()} / PayPay: ¥${outPayPay.toLocaleString()} / その他: ¥${outOther.toLocaleString()}</span>
+            </td>
+            <td></td>
             <td></td>
           </tr>
           <tr style="background:#F3F4F6;">
@@ -4319,7 +4403,10 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
             <td></td>
             <td></td>
             <td></td>
-            <td style="font-family:var(--font-en); font-weight:800; color:#059669; font-size:14px;">¥${totalIn.toLocaleString()}</td>
+            <td style="font-family:var(--font-en); font-weight:800; color:#059669; font-size:14px;">
+              ¥${totalIn.toLocaleString()}<br><span style="font-size:11px; font-weight:600; color:var(--sub);">現金: ¥${inCash.toLocaleString()} / カード: ¥${inCard.toLocaleString()} / PayPay: ¥${inPayPay.toLocaleString()} / その他: ¥${inOther.toLocaleString()}</span>
+            </td>
+            <td></td>
             <td></td>
           </tr>
         </tfoot>
@@ -4372,7 +4459,7 @@ async function exportExpensesToExcel() {
   showLoad(true);
   try {
     let query = db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, created_at, flow')
+      .select('id, date, category, item_name, amount, staff, memo, created_at, flow, inflow_method')
       .gte('date', fromVal)
       .lte('date', toVal)
       .is('deleted_at', null);
@@ -4383,14 +4470,14 @@ async function exportExpensesToExcel() {
     ({ data: list, error } = await query);
     if(error) {
       let q2 = db.from('expenses')
-        .select('id, date, category, item_name, amount, staff, memo, created_at')
+        .select('id, date, category, item_name, amount, staff, memo, created_at, inflow_method')
         .gte('date', fromVal)
         .lte('date', toVal)
         .is('deleted_at', null);
       if(categoryVal) q2 = q2.eq('category', categoryVal);
       if(staffVal) q2 = q2.eq('staff', staffVal);
       const r2 = await q2;
-      list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out' }));
+      list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
       error = r2.error;
     }
     if(error) throw error;
@@ -4437,11 +4524,12 @@ async function exportExpensesToExcel() {
       `出力しますか？`;
     if(!confirm(confirmMsg)) return;
 
-    const headers = ['種別', '日付', 'カテゴリ', '項目名', '金額', '担当', 'メモ', '登録日時'];
+    const headers = ['種別', '決済方法', '日付', 'カテゴリ', '項目名', '金額', '担当', 'メモ', '登録日時'];
     const rows = expenses.map(e => {
       const isIn = e.flow === 'in';
       return [
         isIn ? '入金' : '出金',
+        e.inflow_method || '',
         e.date || '',
         e.category || '',
         e.item_name || '',
@@ -4468,12 +4556,36 @@ async function exportExpensesToExcel() {
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const totalIn = expenses.filter(e => e.flow === 'in')
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCash = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === '現金')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outCard = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'カード')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outPayPay = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'PayPay')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const outOther = expenses.filter(e => (e.flow || 'out') === 'out' && e.inflow_method === 'その他')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCash = expenses.filter(e => e.flow === 'in' && e.inflow_method === '現金')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inCard = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'カード')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inPayPay = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'PayPay')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const inOther = expenses.filter(e => e.flow === 'in' && e.inflow_method === 'その他')
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const net = totalIn - totalOut;
     csvContent += '\n';
     csvContent += `件数合計,${expenses.length}件,,,,,,\n`;
-    csvContent += `出金合計,,,,${totalOut},,,\n`;
-    csvContent += `入金合計,,,,${totalIn},,,\n`;
-    csvContent += `収支差額,,,,${net},,,\n`;
+    csvContent += `出金合計,,,,,${totalOut},,,\n`;
+    csvContent += `出金内訳（現金）,,,,,${outCash},,,\n`;
+    csvContent += `出金内訳（カード）,,,,,${outCard},,,\n`;
+    csvContent += `出金内訳（PayPay）,,,,,${outPayPay},,,\n`;
+    csvContent += `出金内訳（その他）,,,,,${outOther},,,\n`;
+    csvContent += `入金合計,,,,,${totalIn},,,\n`;
+    csvContent += `入金内訳（現金）,,,,,${inCash},,,\n`;
+    csvContent += `入金内訳（カード）,,,,,${inCard},,,\n`;
+    csvContent += `入金内訳（PayPay）,,,,,${inPayPay},,,\n`;
+    csvContent += `入金内訳（その他）,,,,,${inOther},,,\n`;
+    csvContent += `収支差額,,,,,${net},,,\n`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');

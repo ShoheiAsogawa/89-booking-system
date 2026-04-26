@@ -1,4 +1,4 @@
-/* カスタム日付カレンダー（今月表示時はモーダルだけ濃いめの緑／日付セルは無地・日曜赤・土曜青・祝日赤） */
+/* カスタム日付カレンダー（日付セルは無地・日曜赤・土曜青・祝日赤） */
 .jp-cal-overlay {
   position: fixed;
   inset: 0;
@@ -26,20 +26,6 @@
   overflow: hidden;
   font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
   transition: background 0.2s ease;
-}
-/* 表示中の年月が「今日の年月」ときだけモーダル（パネル）をやや濃い緑 */
-.jp-cal-panel.jp-cal-panel--this-real-month {
-  background: #a5d6a7;
-}
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-header,
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-footer {
-  border-color: rgba(27, 94, 32, 0.22);
-}
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-nav {
-  background: rgba(255, 255, 255, 0.55);
-}
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-nav:hover {
-  background: rgba(255, 255, 255, 0.85);
 }
 .jp-cal-header {
   display: flex;
@@ -153,16 +139,16 @@
   color: #c62828;
 }
 .jp-cal-day.is-disabled {
-  opacity: 0.35;
+  opacity: 1;
+  color: #9ca3af;
+  background: #e5e7eb;
+  box-shadow: inset 0 0 0 1px #d1d5db;
   cursor: not-allowed;
   pointer-events: none;
 }
 .jp-cal-day.is-selected {
   box-shadow: inset 0 0 0 2px #e65100;
   background: rgba(255, 255, 255, 0.92);
-}
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-day.is-selected {
-  background: rgba(255, 255, 255, 0.75);
 }
 /* 日付セルホバー */
 .jp-cal-day:not(.is-disabled):not(.is-selected):hover {
@@ -176,9 +162,6 @@
 .jp-cal-day.is-other-month:not(.is-disabled):not(.is-selected):hover {
   background: #ececec;
   color: #666;
-}
-.jp-cal-panel.jp-cal-panel--this-real-month .jp-cal-day.is-current-month:not(.is-disabled):not(.is-selected):hover {
-  background: rgba(255, 255, 255, 0.5);
 }
 .jp-cal-day.is-selected:not(.is-disabled):hover {
   transform: scale(1.06);
