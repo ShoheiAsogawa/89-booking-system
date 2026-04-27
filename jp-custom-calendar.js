@@ -45,6 +45,8 @@
   var onSelectCb = null;
   var showEra = true;
   var isDateDisabledCb = null;
+  /** 管理画面など: 表示中の月が本日の属する月のときパネルを薄緑にする */
+  var highlightRealCurrentMonth = false;
 
   function ensureDom() {
     if (root) return;
@@ -155,6 +157,18 @@
       nextDay++;
     }
 
+    var panel = root.querySelector('.jp-cal-panel');
+    if (panel) {
+      var now = new Date();
+      var isViewingRealThisMonth =
+        y === now.getFullYear() && m === now.getMonth();
+      if (highlightRealCurrentMonth && isViewingRealThisMonth) {
+        panel.classList.add('jp-cal-panel--real-current-month');
+      } else {
+        panel.classList.remove('jp-cal-panel--real-current-month');
+      }
+    }
+
     updateNavDisabled();
   }
 
@@ -223,6 +237,7 @@
     onSelectCb = opts.onSelect || null;
     showEra = opts.showEra !== false;
     isDateDisabledCb = typeof opts.isDateDisabled === 'function' ? opts.isDateDisabled : null;
+    highlightRealCurrentMonth = !!opts.highlightRealCurrentMonth;
 
     var base = opts.anchorDate ? startOfDay(opts.anchorDate) : startOfDay(new Date());
     selected = base;
@@ -242,9 +257,14 @@
   }
 
   function close() {
-    if (root) root.classList.remove('jp-cal-open');
+    if (root) {
+      root.classList.remove('jp-cal-open');
+      var panel = root.querySelector('.jp-cal-panel');
+      if (panel) panel.classList.remove('jp-cal-panel--real-current-month');
+    }
     onSelectCb = null;
     isDateDisabledCb = null;
+    highlightRealCurrentMonth = false;
   }
 
   global.JpCustomCalendar = { open: open, close: close };

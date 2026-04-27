@@ -27,6 +27,10 @@
   font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
   transition: background 0.2s ease;
 }
+/* 管理画面のみ highlightRealCurrentMonth: 本日の属する月を表示中のとき */
+.jp-cal-panel.jp-cal-panel--real-current-month {
+  background: #e8f5e9;
+}
 .jp-cal-header {
   display: flex;
   align-items: center;

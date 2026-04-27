@@ -3048,6 +3048,7 @@ function openAdminScheduleCalendar() {
     anchorDate: s.date,
     inputEl: dp,
     showEra: true,
+    highlightRealCurrentMonth: true,
     onSelect: function (d) {
       var ymd = fmtLocal(d);
       s.date = new Date(ymd + 'T12:00:00');
