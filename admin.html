@@ -3877,7 +3877,7 @@ async function saveExpense() {
   const itemRaw = document.getElementById('expItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expAmount').value);
-  const inflowMethod = (flow === 'in') ? (document.getElementById('expInflowMethod')?.value || '') : '';
+  const inflowMethod = (document.getElementById('expInflowMethod')?.value || '').trim();
   const staff = document.getElementById('expStaff').value;
   const memo = (document.getElementById('expMemo')?.value || '').trim() || null;
   
@@ -4147,7 +4147,7 @@ async function saveExpenseEdit() {
   const itemRaw = document.getElementById('expEditItem').value.trim();
   const item = (category === 'その他') ? itemRaw : category;
   const amount = Number(document.getElementById('expEditAmount').value);
-  const inflowMethod = (flow === 'in') ? (document.getElementById('expEditInflowMethod')?.value || '') : '';
+  const inflowMethod = (document.getElementById('expEditInflowMethod')?.value || '').trim();
   const staff = document.getElementById('expEditStaff').value;
   const memo = (document.getElementById('expEditMemo')?.value || '').trim() || null;
   
