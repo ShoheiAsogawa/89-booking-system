@@ -705,6 +705,7 @@ const LIFF_ID = '2007980232-dK2Dp84Y';
 const STAFFS = ['麻生川','岡野','堀江','松田','山口'];
 let FEES = {'麻生川':16500,'岡野':11000,'堀江':11000,'松田':11000,'山口':11000}; // 動的に更新される
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 };
+const OPEN_OVERRIDE_REASON = '__OPEN_OVERRIDE__';
 const MAX_DAYS_AHEAD = 8; // 患者からの予約は8日先まで
 
 function getMaxBookingDate() {
@@ -913,7 +914,7 @@ function escapeHtml(text) {
 }
 
 // 診療時間変更時にバージョンを上げて古いキャッシュを無効化
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 function getCacheKey(dateStr) {
   return CACHE_PREFIX + CACHE_VERSION + '_' + dateStr;
 }
@@ -994,34 +995,49 @@ async function loadData() {
     
     // 必要なカラムのみ取得（12秒でタイムアウト＝ハング時もローディングが止まる）
     var qBooks = db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).neq('status', 'キャンセル');
-    var qBlocks = db.from('blocks').select('staff, time').eq('date', dStr);
+    var qBlocks = db.from('blocks').select('staff, time, reason').eq('date', dStr);
     var both = await withTimeout(Promise.all([qBooks, qBlocks]), 12000);
     var books = both[0].data;
     var blocks = both[1].data;
     
     const res = {}; const slots = genSlots(); const dow = state.date.getDay();
+    const openSlots = {};
+    if(blocks) blocks.forEach(b => {
+      if(b.reason === OPEN_OVERRIDE_REASON) {
+        if(!openSlots[b.staff]) openSlots[b.staff] = new Set();
+        openSlots[b.staff].add(b.time);
+      }
+    });
 
     STAFFS.forEach(s => {
       res[s] = {}; 
       const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
       slots.forEach(t => {
         let st = 'free';
+        let isPastSlot = false;
         // Past time logic
         if (isTodayCheck) {
           const [h, m] = t.split(':');
           const timeDate = new Date(); timeDate.setHours(h, m, 0, 0);
-          if (timeDate < now) st = 'past';
+          if (timeDate < now) { st = 'past'; isPastSlot = true; }
         }
         // 診療時間外チェック
         if (t < workHours.start || t >= workHours.end) {
           st = 'closed';
         }
+        if (WEEKLY_OFF[s] === dow) {
+          st = 'closed';
+        }
+        if (openSlots[s] && openSlots[s].has(t) && !isPastSlot) {
+          st = 'free';
+        }
         res[s][t] = { status: st, id:'' };
       });
-      if(WEEKLY_OFF[s] === dow) slots.forEach(t => res[s][t].status = 'closed');
     });
 
-    if(blocks) blocks.forEach(b => { if(res[b.staff] && res[b.staff][b.time]) res[b.staff][b.time].status = 'blocked'; });
+    if(blocks) blocks.forEach(b => {
+      if(b.reason !== OPEN_OVERRIDE_REASON && res[b.staff] && res[b.staff][b.time]) res[b.staff][b.time].status = 'blocked';
+    });
     if(books) books.forEach(b => {
       // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
       const startTime = b.start_time;
@@ -1118,11 +1134,6 @@ async function createBooking() {
     const endTime = addTime(p.time, duration);
     const dStr = fmt(state.date);
     const workHours = WORK_HOURS[p.staff] || { start: '09:00', end: '21:00' };
-    if(endTime > workHours.end) {
-      loading(false);
-      alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
-      return;
-    }
     
     // 重複チェック: 選択した時間帯に既存の予約がないか確認
     const requiredSlots = getTimeSlots(p.time, endTime);
@@ -1150,12 +1161,24 @@ async function createBooking() {
 
     // ブロックチェック: 施術時間内のどこか1枠でもブロックがあれば予約不可
     const { data: existingBlocks } = await db.from('blocks')
-      .select('time')
+      .select('time, reason')
       .eq('date', dStr)
       .eq('staff', p.staff);
+    const openOverrideTimes = new Set((existingBlocks || [])
+      .filter(b => b.reason === OPEN_OVERRIDE_REASON)
+      .map(b => b.time));
+    const selectedDow = state.date.getDay();
+    for(const slot of requiredSlots) {
+      const normallyOpen = WEEKLY_OFF[p.staff] !== selectedDow && slot >= workHours.start && slot < workHours.end;
+      if(!normallyOpen && !openOverrideTimes.has(slot)) {
+        loading(false);
+        alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);
+        return;
+      }
+    }
     if(existingBlocks && existingBlocks.length > 0) {
       for(const slot of requiredSlots) {
-        if(existingBlocks.some(b => b.time === slot)) {
+        if(existingBlocks.some(b => b.time === slot && b.reason !== OPEN_OVERRIDE_REASON)) {
           loading(false);
           alert(`申し訳ございません。選択した時間帯（${p.time}〜${endTime}）は既に予約が入っております。別の時間帯を選択してください。`);
           return;
@@ -1326,12 +1349,13 @@ function tap(s, t, st, id) {
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
     var durationSelect = document.getElementById('pDuration');
     var timeNotice = document.getElementById('timeNotice');
-    const workHours = WORK_HOURS[s] || { start: '09:00', end: '21:00' };
-    const startMin = parseTimeToMinutes(t);
-    const endMin = parseTimeToMinutes(workHours.end);
-    const remainMin = endMin - startMin;
     const allDurations = [30, 60, 90, 120];
-    const availableDurations = allDurations.filter(function(d) { return d <= remainMin; });
+    const availableDurations = allDurations.filter(function(d) {
+      const slots = getTimeSlots(t, addTime(t, d));
+      return slots.length > 0 && slots.every(function(slot) {
+        return state.data[s] && state.data[s][slot] && state.data[s][slot].status === 'free';
+      });
+    });
     if(availableDurations.length === 0) {
       durationSelect.innerHTML = '<option value="30" selected>30分</option>';
       durationSelect.disabled = true;

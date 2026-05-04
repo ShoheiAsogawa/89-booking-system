@@ -1291,7 +1291,8 @@
       <div id="actionModSlotInfo" class="mod-slot-info"></div>
       <div style="text-align:center; margin-bottom:24px; font-weight:700;" id="actTarget"></div>
       <div class="btns">
-        <button class="btn" onclick="var el=document.getElementById('blockModSlotInfo'); if(el && s.cur){ var y=s.date.getFullYear(), m=s.date.getMonth()+1, d=s.date.getDate(), dow=WEEKDAY_JA[s.date.getDay()], tm=s.cur.time, st=s.cur.staff; el.innerHTML='<span class=\'mod-slot-staff\'>'+st+'</span><span class=\'mod-slot-date\'>'+y+'\u5e74'+m+'\u6708'+d+'\u65e5\uff08'+dow+'\uff09</span><span class=\'mod-slot-time\'>'+tm+'</span>'; el.style.display='block'; } openMod('blockMod');">ブロック</button>
+        <button class="btn" id="actionBlockBtn" onclick="openBlockModalFromCurrent()">ブロック</button>
+        <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">ブロック解除</button>
         <button class="btn btn-primary" onclick="openMod('createMod')">予約作成</button>
       </div>
       <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
@@ -1370,6 +1371,32 @@
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
         <button class="btn btn-danger" onclick="runSingleUnblock()">解除実行</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="openOverrideMod" onclick="if(event.target===this)closeAll()">
+    <div class="box">
+      <div class="box-h"><h3 class="box-ttl">ブロック解除</h3></div>
+      <div id="openOverrideSlotInfo" class="mod-slot-info"></div>
+      <p style="text-align:center; margin-bottom:16px; color:var(--text);">定休日・時間外を患者さんも予約できる枠にします。</p>
+      <div class="inp-group">
+        <label class="inp-lbl">予約可能にする時間</label>
+        <select id="openOverrideDuration" class="inp" style="margin:0;">
+          <option value="day">1日</option>
+          <option value="30">30分</option>
+          <option value="60" selected>60分</option>
+          <option value="90">90分</option>
+          <option value="120">120分</option>
+          <option value="150">150分</option>
+          <option value="180">180分</option>
+          <option value="210">210分</option>
+          <option value="240">240分</option>
+        </select>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-primary" onclick="runOpenOverride()">解除実行</button>
       </div>
     </div>
   </div>
@@ -1653,6 +1680,8 @@ const STAFF_HOURS = {
 // スタッフ別定休日（曜日: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土）
 const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野':6 };
 const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
+const OPEN_OVERRIDE_REASON = '__OPEN_OVERRIDE__';
+const OPEN_OVERRIDE_LABEL = '予約可';
 
 let db = null;
 try {
@@ -1720,7 +1749,7 @@ let FEES = {'麻生川':0,'岡野':0,'堀江':0,'松田':0,'山口':0}; // 動�
 // メモ更新のデバウンス処理（1秒待ってから保存）
 
 // キャッシュ管理
-const ADMIN_CACHE_PREFIX = '89admin_';
+const ADMIN_CACHE_PREFIX = '89admin_v2_';
 const ADMIN_CACHE_EXPIRY = 3 * 60 * 1000; // 3分間キャッシュ
 
 function getAdminCacheKey(dateStr) {
@@ -1994,8 +2023,13 @@ async function load() {
   const res = {}; 
   STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
   
-  if(blocks) blocks.forEach(b => { 
-    if(res[b.staff] && res[b.staff][b.time]) {
+  if(blocks) blocks.forEach(b => {
+    if(res[b.staff] && res[b.staff][b.time] && b.reason === OPEN_OVERRIDE_REASON) {
+      res[b.staff][b.time] = { status:'open_override', label:OPEN_OVERRIDE_LABEL };
+    }
+  });
+  if(blocks) blocks.forEach(b => {
+    if(res[b.staff] && res[b.staff][b.time] && b.reason !== OPEN_OVERRIDE_REASON) {
         res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' }; 
     }
   });
@@ -2086,9 +2120,11 @@ function renderGrid() {
       const run = runByStaffTime[idx][t];
       const c = run ? run.firstCell : s.data[nm][t];
       let displayLabel = '';
-      let cellStatus = c.status;
+      let cellStatus = c.status === 'open_override' ? 'free' : c.status;
       const slotTime = run ? run.startTime : t;
-      if(WEEKLY_OFF[nm] === dow && c.status !== 'booked') {
+      if(c.status === 'open_override') {
+        displayLabel = '';
+      } else if(WEEKLY_OFF[nm] === dow && c.status !== 'booked') {
         cellStatus = 'dayoff';
         displayLabel = '定休日';
       } else {
@@ -2098,7 +2134,7 @@ function renderGrid() {
           displayLabel = '時間外';
         }
       }
-      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
+      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (c.status === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
       if(c.status === 'booked' && c.detail && c.detail.payment_method) staffClass += ' paid';
       if(c.status === 'booked' && c.label && multiPatientNames.has(c.label)) staffClass += ' patient-group';
@@ -2117,6 +2153,39 @@ function renderGrid() {
     h+=`<td class="time-right">${timeDisplay}</td>`;
     tr.innerHTML=h; b.appendChild(tr);
   });
+}
+
+function getCurrentSlotInfoHtml() {
+  if(!s.cur) return '';
+  var y = s.date.getFullYear();
+  var m = s.date.getMonth() + 1;
+  var d = s.date.getDate();
+  var dowLabel = WEEKDAY_JA[s.date.getDay()];
+  return '<span class="mod-slot-staff">' + s.cur.staff + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + s.cur.time + '</span>';
+}
+
+function isDerivedClosedSlot(staff, time, cell) {
+  if(!cell || cell.status === 'booked' || cell.status === 'blocked' || cell.status === 'open_override') return false;
+  if(WEEKLY_OFF[staff] === s.date.getDay()) return true;
+  const hours = STAFF_HOURS[staff];
+  return !!(hours && (time < hours.start || time >= hours.end));
+}
+
+function setSlotInfo(id) {
+  var el = document.getElementById(id);
+  if(el) { el.innerHTML = getCurrentSlotInfoHtml(); el.style.display = 'block'; }
+}
+
+function openBlockModalFromCurrent() {
+  setSlotInfo('blockModSlotInfo');
+  openMod('blockMod');
+}
+
+function openOpenOverrideModal() {
+  setSlotInfo('openOverrideSlotInfo');
+  var durationEl = document.getElementById('openOverrideDuration');
+  if(durationEl) durationEl.value = '60';
+  openMod('openOverrideMod');
 }
 
 async function cellClick(nm, t) {
@@ -2188,26 +2257,17 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     openMod('detailMod');
     loadAuditLogs(c.id);
-  } else if(c.status === 'free' || c.status === 'outside' || c.status === 'dayoff') {
-    // 定休日または時間外の場合はラベルを表示
-    const dow = s.date.getDay();
-    let extraLabel = '';
-    if(WEEKLY_OFF[nm] === dow) {
-      extraLabel = ' (定休日)';
-    } else if(c.status === 'outside') {
-      extraLabel = ' (時間外)';
-    }
-    var y = s.date.getFullYear();
-    var m = s.date.getMonth() + 1;
-    var d = s.date.getDate();
-    var dowLabel = WEEKDAY_JA[s.date.getDay()];
-    var timeStr = s.cur.time;
-    var staffName = nm;
-    var slotHtml = '<span class="mod-slot-staff">' + staffName + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + timeStr + '</span>';
+  } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c)) {
+    const isDerivedClosed = isDerivedClosedSlot(nm, t, c);
+    var slotHtml = getCurrentSlotInfoHtml();
     var actSlotEl = document.getElementById('actionModSlotInfo');
     if(actSlotEl) { actSlotEl.innerHTML = slotHtml; actSlotEl.style.display = 'block'; }
     var actTargetEl = document.getElementById('actTarget');
     if(actTargetEl) actTargetEl.style.display = 'none';
+    var blockBtn = document.getElementById('actionBlockBtn');
+    if(blockBtn) blockBtn.style.display = isDerivedClosed ? 'none' : '';
+    var openBtn = document.getElementById('actionOpenOverrideBtn');
+    if(openBtn) openBtn.style.display = isDerivedClosed ? '' : 'none';
     var createSlotEl = document.getElementById('createModSlotInfo');
     if(createSlotEl) { createSlotEl.innerHTML = slotHtml; createSlotEl.style.display = 'block'; }
     openMod('actionMod');
@@ -2513,6 +2573,9 @@ async function runSingleBlock() {
   }
   
   const rows = slots.map(t => ({ date: dStr, time: t, staff: s.cur.staff, reason: r }));
+  for(const t of slots) {
+    await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff, reason:OPEN_OVERRIDE_REASON });
+  }
   await db.from('blocks').insert(rows);
   clearAdminCache();
   closeAll(); load();
@@ -2522,6 +2585,25 @@ async function runSingleUnblock() {
   await db.from('blocks').delete().match({ date:fmtLocal(s.date), time:s.cur.time, staff:s.cur.staff });
   clearAdminCache();
   closeAll(); load();
+}
+
+async function runOpenOverride() {
+  if(!s.cur) return;
+  const durationValue = document.getElementById('openOverrideDuration').value;
+  const slots = durationValue === 'day'
+    ? TIMES.slice()
+    : getTimeSlots(s.cur.time, addTime(s.cur.time, parseInt(durationValue) || 60));
+  const dStr = fmtLocal(s.date);
+  const rows = slots.map(t => ({ date:dStr, time:t, staff:s.cur.staff, reason:OPEN_OVERRIDE_REASON }));
+
+  for(const t of slots) {
+    await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff });
+  }
+  await db.from('blocks').insert(rows);
+  clearAdminCache();
+  closeAll();
+  load();
+  showToast('予約可能枠にしました');
 }
 
 async function runBulk(enable) {
