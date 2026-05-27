@@ -715,6 +715,15 @@ function getMaxBookingDate() {
   return d;
 }
 
+function isBookingDateOutOfRange(d) {
+  const dateKey = fmt(d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = fmt(today);
+  const maxKey = fmt(getMaxBookingDate());
+  return dateKey < todayKey || dateKey > maxKey;
+}
+
 // スタッフごとの診療時間（時間外はclosedとして表示）
 const WORK_HOURS = {
   '麻生川': { start: '12:00', end: '21:00' },
@@ -773,6 +782,10 @@ function openBookingDateCalendar() {
     showEra: true,
     onSelect: function (d) {
       var ymd = fmt(d);
+      if(isBookingDateOutOfRange(d)) {
+        alert(`${MAX_DAYS_AHEAD}日先までの予約ができます`);
+        return;
+      }
       state.date = new Date(ymd + 'T12:00:00');
       dp.value = ymd;
       renderDate();
@@ -804,8 +817,8 @@ window.onload = async () => {
       if(isNaN(d.getTime())) { e.target.value = fmt(today); return; }
       const todayZero = new Date();
       todayZero.setHours(0,0,0,0);
-      
-      if(d < todayZero) { 
+
+      if(fmt(d) < fmt(todayZero)) {
           alert('過去の日付は選択できません'); 
           // Reset to today
           e.target.value = fmt(today);
@@ -815,9 +828,8 @@ window.onload = async () => {
           return; 
       }
 
-      const maxLimit = getMaxBookingDate();
-      if(d > maxLimit) { 
-          alert('8日先までの予約ができます'); 
+      if(isBookingDateOutOfRange(d)) {
+          alert(`${MAX_DAYS_AHEAD}日先までの予約ができます`);
           e.target.value = fmt(today); // Reset
           state.date = new Date();
           renderDate();
@@ -994,9 +1006,12 @@ async function loadData() {
     }
     
     // 必要なカラムのみ取得（12秒でタイムアウト＝ハング時もローディングが止まる）
-    var qBooks = db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).neq('status', 'キャンセル');
+    var qBooks = db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).or('status.is.null,status.neq.キャンセル');
     var qBlocks = db.from('blocks').select('staff, time, reason').eq('date', dStr);
     var both = await withTimeout(Promise.all([qBooks, qBlocks]), 12000);
+    if ((both[0] && both[0].error) || (both[1] && both[1].error)) {
+      throw (both[0] && both[0].error) || (both[1] && both[1].error);
+    }
     var books = both[0].data;
     var blocks = both[1].data;
     
@@ -1123,8 +1138,7 @@ async function createBooking() {
 
   try {
     // Validate Date Range
-    const maxDate = getMaxBookingDate();
-    if(state.date > maxDate) { loading(false); alert('予約可能期間（1週間先まで）を超えています'); return; }
+    if(isBookingDateOutOfRange(state.date)) { loading(false); alert(`予約可能期間（${MAX_DAYS_AHEAD}日先まで）を超えています`); return; }
     
     // Validate Past Time
     if(isPast(state.date, p.time)) { loading(false); alert('過去の時間は予約できません'); return; }
@@ -1139,11 +1153,16 @@ async function createBooking() {
     const requiredSlots = getTimeSlots(p.time, endTime);
     
     // 該当日付の既存予約を取得
-    const { data: existingBookings } = await db.from('bookings')
+    const { data: existingBookings, error: existingBookingsError } = await db.from('bookings')
       .select('id, start_time, end_time, staff, patient_name')
       .eq('date', dStr)
       .eq('staff', p.staff)
-      .neq('status', 'キャンセル');
+      .or('status.is.null,status.neq.キャンセル');
+    if(existingBookingsError) {
+      loading(false);
+      alert('予約状況を確認できませんでした。しばらくしてから再度お試しください。');
+      return;
+    }
     
     // 各スロットが既存予約と重複していないかチェック
     if(existingBookings && existingBookings.length > 0) {
@@ -1160,10 +1179,15 @@ async function createBooking() {
     }
 
     // ブロックチェック: 施術時間内のどこか1枠でもブロックがあれば予約不可
-    const { data: existingBlocks } = await db.from('blocks')
+    const { data: existingBlocks, error: existingBlocksError } = await db.from('blocks')
       .select('time, reason')
       .eq('date', dStr)
       .eq('staff', p.staff);
+    if(existingBlocksError) {
+      loading(false);
+      alert('予約不可枠を確認できませんでした。しばらくしてから再度お試しください。');
+      return;
+    }
     const openOverrideTimes = new Set((existingBlocks || [])
       .filter(b => b.reason === OPEN_OVERRIDE_REASON)
       .map(b => b.time));
@@ -1190,7 +1214,7 @@ async function createBooking() {
     const { error } = await db.from('bookings').insert({
       id: id, date: dStr, start_time: p.time, end_time: endTime,
       staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
-      fee: 0, user_id: state.uid
+      fee: 0, user_id: state.uid, status: '予約済み'
     });
 
     if(error) alert('エラーが発生しました: ' + error.message); 
@@ -1400,7 +1424,7 @@ async function loadOwnDetailAndShow() {
     return;
   }
   try {
-    var res = await db.from('bookings').select('date, start_time, end_time, staff, patient_name, phone').eq('id', id).eq('user_id', state.uid).neq('status', 'キャンセル').single();
+    var res = await db.from('bookings').select('date, start_time, end_time, staff, patient_name, phone').eq('id', id).eq('user_id', state.uid).or('status.is.null,status.neq.キャンセル').single();
     var b = res.data;
     if(res.error || !b) {
       document.getElementById('formOwnDetailLoading').textContent = '予約情報を取得できませんでした。';
@@ -1424,9 +1448,7 @@ async function loadOwnDetailAndShow() {
 
 function addDay(n) {
   const next = new Date(state.date); next.setDate(next.getDate()+n);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const max = getMaxBookingDate();
-  if(next < today || next > max) return;
+  if(isBookingDateOutOfRange(next)) return;
   state.date = next; 
   renderDate(); 
   // キャッシュがあれば即座に表示、なければDBから取得

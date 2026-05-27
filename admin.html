@@ -1735,6 +1735,23 @@ window.handleLogin = async function() {
 };
 
 let s = { date: new Date(), data: {}, cur: null, id: null, currentPaymentMethod: '', currentPaymentDate: '', currentPaymentBreakdown: [], isSplitPayment: false };
+function escapeHtml(text) {
+  if (text == null) return '';
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function escapeJsArg(text) {
+  return String(text == null ? '' : text)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/</g, '\\x3C');
+}
 function isVoucherPaymentMethod(m) {
   return m === 'マッサージ券' || m === 'チケット' || m === '商品券';
 }
@@ -1830,11 +1847,11 @@ window.onload = async () => {
   
   // スタッフチェックボックスの設定
   const sc=document.getElementById('blkStaff');
-  STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${nm}" checked> ${nm}</label>`; });
+  STAFFS.forEach(nm => { sc.innerHTML += `<label class="s-chk"><input type="checkbox" value="${escapeAttr(nm)}" checked> ${escapeHtml(nm)}</label>`; });
   // 曜日チェックボックスの設定（月〜日、未選択＝全曜日）
   const wc=document.getElementById('blkWeekdays');
   const WEEKDAY_LABELS = [{v:1,l:'月'},{v:2,l:'火'},{v:3,l:'水'},{v:4,l:'木'},{v:5,l:'金'},{v:6,l:'土'},{v:0,l:'日'}];
-  WEEKDAY_LABELS.forEach(({v,l}) => { wc.innerHTML += `<label class="s-chk"><input type="checkbox" name="blkWeekday" value="${v}"> ${l}</label>`; });
+  WEEKDAY_LABELS.forEach(({v,l}) => { wc.innerHTML += `<label class="s-chk"><input type="checkbox" name="blkWeekday" value="${escapeAttr(v)}"> ${escapeHtml(l)}</label>`; });
   
   // ダッシュボード期間選択の設定（日付ピッカー）
   const ddFrom=document.getElementById('dashDateFrom'), ddTo=document.getElementById('dashDateTo'), today=new Date();
@@ -1883,11 +1900,11 @@ function formatDurationMinutes(startTime, endTime) {
 function showNewBookingBar(row) {
   var container = document.getElementById('notificationBars');
   if (!container) return;
-  var who = (row.patient_name || '不明').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-  var staff = (row.staff || '-').replace(/</g, '&lt;');
-  var timeStr = (row.start_time || '').replace(/</g, '&lt;');
+  var who = escapeHtml(row.patient_name || '不明');
+  var staff = escapeHtml(row.staff || '-');
+  var timeStr = escapeHtml(row.start_time || '');
   var durationStr = formatDurationMinutes(row.start_time, row.end_time) || '';
-  var dateStr = (row.date || '').replace(/</g, '&lt;');
+  var dateStr = row.date || '';
   var dateFormatted = '';
   if (row.date) {
     var p = row.date.split('-');
@@ -1991,73 +2008,89 @@ function refreshData() {
 // SCHEDULE
 async function load() {
   showLoad(true);
-  const dStr = fmtLocal(s.date);
-  const y = s.date.getFullYear();
-  const m = s.date.getMonth() + 1;
-  const d = s.date.getDate();
-  const dow = WEEKDAY_JA[s.date.getDay()];
-  const dateDisplay = `${y}年${m}月${d}日(${dow})`;
-  document.getElementById('dDisp').textContent = dateDisplay;
-  applyScheduleTodayTheme();
-  const pickerEl = document.getElementById('datePicker');
-  if(pickerEl) pickerEl.value = dStr;
-  
-  // キャッシュチェック
-  const cached = getAdminCachedData(dStr);
-  if (cached) {
-    s.data = cached;
-    renderGrid();
-    showLoad(false);
-    return;
-  }
-  
-  // 必要なカラムのみ取得（コスト削減）
-  const { data: books } = await db.from('bookings')
-    .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
-    .eq('date', dStr)
-    .neq('status','キャンセル');
-  const { data: blocks } = await db.from('blocks')
-    .select('staff, time, reason')
-    .eq('date', dStr);
-  
-  const res = {}; 
-  STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
-  
-  if(blocks) blocks.forEach(b => {
-    if(res[b.staff] && res[b.staff][b.time] && b.reason === OPEN_OVERRIDE_REASON) {
-      res[b.staff][b.time] = { status:'open_override', label:OPEN_OVERRIDE_LABEL };
+  try {
+    const dStr = fmtLocal(s.date);
+    const y = s.date.getFullYear();
+    const m = s.date.getMonth() + 1;
+    const d = s.date.getDate();
+    const dow = WEEKDAY_JA[s.date.getDay()];
+    const dateDisplay = `${y}年${m}月${d}日(${dow})`;
+    document.getElementById('dDisp').textContent = dateDisplay;
+    applyScheduleTodayTheme();
+    const pickerEl = document.getElementById('datePicker');
+    if(pickerEl) pickerEl.value = dStr;
+
+    // キャッシュチェック
+    const cached = getAdminCachedData(dStr);
+    if (cached) {
+      s.data = cached;
+      renderGrid();
+      return;
     }
-  });
-  if(blocks) blocks.forEach(b => {
-    if(res[b.staff] && res[b.staff][b.time] && b.reason !== OPEN_OVERRIDE_REASON) {
-        res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' }; 
-    }
-  });
-  if(books) books.forEach(b => {
-    // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
-    const startTime = b.start_time;
-    const endTime = b.end_time;
-    const slots = getTimeSlots(startTime, endTime);
-    slots.forEach(slot => {
-      if(res[b.staff] && res[b.staff][slot]) {
-        res[b.staff][slot] = { 
-          status:'booked', 
-          label:b.patient_name, 
-          id:b.id, 
-          detail:b 
-        };
+
+    // 必要なカラムのみ取得（コスト削減）
+    const booksRes = await db.from('bookings')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
+      .eq('date', dStr)
+      .or('status.is.null,status.neq.キャンセル');
+    if(booksRes.error) throw booksRes.error;
+    const blocksRes = await db.from('blocks')
+      .select('staff, time, reason')
+      .eq('date', dStr);
+    if(blocksRes.error) throw blocksRes.error;
+    const books = booksRes.data || [];
+    const blocks = blocksRes.data || [];
+
+    const res = {};
+    STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
+
+    blocks.forEach(b => {
+      if(res[b.staff] && res[b.staff][b.time] && b.reason === OPEN_OVERRIDE_REASON) {
+        res[b.staff][b.time] = { status:'open_override', label:OPEN_OVERRIDE_LABEL };
       }
     });
-  });
-  s.data = res; 
-  setAdminCachedData(dStr, res);
-  renderGrid(); 
-  showLoad(false);
+    blocks.forEach(b => {
+      if(res[b.staff] && res[b.staff][b.time] && b.reason !== OPEN_OVERRIDE_REASON) {
+          res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' };
+      }
+    });
+    books.forEach(b => {
+      // end_timeから開始時間までの時間差を計算して、必要なセル数をブロック
+      const startTime = b.start_time;
+      const endTime = b.end_time;
+      const slots = getTimeSlots(startTime, endTime);
+      slots.forEach(slot => {
+        if(res[b.staff] && res[b.staff][slot]) {
+          res[b.staff][slot] = {
+            status:'booked',
+            label:b.patient_name,
+            id:b.id,
+            detail:b
+          };
+        }
+      });
+    });
+    s.data = res;
+    setAdminCachedData(dStr, res);
+    renderGrid();
+  } catch(e) {
+    console.warn('予約一覧取得エラー:', e.message || e);
+    const res = {};
+    STAFFS.forEach(nm => {
+      res[nm] = {};
+      TIMES.forEach(t => res[nm][t] = { status:'blocked', label:'取得エラー' });
+    });
+    s.data = res;
+    renderGrid();
+    showToast('予約一覧を取得できませんでした。通信状態を確認して更新してください');
+  } finally {
+    showLoad(false);
+  }
 }
 
 function renderHead() { 
   let h='<tr><th></th>'; 
-  STAFFS.forEach(n=>h+=`<th>${n}</th>`);
+  STAFFS.forEach(n=>h+=`<th>${escapeHtml(n)}</th>`);
   h+='<th></th>'; // 右端の時間列ヘッダー
   document.getElementById('thead').innerHTML=h+'</tr>'; 
 }
@@ -2075,14 +2108,17 @@ function renderGrid() {
   const b=document.getElementById('tbody'); b.innerHTML='';
   const dow = s.date.getDay(); // 曜日を取得
   // 同日に2件以上いる患者名（同一患者の枠線用）
-  const patientCounts = {};
+  const patientBookingIds = {};
   STAFFS.forEach(nm => {
     TIMES.forEach(t => {
       const c = s.data[nm][t];
-      if(c.status === 'booked' && c.label) patientCounts[c.label] = (patientCounts[c.label] || 0) + 1;
+      if(c.status === 'booked' && c.label) {
+        if(!patientBookingIds[c.label]) patientBookingIds[c.label] = new Set();
+        patientBookingIds[c.label].add(c.id || `${nm}-${t}`);
+      }
     });
   });
-  const multiPatientNames = new Set(Object.keys(patientCounts).filter(name => patientCounts[name] > 1));
+  const multiPatientNames = new Set(Object.keys(patientBookingIds).filter(name => patientBookingIds[name].size > 1));
   // 同じ患者名の連続セルを結合するための「 run 開始」情報（スタッフ別・時刻→run）
   const runByStaffTime = [];
   STAFFS.forEach((nm, idx) => {
@@ -2093,7 +2129,8 @@ function renderGrid() {
       if(c.status === 'booked' && c.label) {
         const prevT = tIdx > 0 ? TIMES[tIdx - 1] : null;
         const prev = prevT ? s.data[nm][prevT] : null;
-        const prevSame = prev && prev.status === 'booked' && prev.label === c.label;
+        const prevSame = prev && prev.status === 'booked' &&
+          ((prev.id && c.id && prev.id === c.id) || (!prev.id && !c.id && prev.label === c.label));
         if(prevSame && run) {
           run.slotCount++;
         } else {
@@ -2135,19 +2172,22 @@ function renderGrid() {
         }
       }
       const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (c.status === 'blocked' ? (c.label || 'ブロック') : displayLabel);
+      const lblText = String(lbl || '');
+      const clickTime = run ? run.startTime : t;
+      const safeLbl = escapeHtml(lblText);
+      const safeNm = escapeJsArg(nm);
+      const safeClickTime = escapeJsArg(clickTime);
       let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
       if(c.status === 'booked' && c.detail && c.detail.payment_method) staffClass += ' paid';
       if(c.status === 'booked' && c.label && multiPatientNames.has(c.label)) staffClass += ' patient-group';
       let nameClass = '';
-      if(lbl.length > 5) nameClass = ' name-long';
-      if(lbl.length > 7) nameClass = ' name-very-long';
-      const clickTime = run ? run.startTime : t;
-
+      if(lblText.length > 5) nameClass = ' name-long';
+      if(lblText.length > 7) nameClass = ' name-very-long';
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + nm + '\',\'' + clickTime + '\')">' + lbl + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + nm + '\',\'' + clickTime + '\')">' + lbl + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
@@ -2161,7 +2201,7 @@ function getCurrentSlotInfoHtml() {
   var m = s.date.getMonth() + 1;
   var d = s.date.getDate();
   var dowLabel = WEEKDAY_JA[s.date.getDay()];
-  return '<span class="mod-slot-staff">' + s.cur.staff + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + s.cur.time + '</span>';
+  return '<span class="mod-slot-staff">' + escapeHtml(s.cur.staff) + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + escapeHtml(s.cur.time) + '</span>';
 }
 
 function isDerivedClosedSlot(staff, time, cell) {
@@ -2211,18 +2251,21 @@ async function cellClick(nm, t) {
     s.currentPaymentMethod = normalizeDisplayPaymentMethod(d.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
     s.currentPaymentDate = d.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
     s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
+    const safeName = escapeAttr(d.patient_name || '');
+    const safePhone = escapeAttr(d.phone || '');
+    const safeSymptoms = escapeHtml(d.symptoms || '');
     document.getElementById('info').innerHTML = `
       <div class="info-item">
         <span class="info-lbl">👤 氏名（編集可）</span>
-        <input type="text" id="editName" class="info-edit-input" value="${(d.patient_name||'').replace(/"/g,'&quot;')}">
+        <input type="text" id="editName" class="info-edit-input" value="${safeName}">
       </div>
       <div class="info-item">
         <span class="info-lbl">📞 電話番号（編集可）</span>
-        <input type="text" id="editPhone" class="info-edit-input" value="${(d.phone||'').replace(/"/g,'&quot;')}">
+        <input type="text" id="editPhone" class="info-edit-input" value="${safePhone}">
       </div>
       <div class="info-item full">
         <span class="info-lbl">🩺 症状（編集可）</span>
-        <textarea id="editSymptoms" class="info-edit-input textarea">${d.symptoms||''}</textarea>
+        <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
       </div>
       <div class="info-item fee-item full">
         <div>
@@ -2303,11 +2346,16 @@ async function runCreate() {
   
   try {
     // 該当日付の既存予約を取得
-    const { data: existingBookings } = await db.from('bookings')
+    const { data: existingBookings, error: existingBookingsError } = await db.from('bookings')
       .select('id, start_time, end_time, staff, patient_name')
       .eq('date', dStr)
       .eq('staff', s.cur.staff)
-      .neq('status', 'キャンセル');
+      .or('status.is.null,status.neq.キャンセル');
+    if(existingBookingsError) {
+      showLoad(false);
+      alert('予約状況を確認できませんでした。通信状態を確認して再度お試しください。');
+      return;
+    }
     
     // 各スロットが既存予約と重複していないかチェック
     if(existingBookings) {
@@ -2319,6 +2367,25 @@ async function runCreate() {
             alert(`申し訳ございません。選択した時間帯（${s.cur.time}〜${endTime}）は既に「${booking.patient_name}」様の予約が入っています。別の時間を選択してください。`);
             return;
           }
+        }
+      }
+    }
+
+    const { data: existingBlocks, error: existingBlocksError } = await db.from('blocks')
+      .select('time, reason')
+      .eq('date', dStr)
+      .eq('staff', s.cur.staff);
+    if(existingBlocksError) {
+      showLoad(false);
+      alert('ブロック状況を確認できませんでした。通信状態を確認して再度お試しください。');
+      return;
+    }
+    if(existingBlocks && existingBlocks.length > 0) {
+      for(const slot of requiredSlots) {
+        if(existingBlocks.some(b => b.time === slot && b.reason !== OPEN_OVERRIDE_REASON)) {
+          showLoad(false);
+          alert(`選択した時間帯（${s.cur.time}〜${endTime}）にはブロックがあります。ブロックを解除するか、別の時間を選択してください。`);
+          return;
         }
       }
     }
@@ -2421,9 +2488,9 @@ function openFeeModal() {
     const currentFee = FEES[staff] || 0;
     list.innerHTML += `
       <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border:1px solid var(--line); border-radius:8px;">
-        <span style="font-weight:700; font-size:14px;">${staff}</span>
+        <span style="font-weight:700; font-size:14px;">${escapeHtml(staff)}</span>
         <div style="display:flex; align-items:center; gap:8px;">
-          <input type="number" id="fee_${staff}" class="inp" value="${currentFee}" step="100" min="0" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
+          <input type="number" id="fee_${escapeAttr(staff)}" class="inp" value="${currentFee}" step="100" min="0" style="width:120px; margin:0; padding:6px 10px; font-size:13px;">
           <span style="font-size:11px; color:var(--sub);">円</span>
         </div>
       </div>
@@ -2485,26 +2552,32 @@ async function openSearchDetail(bookingId) {
   s.currentPaymentMethod = normalizeDisplayPaymentMethod(detail.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
   s.currentPaymentDate = detail.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
   s.originalPatientData = { patient_name: detail.patient_name || '', phone: detail.phone || '', symptoms: detail.symptoms || '' };
+  const safeName = escapeAttr(detail.patient_name || '');
+  const safePhone = escapeAttr(detail.phone || '');
+  const safeDate = escapeHtml(detail.date || '');
+  const safeStartTime = escapeHtml(detail.start_time || '');
+  const safeStaff = escapeHtml(detail.staff || '-');
+  const safeSymptoms = escapeHtml(detail.symptoms || '');
   document.getElementById('info').innerHTML = `
     <div class="info-item">
       <span class="info-lbl">👤 氏名（編集可）</span>
-      <input type="text" id="editName" class="info-edit-input" value="${(detail.patient_name||'').replace(/"/g,'&quot;')}">
+      <input type="text" id="editName" class="info-edit-input" value="${safeName}">
     </div>
     <div class="info-item">
       <span class="info-lbl">📞 電話番号（編集可）</span>
-      <input type="text" id="editPhone" class="info-edit-input" value="${(detail.phone||'').replace(/"/g,'&quot;')}">
+      <input type="text" id="editPhone" class="info-edit-input" value="${safePhone}">
     </div>
     <div class="info-item">
       <span class="info-lbl">📅 日時</span>
-      <span class="info-val">${detail.date} ${detail.start_time}</span>
+      <span class="info-val">${safeDate} ${safeStartTime}</span>
     </div>
     <div class="info-item">
       <span class="info-lbl">👨‍⚕️ スタッフ</span>
-      <span class="info-val">${detail.staff||'-'}</span>
+      <span class="info-val">${safeStaff}</span>
     </div>
     <div class="info-item full">
       <span class="info-lbl">🩺 症状（編集可）</span>
-      <textarea id="editSymptoms" class="info-edit-input textarea">${detail.symptoms||''}</textarea>
+      <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
     </div>
     <div class="info-item fee-item full">
       <div>
@@ -2549,11 +2622,15 @@ async function runSingleBlock() {
   const dStr = fmtLocal(s.date);
   
   // 予約が入っている時間帯にブロックを防ぐ
-  const { data: existingBookings } = await db.from('bookings')
+  const { data: existingBookings, error: existingBookingsError } = await db.from('bookings')
     .select('start_time, end_time, patient_name')
     .eq('date', dStr)
     .eq('staff', s.cur.staff)
-    .neq('status', 'キャンセル');
+    .or('status.is.null,status.neq.キャンセル');
+  if(existingBookingsError) {
+    alert('予約状況を確認できませんでした。通信状態を確認して再度お試しください。');
+    return;
+  }
   
   if (existingBookings && existingBookings.length > 0) {
     const conflicting = [];
@@ -2635,7 +2712,12 @@ async function runBulk(enable) {
       .select('date, start_time, end_time, staff, patient_name')
       .in('date', dates)
       .in('staff', staffs)
-      .neq('status', 'キャンセル');
+      .or('status.is.null,status.neq.キャンセル');
+    if(error) {
+      showLoad(false);
+      alert('予約状況を確認できませんでした。通信状態を確認して再度お試しください。');
+      return;
+    }
     
     if(existingBookings && existingBookings.length > 0) {
       // ブロックしようとしている時間帯と重複する予約を検出
@@ -2709,11 +2791,6 @@ async function runSearch() {
   let query = db.from('bookings')
     .select('id, date, start_time, end_time, staff, patient_name, phone, symptoms, status, admin_memo, fee, payment_method');
   
-  // キーワード検索（名前または電話番号）- キーワードがある場合のみ
-  if(kw) {
-    query = query.or(`patient_name.ilike.%${kw}%,phone.ilike.%${kw}%`);
-  }
-  
   // スタッフフィルター
   if(staff) {
     query = query.eq('staff', staff);
@@ -2748,22 +2825,34 @@ async function runSearch() {
     query = query.lte('start_time', timeTo);
   }
   
-  // メモ検索
-  if(memo) {
-    query = query.ilike('admin_memo', `%${memo}%`);
-  }
-  
   // ソート: ステータスでソート（予約済み→キャンセル）、その後日付で降順
-  const { data } = await query.order('date', { ascending: false });
+  const { data, error } = await query.order('date', { ascending: false });
+  if(error) {
+    showLoad(false);
+    showToast('検索に失敗しました: ' + (error.message || ''));
+    return;
+  }
     
   const list = document.getElementById('sResult');
   list.innerHTML = '';
+  let filteredData = data || [];
+  if(kw) {
+    const k = kw.toLowerCase();
+    filteredData = filteredData.filter(b =>
+      (b.patient_name || '').toLowerCase().includes(k) ||
+      (b.phone || '').toLowerCase().includes(k)
+    );
+  }
+  if(memo) {
+    const k = memo.toLowerCase();
+    filteredData = filteredData.filter(b => (b.admin_memo || '').toLowerCase().includes(k));
+  }
   
-  if(!data || data.length === 0) {
+  if(filteredData.length === 0) {
     list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当なし</div>';
   } else {
     // ステータスでソート（予約済みを先に、キャンセルを後に）
-    const sortedData = [...data].sort((a, b) => {
+    const sortedData = [...filteredData].sort((a, b) => {
       if(a.status === '予約済み' && b.status === 'キャンセル') return -1;
       if(a.status === 'キャンセル' && b.status === '予約済み') return 1;
       return 0;
@@ -2771,21 +2860,22 @@ async function runSearch() {
     
     sortedData.forEach(b => {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
-      const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${b.admin_memo}</div>` : '';
+      const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${escapeHtml(b.admin_memo)}</div>` : '';
       const paymentLabel = normalizeDisplayPaymentMethod(b.payment_method) || '';
-      const paymentHtml = paymentLabel 
-        ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${paymentLabel}</span>` 
+      const paymentHtml = paymentLabel
+        ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}</span>`
         : `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">未決済</span>`;
       const endTime = b.end_time || addTime(b.start_time, 60);
+      const safeId = escapeJsArg(b.id);
       list.innerHTML += `
-        <div class="res-card" onclick="openSearchDetail('${b.id}')" style="cursor:pointer;">
+        <div class="res-card" onclick="openSearchDetail('${safeId}')" style="cursor:pointer;">
           <div class="res-header">
-            <div class="res-name">${b.patient_name} <span style="font-weight:400; font-size:12px; margin-left:8px; ${stClass}">${b.status}</span>${paymentHtml}</div>
-            <div class="res-date">${b.date} ${b.start_time}〜${endTime}</div>
+            <div class="res-name">${escapeHtml(b.patient_name || '')} <span style="font-weight:400; font-size:12px; margin-left:8px; ${stClass}">${escapeHtml(b.status || '')}</span>${paymentHtml}</div>
+            <div class="res-date">${escapeHtml(b.date || '')} ${escapeHtml(b.start_time || '')}〜${escapeHtml(endTime || '')}</div>
           </div>
           <div class="res-detail">
-            <div><span class="res-tag">${b.staff}</span> 症状: ${b.symptoms || 'なし'}</div>
-            <div style="margin-top:4px; font-size:12px; color:var(--sub);">TEL: ${b.phone}</div>
+            <div><span class="res-tag">${escapeHtml(b.staff || '')}</span> 症状: ${escapeHtml(b.symptoms || 'なし')}</div>
+            <div style="margin-top:4px; font-size:12px; color:var(--sub);">TEL: ${escapeHtml(b.phone || '')}</div>
             ${memoHtml}
           </div>
         </div>`;
@@ -2830,6 +2920,43 @@ function amountCountingTowardTotalSales(b) {
   return fee;
 }
 
+function buildDashboardPaymentEntries(bookings, start, end) {
+  const entries = [];
+  (bookings || []).forEach(b => {
+    const rows = parseBookingBreakdownRows(b);
+    if(rows && rows.length > 0) {
+      rows.forEach(r => {
+        const method = normalizeDisplayPaymentMethod(r.method || '') || '未選択';
+        const amount = Number(r.amount || 0);
+        const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
+        const reportDate = isDeferred ? (r.payment_date || '') : b.date;
+        const inRange = reportDate && reportDate >= start && reportDate <= end;
+        if(inRange) {
+          entries.push({ booking: b, method, amount, reportDate, paid: method !== '未選択' && (!isDeferred || !!r.payment_date) });
+        } else if(isDeferred && !r.payment_date && b.date >= start && b.date <= end) {
+          entries.push({ booking: b, method: '未選択', amount, reportDate: b.date, paid: false });
+        }
+      });
+      return;
+    }
+
+    const method = normalizeDisplayPaymentMethod(b.payment_method) || '未選択';
+    const amount = Number(b.fee || 0);
+    const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
+    const reportDate = isDeferred && b.payment_date ? b.payment_date : b.date;
+    if(reportDate >= start && reportDate <= end) {
+      entries.push({
+        booking: b,
+        method: method !== '未選択' && (!isDeferred || b.payment_date) ? method : '未選択',
+        amount,
+        reportDate,
+        paid: method !== '未選択' && (!isDeferred || !!b.payment_date)
+      });
+    }
+  });
+  return entries;
+}
+
 // ダッシュボード用データ保存
 let dashboardData = [];
 
@@ -2858,14 +2985,14 @@ async function loadDashboard() {
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('date', start)
     .lte('date', end)
-    .neq('status', 'キャンセル')
+    .or('status.is.null,status.neq.キャンセル')
     .order('date', { ascending: true });
   if(r1.error && r1.error.message && r1.error.message.indexOf('payment_breakdown') >= 0) {
     r1 = await db.from('bookings')
       .select(selectCols + ', payment_date')
       .gte('date', start)
       .lte('date', end)
-      .neq('status', 'キャンセル')
+      .or('status.is.null,status.neq.キャンセル')
       .order('date', { ascending: true });
   }
   
@@ -2875,15 +3002,21 @@ async function loadDashboard() {
       .select(selectCols)
       .gte('date', start)
       .lte('date', end)
-      .neq('status', 'キャンセル')
+      .or('status.is.null,status.neq.キャンセル')
       .order('date', { ascending: true });
     if(r1b.error) {
       const r1c = await db.from('bookings')
         .select(selectColsMin)
         .gte('date', start)
         .lte('date', end)
-        .neq('status', 'キャンセル')
+        .or('status.is.null,status.neq.キャンセル')
         .order('date', { ascending: true });
+      if(r1c.error) {
+        console.warn('売上データ取得エラー:', r1c.error.message || r1c.error);
+        showLoad(false);
+        showToast('売上データを取得できませんでした。通信状態を確認してください');
+        return;
+      }
       booksByDate = (r1c.data || []).map(b => ({ ...b, payment_method: null, payment_date: null }));
       if(r1c.data && r1c.data.length > 0) console.warn('売上: payment_method 列がありません。Supabaseで supabase_bookings_payment_method.sql を実行してください。');
     } else {
@@ -2900,46 +3033,47 @@ async function loadDashboard() {
     .gte('payment_date', start)
     .lte('payment_date', end)
     .in('payment_method', DEFERRED_PAYMENT_METHODS)
-    .neq('status', 'キャンセル');
+    .or('status.is.null,status.neq.キャンセル');
   if(r2.error && r2.error.message && r2.error.message.indexOf('payment_breakdown') >= 0) {
     r2 = await db.from('bookings')
       .select(selectCols + ', payment_date')
       .gte('payment_date', start)
       .lte('payment_date', end)
       .in('payment_method', DEFERRED_PAYMENT_METHODS)
-      .neq('status', 'キャンセル');
+      .or('status.is.null,status.neq.キャンセル');
   }
   if(!r2.error) booksByPaymentDate = r2.data || [];
+
+  // 分割決済の内訳日は親の payment_date では検索できないため、内訳あり予約も取得して画面側で期間判定する
+  let booksByBreakdown = [];
+  const r3 = await db.from('bookings')
+    .select(selectCols + ', payment_date, payment_breakdown')
+    .not('payment_breakdown', 'is', null)
+    .or('status.is.null,status.neq.キャンセル');
+  if(!r3.error) booksByBreakdown = r3.data || [];
   
   const mergedMap = new Map();
   (booksByDate || []).forEach(b => mergedMap.set(b.id, b));
   (booksByPaymentDate || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
+  (booksByBreakdown || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
   const mergedList = Array.from(mergedMap.values());
-  
-  // 売上カウント日: 現金・クレジット・PayPay・マッサージ券はその日(予約日)、ツケ払い・保険は決済日
-  function getReportDate(b) {
-    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0 && b.payment_date) return b.payment_date;
-    return b.date;
-  }
-  
+
+  const paymentEntries = buildDashboardPaymentEntries(mergedList, start, end);
+  const paymentRelevantIds = new Set(paymentEntries.map(e => e.booking.id));
   const listInRange = mergedList.filter(b => {
-    const reportDate = getReportDate(b);
-    return reportDate >= start && reportDate <= end;
+    return (b.date >= start && b.date <= end) || paymentRelevantIds.has(b.id);
   });
   
   dashboardData = listInRange;
   
-  // 決済済み: 決済方法あり、ツケ払い・保険は決済日も必須
-  const paidList = listInRange.filter(b => {
-    if(!b.payment_method) return false;
-    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0) return !!b.payment_date;
-    return true;
-  });
-  
-  const totalSales = paidList.reduce((sum, b) => sum + amountCountingTowardTotalSales(b), 0);
-  const paidCount = paidList.length;
+  const paidEntries = paymentEntries.filter(e => e.paid && !isVoucherPaymentMethod(e.method));
+  const paidBookingIds = new Set(paymentEntries.filter(e => e.paid).map(e => e.booking.id));
+  const bookingSales = {};
+  paidEntries.forEach(e => { bookingSales[e.booking.id] = (bookingSales[e.booking.id] || 0) + Number(e.amount || 0); });
+  const totalSales = paidEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const paidCount = paidBookingIds.size;
   const totalCount = listInRange.length;
-  const contribAvg = paidList.filter(b => amountCountingTowardTotalSales(b) > 0).length;
+  const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length;
   const avg = contribAvg ? Math.round(totalSales / contribAvg) : 0;
   
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
@@ -2974,39 +3108,14 @@ async function loadDashboard() {
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
   
-  listInRange.forEach(b => {
-    const rows = parseBookingBreakdownRows(b);
-    if(rows && rows.length > 0) {
-      rows.forEach(r => {
-        let method = normalizeDisplayPaymentMethod(r.method || '') || '未選択';
-        if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
-        const amount = Number(r.amount || 0);
-        const feeRate = PAYMENT_FEES[method] || 0;
-        const fee = Math.round(amount * feeRate);
-        if(payStats[method]) {
-          payStats[method].count++;
-          payStats[method].amount += amount;
-          payStats[method].fee += fee;
-        } else {
-          payStats['未選択'].count++;
-          payStats['未選択'].amount += amount;
-        }
-      });
-      return;
-    }
-    let method = normalizeDisplayPaymentMethod(b.payment_method) || '未選択';
-    if(method !== '未選択' && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 && !b.payment_date) method = '未選択';
-    const amount = Number(b.fee || 0);
+  paymentEntries.forEach(entry => {
+    const method = payStats[entry.method] ? entry.method : '未選択';
+    const amount = Number(entry.amount || 0);
     const feeRate = PAYMENT_FEES[method] || 0;
     const fee = Math.round(amount * feeRate);
-    if(payStats[method]) {
-      payStats[method].count++;
-      payStats[method].amount += amount;
-      payStats[method].fee += fee;
-    } else {
-      payStats['未選択'].count++;
-      payStats['未選択'].amount += amount;
-    }
+    payStats[method].count++;
+    payStats[method].amount += amount;
+    payStats[method].fee += fee;
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
@@ -3052,7 +3161,12 @@ async function loadDashboard() {
   
   const stStats = {}; STAFFS.forEach(st => stStats[st] = {c:0, s:0, total:0});
   listInRange.forEach(b => { if(stStats[b.staff]) stStats[b.staff].total++; });
-  paidList.forEach(b => { if(stStats[b.staff]) { stStats[b.staff].c++; stStats[b.staff].s += Number(b.fee||0); } });
+  listInRange.forEach(b => {
+    if(stStats[b.staff] && paidBookingIds.has(b.id)) {
+      stStats[b.staff].c++;
+      stStats[b.staff].s += Number(b.fee||0);
+    }
+  });
   
   let stHtml = '';
   STAFFS.forEach((st, idx) => {
@@ -3080,10 +3194,9 @@ async function loadDashboard() {
     dailyData[dateStr] = 0;
   }
   
-  paidList.forEach(b => {
-    const reportDate = getReportDate(b);
-    if(dailyData.hasOwnProperty(reportDate)) {
-      dailyData[reportDate] += amountCountingTowardTotalSales(b);
+  paidEntries.forEach(e => {
+    if(dailyData.hasOwnProperty(e.reportDate)) {
+      dailyData[e.reportDate] += Number(e.amount || 0);
     }
   });
   
@@ -3402,15 +3515,16 @@ function renderPaymentBreakdown() {
     rowsEl.innerHTML = '<div style="font-size:12px; color:var(--sub); padding:10px; border:1px dashed var(--line); border-radius:8px;">内訳がありません（右下の＋で追加）</div>';
   } else {
     rowsEl.innerHTML = rows.map((row, idx) => {
-      const method = row.method || '現金';
+      const method = normalizeDisplayPaymentMethod(row.method || '') || '現金';
       const amount = Number(row.amount || 0);
       const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
-      const options = PAYMENT_METHOD_OPTIONS.map(opt => `<option value="${opt}"${opt === method ? ' selected' : ''}>${opt}</option>`).join('');
+      const options = PAYMENT_METHOD_OPTIONS.map(opt => `<option value="${escapeAttr(opt)}"${opt === method ? ' selected' : ''}>${escapeHtml(opt)}</option>`).join('');
+      const safePaymentDate = escapeAttr(row.payment_date || '');
       return `
         <div class="payment-split-row" style="display:grid; grid-template-columns: 1fr 90px ${isDeferred ? '120px' : '0px'} 26px; gap:6px; align-items:center; margin-bottom:6px;">
           <select class="inp" style="margin:0; padding:8px; font-size:12px;" onchange="onPaymentMethodChange(${idx}, this.value)">${options}</select>
           <input type="number" class="inp" style="margin:0; padding:8px; font-size:12px;" min="0" step="100" value="${amount}" oninput="onPaymentAmountChange(${idx}, this.value)" placeholder="金額">
-          ${isDeferred ? `<input type="date" class="inp" style="margin:0; padding:6px; font-size:11px;" value="${row.payment_date || ''}" onchange="onPaymentDateRowChange(${idx}, this.value)">` : ''}
+          ${isDeferred ? `<input type="date" class="inp" style="margin:0; padding:6px; font-size:11px;" value="${safePaymentDate}" onchange="onPaymentDateRowChange(${idx}, this.value)">` : ''}
           <button class="split-remove-btn" onclick="removePaymentRow(${idx})">×</button>
         </div>
       `;
@@ -3460,13 +3574,8 @@ async function createRepeatBookings() {
   if(!name) { alert('患者名を入力してください'); return; }
   if(!phone) { alert('電話番号を入力してください'); return; }
   
-  // 診療時間チェック
   const hours = STAFF_HOURS[staff];
   const endTime = addTime(time, duration);
-  if(hours && (time < hours.start || endTime > hours.end)) {
-    alert(`${staff}の診療時間（${hours.start}〜${hours.end}）外です`);
-    return;
-  }
   
   // 二重クリック防止
   _repeatInProgress = true;
@@ -3493,11 +3602,16 @@ async function createRepeatBookings() {
       
       // 重複チェック: その日のそのスタッフの既存予約を確認
       const requiredSlots = getTimeSlots(time, endTime);
-      const { data: existingBookings } = await db.from('bookings')
+      const { data: existingBookings, error: existingBookingsError } = await db.from('bookings')
         .select('id, start_time, end_time, patient_name')
         .eq('date', dateStr)
         .eq('staff', staff)
-        .neq('status', 'キャンセル');
+        .or('status.is.null,status.neq.キャンセル');
+      if(existingBookingsError) {
+        showLoad(false);
+        alert('予約状況を確認できませんでした。通信状態を確認して再度お試しください。');
+        return;
+      }
       
       let hasConflict = false;
       if(existingBookings) {
@@ -3516,13 +3630,27 @@ async function createRepeatBookings() {
       
       // ブロックチェック
       if(!hasConflict) {
-        const { data: existingBlocks } = await db.from('blocks')
-          .select('time')
+        const { data: existingBlocks, error: existingBlocksError } = await db.from('blocks')
+          .select('time, reason')
           .eq('date', dateStr)
           .eq('staff', staff);
+        if(existingBlocksError) {
+          showLoad(false);
+          alert('ブロック状況を確認できませんでした。通信状態を確認して再度お試しください。');
+          return;
+        }
+        const openOverrideTimes = new Set((existingBlocks || [])
+          .filter(bl => bl.reason === OPEN_OVERRIDE_REASON)
+          .map(bl => bl.time));
         if(existingBlocks) {
           for(const slot of requiredSlots) {
-            if(existingBlocks.some(bl => bl.time === slot)) {
+            const normallyOpen = (!hours || (slot >= hours.start && slot < hours.end)) && WEEKLY_OFF[staff] !== targetDate.getDay();
+            if(!normallyOpen && !openOverrideTimes.has(slot)) {
+              hasConflict = true;
+              skippedDates.push(`${dateStr}（診療時間外または定休日）`);
+              break;
+            }
+            if(existingBlocks.some(bl => bl.time === slot && bl.reason !== OPEN_OVERRIDE_REASON)) {
               hasConflict = true;
               skippedDates.push(`${dateStr}（ブロックあり）`);
               break;
@@ -3945,7 +4073,7 @@ function openExpenseModal() {
   
   const staffSelect = document.getElementById('expStaff');
   staffSelect.innerHTML = '<option value="">未選択</option>';
-  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${st}">${st}</option>`);
+  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${escapeAttr(st)}">${escapeHtml(st)}</option>`);
   
   toggleExpenseItemField('exp');
   updateExpenseAmountFlow();
@@ -4162,18 +4290,19 @@ async function loadExpensesPage() {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
       const isIn = e.flow === 'in';
       const flowLabel = isIn ? '入金' : '出金';
-      const paymentMethodLabel = e.inflow_method || '-';
+      const paymentMethodLabel = escapeHtml(e.inflow_method || '-');
       const amountClass = isIn ? 'expense-flow-in' : 'expense-flow-out';
       const amountDisplay = isIn ? `¥${Number(e.amount).toLocaleString()}` : `-¥${Number(e.amount).toLocaleString()}`;
+      const safeId = Number(e.id) || 0;
       html += `
-        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+        <tr class="expense-row-clickable" onclick="openExpenseEdit(${safeId})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${safeId}); }">
           <td style="font-size:11px; font-weight:700;" class="${amountClass}">${flowLabel}</td>
           <td style="font-size:11px; font-weight:600;">${paymentMethodLabel}</td>
-          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
-          <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
-          <td style="font-weight:600;">${e.item_name}</td>
+          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${escapeHtml(e.date || '')}</td>
+          <td><span class="expense-category-badge ${cls}">${escapeHtml(e.category || '')}</span></td>
+          <td style="font-weight:600;">${escapeHtml(e.item_name || '')}</td>
           <td style="font-family:var(--font-en); font-weight:700;" class="${amountClass}">${amountDisplay}</td>
-          <td>${e.staff || '-'}</td>
+          <td>${escapeHtml(e.staff || '-')}</td>
         </tr>`;
     });
     
@@ -4210,7 +4339,7 @@ async function openExpenseEdit(expenseId) {
   
   const staffSelect = document.getElementById('expEditStaff');
   staffSelect.innerHTML = '<option value="">未選択</option>';
-  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${st}" ${row.staff===st?'selected':''}>${st}</option>`);
+  STAFFS.forEach(st => staffSelect.innerHTML += `<option value="${escapeAttr(st)}" ${row.staff===st?'selected':''}>${escapeHtml(st)}</option>`);
   
   toggleExpenseItemField('expEdit');
   updateExpenseEditAmountFlow();
@@ -4429,7 +4558,7 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
     Object.keys(catStats).forEach(cat => {
       const cls = EXPENSE_CATEGORY_CLASSES[cat] || 'other';
       catSummary += `<span class="expense-category-badge ${cls}" style="padding:4px 12px; font-size:11px;">
-        ${cat}: ${catStats[cat].count}件 / ¥${catStats[cat].amount.toLocaleString()}</span>`;
+        ${escapeHtml(cat)}: ${catStats[cat].count}件 / ¥${catStats[cat].amount.toLocaleString()}</span>`;
     });
     catSummary += '</div>';
     
@@ -4452,18 +4581,19 @@ async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
       const cls = EXPENSE_CATEGORY_CLASSES[e.category] || 'other';
       const isIn = e.flow === 'in';
       const flowLabel = isIn ? '入金' : '出金';
-      const paymentMethodLabel = e.inflow_method || '-';
+      const paymentMethodLabel = escapeHtml(e.inflow_method || '-');
       const amountClass = isIn ? 'expense-flow-in' : 'expense-flow-out';
       const amountDisplay = isIn ? `¥${Number(e.amount).toLocaleString()}` : `-¥${Number(e.amount).toLocaleString()}`;
+      const expenseId = Number(e.id) || 0;
       tableHtml += `
-        <tr class="expense-row-clickable" onclick="openExpenseEdit(${e.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${e.id}); }">
+        <tr class="expense-row-clickable" onclick="openExpenseEdit(${expenseId})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openExpenseEdit(${expenseId}); }">
           <td style="font-size:11px; font-weight:700;" class="${amountClass}">${flowLabel}</td>
           <td style="font-size:11px; font-weight:600;">${paymentMethodLabel}</td>
-          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${e.date}</td>
-          <td><span class="expense-category-badge ${cls}">${e.category}</span></td>
-          <td style="font-weight:600;">${e.item_name}</td>
+          <td style="font-family:var(--font-en); font-weight:600; font-size:11px;">${escapeHtml(e.date || '')}</td>
+          <td><span class="expense-category-badge ${cls}">${escapeHtml(e.category || '')}</span></td>
+          <td style="font-weight:600;">${escapeHtml(e.item_name || '')}</td>
           <td style="font-family:var(--font-en); font-weight:700;" class="${amountClass}">${amountDisplay}</td>
-          <td>${e.staff || '-'}</td>
+          <td>${escapeHtml(e.staff || '-')}</td>
         </tr>`;
     });
     
