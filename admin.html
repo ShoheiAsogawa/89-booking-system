@@ -1757,7 +1757,40 @@ function isVoucherPaymentMethod(m) {
 }
 function normalizeDisplayPaymentMethod(m) {
   if(!m) return '';
-  return isVoucherPaymentMethod(m) ? 'マッサージ券' : m;
+  const s = String(m).trim();
+  if(isVoucherPaymentMethod(s)) return 'マッサージ券';
+  if(s === 'つけ払い' || s === '付け払い' || s === '掛け払い' || s === '掛払い') return 'ツケ払い';
+  return s;
+}
+
+/** 正規化された決済方法に対し、DBに保存され得る全表記（レガシー別名含む）を返す。検索・集計クエリの取りこぼし防止に使用 */
+function paymentMethodDbVariants(method) {
+  const n = normalizeDisplayPaymentMethod(method);
+  if(n === 'マッサージ券') return ['マッサージ券', 'チケット', '商品券'];
+  if(n === 'ツケ払い') return ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い'];
+  return n ? [n] : [];
+}
+
+function isDeferredPaymentMethod(method) {
+  return DEFERRED_PAYMENT_METHODS.indexOf(normalizeDisplayPaymentMethod(method)) >= 0;
+}
+
+/** 売上・KPIに計上済みか（ツケ払い・保険は決済日必須） */
+function isBookingPaymentSettled(b) {
+  const rows = getEffectivePaymentBreakdown(b);
+  if(rows && rows.length > 0) {
+    if(!rows.some(r => normalizeDisplayPaymentMethod(r.method || ''))) return false;
+    return rows.every(r => {
+      const m = normalizeDisplayPaymentMethod(r.method || '');
+      if(!m) return false;
+      if(isDeferredPaymentMethod(m)) return !!(r.payment_date || '').trim();
+      return true;
+    });
+  }
+  const m = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(!m || m === '分割') return false;
+  if(isDeferredPaymentMethod(m)) return !!(b.payment_date || '').trim();
+  return true;
 }
 let chartInst = null;
 let currentTab = 'schedule';
@@ -2028,11 +2061,18 @@ async function load() {
       return;
     }
 
-    // 必要なカラムのみ取得（コスト削減）
-    const booksRes = await db.from('bookings')
-      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
+    // 必要なカラムのみ取得（コスト削減）。決済済み表示のため payment_date / payment_breakdown も取得
+    let booksRes = await db.from('bookings')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown')
       .eq('date', dStr)
       .or('status.is.null,status.neq.キャンセル');
+    if(booksRes.error && booksRes.error.message && (booksRes.error.message.indexOf('payment_breakdown') >= 0 || booksRes.error.message.indexOf('payment_date') >= 0)) {
+      // 古いDB（payment_date / payment_breakdown 列なし）へのフォールバック
+      booksRes = await db.from('bookings')
+        .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
+        .eq('date', dStr)
+        .or('status.is.null,status.neq.キャンセル');
+    }
     if(booksRes.error) throw booksRes.error;
     const blocksRes = await db.from('blocks')
       .select('staff, time, reason')
@@ -2178,7 +2218,7 @@ function renderGrid() {
       const safeNm = escapeJsArg(nm);
       const safeClickTime = escapeJsArg(clickTime);
       let staffClass = c.status === 'booked' ? ` staff-${idx}` : '';
-      if(c.status === 'booked' && c.detail && c.detail.payment_method) staffClass += ' paid';
+      if(c.status === 'booked' && c.detail && isBookingPaymentSettled(c.detail)) staffClass += ' paid';
       if(c.status === 'booked' && c.label && multiPatientNames.has(c.label)) staffClass += ' patient-group';
       let nameClass = '';
       if(lblText.length > 5) nameClass = ' name-long';
@@ -2246,10 +2286,7 @@ async function cellClick(nm, t) {
     detail = detailRes.data;
     
     const d = detail || c.detail || {};
-    s.currentPaymentBreakdown = normalizePaymentBreakdown(d.payment_breakdown, d.payment_method, d.payment_date, Number(d.fee || 0));
-    s.isSplitPayment = s.currentPaymentBreakdown.length > 1;
-    s.currentPaymentMethod = normalizeDisplayPaymentMethod(d.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
-    s.currentPaymentDate = d.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
+    loadPaymentDetailFromBooking(d);
     s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
     const safeName = escapeAttr(d.patient_name || '');
     const safePhone = escapeAttr(d.phone || '');
@@ -2280,8 +2317,6 @@ async function cellClick(nm, t) {
     document.getElementById('editSaveArea').style.display = 'block';
     setupPatientEditListeners();
     
-    renderPaymentBreakdown();
-    
     const mEl = document.getElementById('memo');
     mEl.value = d.admin_memo || '';
     s.originalDetail = {
@@ -2294,6 +2329,7 @@ async function cellClick(nm, t) {
       payment_date: s.currentPaymentDate || '',
       payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
     };
+    finishPaymentDetailModalSetup();
     setupDetailSaveButtonState();
     const feeEl = document.getElementById('editFee');
     if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
@@ -2547,10 +2583,7 @@ async function openSearchDetail(bookingId) {
   
   if(!detail) return;
   
-  s.currentPaymentBreakdown = normalizePaymentBreakdown(detail.payment_breakdown, detail.payment_method, detail.payment_date, Number(detail.fee || 0));
-  s.isSplitPayment = s.currentPaymentBreakdown.length > 1;
-  s.currentPaymentMethod = normalizeDisplayPaymentMethod(detail.payment_method) || (s.currentPaymentBreakdown[0]?.method || '');
-  s.currentPaymentDate = detail.payment_date || (s.currentPaymentBreakdown[0]?.payment_date || '');
+  loadPaymentDetailFromBooking(detail);
   s.originalPatientData = { patient_name: detail.patient_name || '', phone: detail.phone || '', symptoms: detail.symptoms || '' };
   const safeName = escapeAttr(detail.patient_name || '');
   const safePhone = escapeAttr(detail.phone || '');
@@ -2592,8 +2625,6 @@ async function openSearchDetail(bookingId) {
   document.getElementById('editSaveArea').style.display = 'block';
   setupPatientEditListeners();
   
-  renderPaymentBreakdown();
-  
   const mEl = document.getElementById('memo');
   mEl.value = detail.admin_memo || '';
   s.originalDetail = {
@@ -2606,6 +2637,7 @@ async function openSearchDetail(bookingId) {
     payment_date: s.currentPaymentDate || '',
     payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
   };
+  finishPaymentDetailModalSetup();
   setupDetailSaveButtonState();
   const feeEl = document.getElementById('editFee');
   if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
@@ -2788,8 +2820,10 @@ async function runSearch() {
     return;
   }
   
+  const searchSelectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, status, admin_memo, fee, payment_method, payment_date, payment_breakdown';
+  const searchSelectFallbackCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, status, admin_memo, fee, payment_method, payment_date';
   let query = db.from('bookings')
-    .select('id, date, start_time, end_time, staff, patient_name, phone, symptoms, status, admin_memo, fee, payment_method');
+    .select(searchSelectCols);
   
   // スタッフフィルター
   if(staff) {
@@ -2806,15 +2840,13 @@ async function runSearch() {
     query = query.eq('status', status);
   }
   
-  // 決済方法フィルター（旧DBのチケット・商品券もマッサージ券検索に含める）
-  if(payment) {
-    if(payment === '未選択') {
-      query = query.is('payment_method', null);
-    } else if(payment === 'マッサージ券') {
-      query = query.or('payment_method.eq.マッサージ券,payment_method.eq.チケット,payment_method.eq.商品券');
-    } else {
-      query = query.eq('payment_method', payment);
-    }
+  // 決済方法（分割決済内のツケ払い・保険、およびレガシー別名は取得後に bookingMatchesPaymentFilter で絞り込み）
+  if(payment && payment !== '未選択') {
+    const orClause = paymentMethodDbVariants(payment)
+      .map(v => `payment_method.eq.${v}`)
+      .concat('payment_method.eq.分割')
+      .join(',');
+    query = query.or(orClause);
   }
   
   // 時間帯フィルター
@@ -2826,7 +2858,24 @@ async function runSearch() {
   }
   
   // ソート: ステータスでソート（予約済み→キャンセル）、その後日付で降順
-  const { data, error } = await query.order('date', { ascending: false });
+  let searchRes = await query.order('date', { ascending: false });
+  if(searchRes.error && searchRes.error.message && searchRes.error.message.indexOf('payment_breakdown') >= 0) {
+    query = db.from('bookings').select(searchSelectFallbackCols);
+    if(staff) query = query.eq('staff', staff);
+    if(hasPeriod) query = query.gte('date', dateFrom).lte('date', dateTo);
+    if(status) query = query.eq('status', status);
+    if(payment && payment !== '未選択') {
+      const orClause = paymentMethodDbVariants(payment)
+        .map(v => `payment_method.eq.${v}`)
+        .concat('payment_method.eq.分割')
+        .join(',');
+      query = query.or(orClause);
+    }
+    if(timeFrom) query = query.gte('start_time', timeFrom);
+    if(timeTo) query = query.lte('start_time', timeTo);
+    searchRes = await query.order('date', { ascending: false });
+  }
+  const { data, error } = searchRes;
   if(error) {
     showLoad(false);
     showToast('検索に失敗しました: ' + (error.message || ''));
@@ -2847,6 +2896,9 @@ async function runSearch() {
     const k = memo.toLowerCase();
     filteredData = filteredData.filter(b => (b.admin_memo || '').toLowerCase().includes(k));
   }
+  if(payment) {
+    filteredData = filteredData.filter(b => bookingMatchesPaymentFilter(b, payment));
+  }
   
   if(filteredData.length === 0) {
     list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当なし</div>';
@@ -2862,8 +2914,13 @@ async function runSearch() {
       const stClass = b.status === 'キャンセル' ? 'color:var(--red);' : '';
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${escapeHtml(b.admin_memo)}</div>` : '';
       const paymentLabel = normalizeDisplayPaymentMethod(b.payment_method) || '';
-      const paymentHtml = paymentLabel
+      const settled = isBookingPaymentSettled(b);
+      const paymentHtml = settled && paymentLabel
         ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}</span>`
+        : paymentLabel && isDeferredPaymentMethod(paymentLabel)
+        ? `<span style="background:#FFFBEB; color:#B45309; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}・決済日未入力</span>`
+        : paymentLabel
+        ? `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}</span>`
         : `<span style="background:#FFF3E0; color:#E65100; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">未決済</span>`;
       const endTime = b.end_time || addTime(b.start_time, 60);
       const safeId = escapeJsArg(b.id);
@@ -2895,6 +2952,17 @@ const PAYMENT_FEES = {
   '保険': 0
 };
 
+function bookingMatchesPaymentFilter(b, payment) {
+  if(payment === '未選択') {
+    return !isBookingPaymentSettled(b);
+  }
+  const rows = getEffectivePaymentBreakdown(b);
+  if(rows && rows.length > 0) {
+    return rows.some(r => normalizeDisplayPaymentMethod(r.method || '') === payment);
+  }
+  return normalizeDisplayPaymentMethod(b.payment_method || '') === payment;
+}
+
 function parseBookingBreakdownRows(b) {
   if(!b || b.payment_breakdown == null || b.payment_breakdown === '') return null;
   if(Array.isArray(b.payment_breakdown)) return b.payment_breakdown;
@@ -2904,10 +2972,57 @@ function parseBookingBreakdownRows(b) {
   return null;
 }
 
+/** 分割決済として有効な内訳のみ（payment_method=分割、かつ2行以上。単一決済に残った内訳は幽霊データとして無視） */
+function getEffectivePaymentBreakdown(b) {
+  const rows = parseBookingBreakdownRows(b);
+  const normalizedRows = normalizeRowsForSave(rows || []);
+  if(normalizedRows.length < 2) return null;
+  const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(method !== '分割') return null;
+  return normalizedRows;
+}
+
+function loadPaymentDetailFromBooking(d) {
+  const method = normalizeDisplayPaymentMethod(d.payment_method || '');
+  const effective = getEffectivePaymentBreakdown(d);
+  if(effective) {
+    s.currentPaymentBreakdown = effective.map(r => ({
+      method: normalizeDisplayPaymentMethod(r.method || '') || '現金',
+      amount: Number(r.amount || 0),
+      payment_date: String(r.payment_date || '')
+    }));
+    s.isSplitPayment = effective.length >= 2;
+  } else {
+    s.currentPaymentBreakdown = [];
+    s.isSplitPayment = false;
+  }
+  if(method === '分割' && !effective) {
+    s.currentPaymentMethod = '';
+    s.currentPaymentDate = '';
+  } else {
+    s.currentPaymentMethod = method || '';
+    s.currentPaymentDate = isDeferredPaymentMethod(s.currentPaymentMethod)
+      ? String(d.payment_date || '').trim()
+      : '';
+  }
+}
+
+function resetPaymentEditorState() {
+  s.currentPaymentMethod = '';
+  s.currentPaymentDate = '';
+  s.currentPaymentBreakdown = [];
+  s.isSplitPayment = false;
+}
+
+function finishPaymentDetailModalSetup() {
+  updatePaymentButtons(s.currentPaymentMethod || '');
+  renderPaymentBreakdown();
+}
+
 /** 店舗総売上（KPI・グラフ）に含める金額。マッサージ券分は含めない。スタッフ別は fee 全額を別途集計。 */
 function amountCountingTowardTotalSales(b) {
   const fee = Number(b.fee || 0);
-  const rows = parseBookingBreakdownRows(b);
+  const rows = getEffectivePaymentBreakdown(b);
   if(rows && rows.length > 0) {
     return rows.reduce((sum, r) => {
       const amt = Number(r.amount || 0);
@@ -2915,42 +3030,47 @@ function amountCountingTowardTotalSales(b) {
       return sum + amt;
     }, 0);
   }
-  if(b.payment_method === '分割') return fee;
-  if(isVoucherPaymentMethod(b.payment_method)) return 0;
+  const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(method === '分割') return 0;
+  if(isVoucherPaymentMethod(method)) return 0;
   return fee;
 }
 
 function buildDashboardPaymentEntries(bookings, start, end) {
   const entries = [];
   (bookings || []).forEach(b => {
-    const rows = parseBookingBreakdownRows(b);
+    const rows = getEffectivePaymentBreakdown(b);
     if(rows && rows.length > 0) {
       rows.forEach(r => {
         const method = normalizeDisplayPaymentMethod(r.method || '') || '未選択';
         const amount = Number(r.amount || 0);
-        const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
+        const isDeferred = isDeferredPaymentMethod(method);
         const reportDate = isDeferred ? (r.payment_date || '') : b.date;
         const inRange = reportDate && reportDate >= start && reportDate <= end;
+        const settled = method !== '未選択' && (!isDeferred || !!(r.payment_date || '').trim());
         if(inRange) {
-          entries.push({ booking: b, method, amount, reportDate, paid: method !== '未選択' && (!isDeferred || !!r.payment_date) });
-        } else if(isDeferred && !r.payment_date && b.date >= start && b.date <= end) {
-          entries.push({ booking: b, method: '未選択', amount, reportDate: b.date, paid: false });
+          entries.push({ booking: b, method, amount, reportDate, paid: settled });
+        } else if(isDeferred && !(r.payment_date || '').trim() && b.date >= start && b.date <= end) {
+          entries.push({ booking: b, method, amount, reportDate: b.date, paid: false });
         }
       });
       return;
     }
 
-    const method = normalizeDisplayPaymentMethod(b.payment_method) || '未選択';
+    const normalizedMethod = normalizeDisplayPaymentMethod(b.payment_method);
+    const method = normalizedMethod && normalizedMethod !== '分割' ? normalizedMethod : '未選択';
     const amount = Number(b.fee || 0);
-    const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
-    const reportDate = isDeferred && b.payment_date ? b.payment_date : b.date;
+    const isDeferred = isDeferredPaymentMethod(method);
+    const hasPayDate = !!(b.payment_date || '').trim();
+    const reportDate = isDeferred && hasPayDate ? b.payment_date : b.date;
     if(reportDate >= start && reportDate <= end) {
+      const settled = method !== '未選択' && (!isDeferred || hasPayDate);
       entries.push({
         booking: b,
-        method: method !== '未選択' && (!isDeferred || b.payment_date) ? method : '未選択',
+        method: settled ? method : (isDeferred ? method : '未選択'),
         amount,
         reportDate,
-        paid: method !== '未選択' && (!isDeferred || !!b.payment_date)
+        paid: settled
       });
     }
   });
@@ -3032,14 +3152,14 @@ async function loadDashboard() {
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('payment_date', start)
     .lte('payment_date', end)
-    .in('payment_method', DEFERRED_PAYMENT_METHODS)
+    .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
     .or('status.is.null,status.neq.キャンセル');
   if(r2.error && r2.error.message && r2.error.message.indexOf('payment_breakdown') >= 0) {
     r2 = await db.from('bookings')
       .select(selectCols + ', payment_date')
       .gte('payment_date', start)
       .lte('payment_date', end)
-      .in('payment_method', DEFERRED_PAYMENT_METHODS)
+      .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
       .or('status.is.null,status.neq.キャンセル');
   }
   if(!r2.error) booksByPaymentDate = r2.data || [];
@@ -3050,7 +3170,9 @@ async function loadDashboard() {
     .select(selectCols + ', payment_date, payment_breakdown')
     .not('payment_breakdown', 'is', null)
     .or('status.is.null,status.neq.キャンセル');
-  if(!r3.error) booksByBreakdown = r3.data || [];
+  if(!r3.error) {
+    booksByBreakdown = (r3.data || []).filter(b => getEffectivePaymentBreakdown(b));
+  }
   
   const mergedMap = new Map();
   (booksByDate || []).forEach(b => mergedMap.set(b.id, b));
@@ -3067,11 +3189,14 @@ async function loadDashboard() {
   dashboardData = listInRange;
   
   const paidEntries = paymentEntries.filter(e => e.paid && !isVoucherPaymentMethod(e.method));
-  const paidBookingIds = new Set(paymentEntries.filter(e => e.paid).map(e => e.booking.id));
   const bookingSales = {};
   paidEntries.forEach(e => { bookingSales[e.booking.id] = (bookingSales[e.booking.id] || 0) + Number(e.amount || 0); });
+  // スタッフ別売上はマッサージ券も含める（UI注記どおり）。全体売上(totalSales)は券を除外する点と区別
+  const bookingSalesWithVoucher = {};
+  paymentEntries.filter(e => e.paid).forEach(e => { bookingSalesWithVoucher[e.booking.id] = (bookingSalesWithVoucher[e.booking.id] || 0) + Number(e.amount || 0); });
   const totalSales = paidEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const paidCount = paidBookingIds.size;
+  const fullySettledBookingIds = new Set(listInRange.filter(b => isBookingPaymentSettled(b)).map(b => b.id));
+  const paidCount = fullySettledBookingIds.size;
   const totalCount = listInRange.length;
   const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length;
   const avg = contribAvg ? Math.round(totalSales / contribAvg) : 0;
@@ -3111,9 +3236,10 @@ async function loadDashboard() {
   paymentEntries.forEach(entry => {
     const method = payStats[entry.method] ? entry.method : '未選択';
     const amount = Number(entry.amount || 0);
+    payStats[method].count++;
+    if(!entry.paid) return;
     const feeRate = PAYMENT_FEES[method] || 0;
     const fee = Math.round(amount * feeRate);
-    payStats[method].count++;
     payStats[method].amount += amount;
     payStats[method].fee += fee;
   });
@@ -3135,6 +3261,8 @@ async function loadDashboard() {
         </div>` : '';
     const voucherNote = method === 'マッサージ券'
       ? '<div class="pay-voucher-note">スタッフ別の売上には加算されますが、全体の売上合計には含まれません。</div>'
+      : (method === 'ツケ払い' || method === '保険')
+      ? '<div class="pay-voucher-note">件数に未決済（決済日未入力）を含みます。金額・売上合計は決済日入力済みのみです。</div>'
       : '';
     payHtml += `
       <div class="payment-stat-card ${payClasses[method]}">
@@ -3151,7 +3279,7 @@ async function loadDashboard() {
   document.getElementById('totalFees').textContent = '-¥' + totalFees.toLocaleString();
   
   const unpaidEl = document.getElementById('unpaidCount');
-  const unpaidCount = payStats['未選択'].count;
+  const unpaidCount = paymentEntries.filter(e => !e.paid).length;
   if(unpaidCount > 0) {
     unpaidEl.textContent = `未決済 ${unpaidCount}件`;
     unpaidEl.classList.add('show');
@@ -3162,10 +3290,12 @@ async function loadDashboard() {
   const stStats = {}; STAFFS.forEach(st => stStats[st] = {c:0, s:0, total:0});
   listInRange.forEach(b => { if(stStats[b.staff]) stStats[b.staff].total++; });
   listInRange.forEach(b => {
-    if(stStats[b.staff] && paidBookingIds.has(b.id)) {
-      stStats[b.staff].c++;
-      stStats[b.staff].s += Number(b.fee||0);
-    }
+    if(!stStats[b.staff]) return;
+    const staffSale = Number(bookingSalesWithVoucher[b.id] || 0);
+    const settled = fullySettledBookingIds.has(b.id);
+    // 決済済み件数はKPI(paidCount)と一致させる。売上はマッサージ券含む実決済額（部分決済の支払済み分も計上）
+    if(settled) stStats[b.staff].c++;
+    if(staffSale > 0 || settled) stStats[b.staff].s += staffSale;
   });
   
   let stHtml = '';
@@ -3270,7 +3400,10 @@ function applyScheduleTodayTheme() {
   scheduleEl.classList.toggle('schedule-today', current.getTime() === today.getTime());
 }
 function openMod(id) { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); document.getElementById(id).classList.add('open'); }
-function closeAll() { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); }
+function closeAll() {
+  document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open'));
+  resetPaymentEditorState();
+}
 function showLoad(b){ 
   const l = document.getElementById('loader');
   if(b) { l.style.display='flex'; setTimeout(()=>l.classList.add('show'),10); } else { l.classList.remove('show'); setTimeout(()=>l.style.display='none',300); }
@@ -3300,6 +3433,8 @@ function getTimeSlots(startTime, endTime) {
 
 // 決済方法関連（ツケ払い・保険は決済日を売上カウント日に使用）
 const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
+// DB上のレガシー別名（つけ払い等）も含めた一覧。集計クエリの取りこぼし防止に使用
+const DEFERRED_PAYMENT_METHODS_DB = ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い', '保険'];
 const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険'];
 
 function canonicalPaymentBreakdown(rows) {
@@ -3334,7 +3469,7 @@ function normalizePaymentBreakdown(raw, fallbackMethod, fallbackDate, fallbackFe
     return [{
       method: method,
       amount: Number(fallbackFee || 0),
-      payment_date: DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 ? String(fallbackDate || '') : ''
+      payment_date: isDeferredPaymentMethod(method) ? String(fallbackDate || '') : ''
     }];
   }
   return [];
@@ -3364,27 +3499,77 @@ function normalizeRowsForSave(rows) {
       amount: Number(r && r.amount ? r.amount : 0),
       payment_date: String(r && r.payment_date ? r.payment_date : '')
     }))
-    .filter(r => r.method && r.amount >= 0)
+    .filter(r => r.method && !isNaN(r.amount) && r.amount > 0)
     .map(r => ({
       method: r.method,
-      amount: isNaN(r.amount) ? 0 : r.amount,
-      payment_date: DEFERRED_PAYMENT_METHODS.indexOf(r.method) >= 0 ? (r.payment_date || '') : ''
+      amount: r.amount,
+      payment_date: isDeferredPaymentMethod(r.method) ? (r.payment_date || '') : ''
     }));
+}
+
+function validatePaymentStateBeforeSave(payState, fee) {
+  if(payState.mode === 'split') {
+    if(payState.rows.length < 2) {
+      return '分割決済は内訳を2件以上にしてください';
+    }
+    for(const row of payState.rows) {
+      const m = normalizeDisplayPaymentMethod(row.method || '');
+      const amt = Number(row.amount || 0);
+      if(amt > 0 && isDeferredPaymentMethod(m) && !(row.payment_date || '').trim()) {
+        return `${m}の決済日を入力してください（売上の計上日）`;
+      }
+    }
+    const total = calculatePaymentTotal(payState.rows);
+    if(total <= 0) {
+      return '分割決済の金額を入力してください';
+    }
+    if(total > 0 && total !== fee) {
+      return `分割決済の合計（¥${total.toLocaleString()}）が料金（¥${fee.toLocaleString()}）と一致しません`;
+    }
+    return null;
+  }
+  const m = normalizeDisplayPaymentMethod(payState.method || '');
+  if(m && isDeferredPaymentMethod(m) && !(payState.date || '').trim()) {
+    return `${m}の決済日を入力してください（売上の計上日）`;
+  }
+  return null;
+}
+
+function paymentDateForSave(payState) {
+  if(payState.mode === 'split') return null;
+  if(isDeferredPaymentMethod(payState.method)) {
+    const d = String(payState.date || '').trim();
+    return d || null;
+  }
+  return null;
 }
 
 function getCurrentPaymentState(fee) {
   if(s.isSplitPayment) {
     const rows = normalizeRowsForSave(s.currentPaymentBreakdown || []);
+    if(rows.length <= 1) {
+      const method = normalizeDisplayPaymentMethod(rows[0]?.method || s.currentPaymentMethod || '');
+      const date = isDeferredPaymentMethod(method)
+        ? String(rows[0]?.payment_date || s.currentPaymentDate || '').trim()
+        : '';
+      return {
+        mode: 'single',
+        rows: [],
+        method,
+        date,
+        compareKey: `single:${method}:${date}`
+      };
+    }
     return {
       mode: 'split',
       rows,
-      method: rows.length > 1 ? '分割' : (rows[0]?.method || ''),
-      date: (rows.length === 1 && DEFERRED_PAYMENT_METHODS.indexOf(rows[0].method) >= 0) ? (rows[0].payment_date || '') : '',
+      method: '分割',
+      date: '',
       compareKey: `split:${canonicalPaymentBreakdown(rows)}`
     };
   }
-  const method = s.currentPaymentMethod || '';
-  const date = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0 ? (s.currentPaymentDate || '') : '';
+  const method = normalizeDisplayPaymentMethod(s.currentPaymentMethod || '');
+  const date = isDeferredPaymentMethod(method) ? String(s.currentPaymentDate || '').trim() : '';
   return {
     mode: 'single',
     rows: [],
@@ -3395,12 +3580,13 @@ function getCurrentPaymentState(fee) {
 }
 
 function getOriginalPaymentCompareKey(o) {
-  const oldRows = parsePaymentBreakdownText(o && o.payment_breakdown ? o.payment_breakdown : '[]');
-  if(oldRows.length > 1 || (o && o.payment_method === '分割')) {
-    return `split:${canonicalPaymentBreakdown(oldRows)}`;
+  if(!o) return 'single::';
+  const effective = getEffectivePaymentBreakdown(o);
+  if(effective) {
+    return `split:${canonicalPaymentBreakdown(effective)}`;
   }
-  const oldMethod = normalizeDisplayPaymentMethod((o && o.payment_method) || '');
-  const oldDate = DEFERRED_PAYMENT_METHODS.indexOf(oldMethod) >= 0 ? ((o && o.payment_date) || '') : '';
+  const oldMethod = normalizeDisplayPaymentMethod(o.payment_method || '');
+  const oldDate = isDeferredPaymentMethod(oldMethod) ? String(o.payment_date || '').trim() : '';
   return `single:${oldMethod}:${oldDate}`;
 }
 
@@ -3411,7 +3597,8 @@ function updatePaymentButtons(currentMethod) {
   const section = document.getElementById('paymentDateSection');
   const input = document.getElementById('paymentDateInput');
   if(section && input) {
-    if(!s.isSplitPayment && DEFERRED_PAYMENT_METHODS.indexOf(currentMethod) >= 0) {
+    const norm = normalizeDisplayPaymentMethod(currentMethod || '');
+    if(!s.isSplitPayment && isDeferredPaymentMethod(norm)) {
       section.classList.add('show');
       input.value = s.currentPaymentDate || '';
     } else {
@@ -3423,10 +3610,16 @@ function updatePaymentButtons(currentMethod) {
 
 function selectPayment(method) {
   if(!s.id) return;
-  const newMethod = (s.currentPaymentMethod === method) ? '' : method;
+  const normTarget = normalizeDisplayPaymentMethod(method);
+  const normCurrent = normalizeDisplayPaymentMethod(s.currentPaymentMethod || '');
+  const newMethod = (normCurrent === normTarget) ? '' : normTarget;
   s.currentPaymentMethod = newMethod;
-  if(DEFERRED_PAYMENT_METHODS.indexOf(newMethod) < 0) s.currentPaymentDate = '';
+  if(!isDeferredPaymentMethod(newMethod)) s.currentPaymentDate = '';
+  else if(normCurrent && normCurrent !== newMethod) s.currentPaymentDate = '';
+  s.isSplitPayment = false;
+  s.currentPaymentBreakdown = [];
   updatePaymentButtons(newMethod);
+  renderPaymentBreakdown();
   setupDetailSaveButtonState();
 }
 
@@ -3448,9 +3641,12 @@ function addPaymentRow(defaultMethod, defaultAmount) {
 function onPaymentPlusClick() {
   const fee = Number(document.getElementById('editFee')?.value ?? 0);
   if(!s.isSplitPayment) {
+    const initialMethod = normalizeDisplayPaymentMethod(s.currentPaymentMethod || '') || '現金';
+    const initialDate = isDeferredPaymentMethod(initialMethod) ? (s.currentPaymentDate || '') : '';
     s.isSplitPayment = true;
     s.currentPaymentBreakdown = [];
-    addPaymentRow(s.currentPaymentMethod || '現金', fee);
+    addPaymentRow(initialMethod, fee);
+    if(s.currentPaymentBreakdown[0]) s.currentPaymentBreakdown[0].payment_date = initialDate;
     addPaymentRow('現金', 0);
   } else {
     addPaymentRow(s.currentPaymentMethod || '現金', 0);
@@ -3464,20 +3660,25 @@ function removePaymentRow(index) {
   s.currentPaymentBreakdown.splice(index, 1);
   if(s.currentPaymentBreakdown.length <= 1) {
     if(s.currentPaymentBreakdown.length === 1) {
-      s.currentPaymentMethod = s.currentPaymentBreakdown[0].method || '';
-      s.currentPaymentDate = s.currentPaymentBreakdown[0].payment_date || '';
+      const row = s.currentPaymentBreakdown[0];
+      s.currentPaymentMethod = normalizeDisplayPaymentMethod(row.method || '') || '';
+      s.currentPaymentDate = isDeferredPaymentMethod(s.currentPaymentMethod)
+        ? String(row.payment_date || '').trim()
+        : '';
     }
     s.isSplitPayment = false;
     s.currentPaymentBreakdown = [];
   }
+  updatePaymentButtons(s.currentPaymentMethod || '');
   renderPaymentBreakdown();
   setupDetailSaveButtonState();
 }
 
 function onPaymentMethodChange(index, method) {
   if(!Array.isArray(s.currentPaymentBreakdown) || !s.currentPaymentBreakdown[index]) return;
-  s.currentPaymentBreakdown[index].method = method || '';
-  if(DEFERRED_PAYMENT_METHODS.indexOf(method) < 0) {
+  const norm = normalizeDisplayPaymentMethod(method || '');
+  s.currentPaymentBreakdown[index].method = norm;
+  if(!isDeferredPaymentMethod(norm)) {
     s.currentPaymentBreakdown[index].payment_date = '';
   }
   renderPaymentBreakdown();
@@ -3517,7 +3718,7 @@ function renderPaymentBreakdown() {
     rowsEl.innerHTML = rows.map((row, idx) => {
       const method = normalizeDisplayPaymentMethod(row.method || '') || '現金';
       const amount = Number(row.amount || 0);
-      const isDeferred = DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0;
+      const isDeferred = isDeferredPaymentMethod(method);
       const options = PAYMENT_METHOD_OPTIONS.map(opt => `<option value="${escapeAttr(opt)}"${opt === method ? ' selected' : ''}>${escapeHtml(opt)}</option>`).join('');
       const safePaymentDate = escapeAttr(row.payment_date || '');
       return `
@@ -3752,10 +3953,30 @@ function exportToExcel() {
   
   const rows = dashboardData.map(b => {
     const fee = Number(b.fee || 0);
-    const method = normalizeDisplayPaymentMethod(b.payment_method || '');
-    const feeRate = PAYMENT_FEES[method] || 0;
-    const paymentFee = Math.round(fee * feeRate);
-    const paymentDate = (method && DEFERRED_PAYMENT_METHODS.indexOf(method) >= 0) ? (b.payment_date || '') : '';
+    const breakdown = getEffectivePaymentBreakdown(b);
+    let method = normalizeDisplayPaymentMethod(b.payment_method || '');
+    let paymentDate = '';
+    let exportFee = fee;
+    if(breakdown && breakdown.length > 0) {
+      method = '分割';
+      exportFee = breakdown.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      paymentDate = breakdown.map(r => {
+        const m = normalizeDisplayPaymentMethod(r.method || '');
+        if(!isDeferredPaymentMethod(m) || !(r.payment_date || '').trim()) return '';
+        return `${m}:${r.payment_date}`;
+      }).filter(Boolean).join(' / ');
+    } else if(isDeferredPaymentMethod(method)) {
+      paymentDate = String(b.payment_date || '').trim();
+    } else if(method === '分割') {
+      method = '';
+    }
+    const feeRate = method === '分割' ? 0 : (PAYMENT_FEES[method] || 0);
+    const paymentFee = method === '分割' && breakdown
+      ? breakdown.reduce((sum, r) => {
+          const m = normalizeDisplayPaymentMethod(r.method || '');
+          return sum + Math.round(Number(r.amount || 0) * (PAYMENT_FEES[m] || 0));
+        }, 0)
+      : Math.round(exportFee * feeRate);
     
     return [
       b.date,
@@ -3763,7 +3984,7 @@ function exportToExcel() {
       b.start_time || '',
       b.end_time || '',
       b.staff || '',
-      fee,
+      exportFee,
       paymentFee,
       method,
       paymentDate,
@@ -3792,11 +4013,12 @@ function exportToExcel() {
   const totalAmount = rows.reduce((sum, r) => sum + r[5], 0);
   const paidRows = rows.filter((r, i) => {
     const b = dashboardData[i];
-    if(!b || !b.payment_method) return false;
-    if(DEFERRED_PAYMENT_METHODS.indexOf(b.payment_method) >= 0) return !!b.payment_date;
-    return true;
+    return b && isBookingPaymentSettled(b);
   });
-  const paidTotal = paidRows.reduce((sum, r) => sum + r[5], 0);
+  const paidTotal = dashboardData.reduce((sum, b) => {
+    if(!isBookingPaymentSettled(b)) return sum;
+    return sum + amountCountingTowardTotalSales(b);
+  }, 0);
   csvContent += '\n';
   csvContent += `全件合計,${rows.length}件,,,,${totalAmount},${totalFee},,,,,\n`;
   csvContent += `決済済み合計,${paidRows.length}件,,,,${paidTotal},${totalFee},,,,,\n`;
@@ -3854,7 +4076,9 @@ async function savePatientInfo() {
   
   if(!newName) { showToast('氏名を入力してください'); return; }
   if(newFee < 0) { showToast('料金は0以上で入力してください'); return; }
-  // 未収があっても保存可能（運用で後から追加入力）
+
+  const payValidationMsg = validatePaymentStateBeforeSave(payState, newFee);
+  if(payValidationMsg) { showToast(payValidationMsg); return; }
   
   const o = s.originalDetail || {};
   const changeLines = [];
@@ -3872,7 +4096,12 @@ async function savePatientInfo() {
     if(payState.mode === 'split') {
       changeLines.push(`決済内訳: 合計 ¥${oldTotal.toLocaleString()} → ¥${newTotal.toLocaleString()}`);
     } else {
-      changeLines.push(`決済方法: ${(o.payment_method || '') || '(未選択)'} → ${(payState.method || '') || '(未選択)'}`);
+      const oldM = normalizeDisplayPaymentMethod(o.payment_method || '') || '(未選択)';
+      const newM = normalizeDisplayPaymentMethod(payState.method || '') || '(未選択)';
+      changeLines.push(`決済方法: ${oldM} → ${newM}`);
+      const oldD = isDeferredPaymentMethod(o.payment_method) ? (o.payment_date || '(なし)') : '';
+      const newD = isDeferredPaymentMethod(payState.method) ? (payState.date || '(なし)') : '';
+      if(oldD !== newD) changeLines.push(`決済日: ${oldD || '(なし)'} → ${newD || '(なし)'}`);
     }
   }
   
@@ -3882,7 +4111,7 @@ async function savePatientInfo() {
   }
   
   let legacyPaymentMethod = payState.method || null;
-  let legacyPaymentDate = payState.date || null;
+  const legacyPaymentDate = paymentDateForSave(payState);
 
   const payload = {
     patient_name: newName,
@@ -3892,7 +4121,7 @@ async function savePatientInfo() {
     admin_memo: newMemo,
     payment_method: legacyPaymentMethod,
     payment_date: legacyPaymentDate,
-    payment_breakdown: payState.mode === 'split' ? normalizedRows : null
+    payment_breakdown: payState.mode === 'split' ? normalizedRows : []
   };
   
   let usedBreakdownFallback = false;
@@ -3903,6 +4132,9 @@ async function savePatientInfo() {
     const retry = await db.from('bookings').update(fallbackPayload).eq('id', s.id);
     error = retry.error;
     usedBreakdownFallback = !error;
+    if(!error && payState.mode !== 'split') {
+      await db.from('bookings').update({ payment_breakdown: [] }).eq('id', s.id);
+    }
   }
   
   if(!error) {
@@ -3918,10 +4150,11 @@ async function savePatientInfo() {
       payment_date: legacyPaymentDate || '',
       payment_breakdown: payState.mode === 'split' ? canonicalPaymentBreakdown(normalizedRows) : '[]'
     };
-    s.currentPaymentBreakdown = normalizedRows;
-    s.currentPaymentMethod = payState.method || '';
-    s.currentPaymentDate = payState.date || '';
-    renderPaymentBreakdown();
+    s.isSplitPayment = payState.mode === 'split';
+    s.currentPaymentBreakdown = payState.mode === 'split' ? normalizedRows.map(r => ({ ...r })) : [];
+    s.currentPaymentMethod = normalizeDisplayPaymentMethod(payState.method || '') || '';
+    s.currentPaymentDate = payState.mode === 'split' ? '' : (legacyPaymentDate || '');
+    finishPaymentDetailModalSetup();
     clearAdminCache();
     if(currentTab === 'schedule') load();
     if(usedBreakdownFallback && payState.mode === 'split' && normalizedRows.length > 1) {
