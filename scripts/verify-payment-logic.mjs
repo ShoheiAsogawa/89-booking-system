@@ -106,6 +106,21 @@ function buildDashboardPaymentEntries(bookings, start, end) {
   });
   return entries;
 }
+function bookingSettlementReportDate(b) {
+  if (!isBookingPaymentSettled(b)) return '';
+  const rows = getEffectivePaymentBreakdown(b);
+  if (rows && rows.length > 0) {
+    const dates = rows
+      .map((r) => {
+        const method = normalizeDisplayPaymentMethod(r.method || '');
+        return isDeferredPaymentMethod(method) ? String(r.payment_date || '').trim() : b.date;
+      })
+      .filter(Boolean);
+    return dates.length ? dates.sort().slice(-1)[0] : '';
+  }
+  const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  return isDeferredPaymentMethod(method) ? String(b.payment_date || '').trim() : b.date;
+}
 function amountCountingTowardTotalSales(b) {
   const fee = Number(b.fee || 0);
   const rows = getEffectivePaymentBreakdown(b);
@@ -184,7 +199,14 @@ function deriveDashboardSummary(bookings, start, end) {
   });
   const paymentRelevantIds = new Set(paymentEntries.map((e) => e.booking.id));
   const listInRange = bookings.filter((b) => (b.date >= start && b.date <= end) || paymentRelevantIds.has(b.id));
-  const fullySettledBookingIds = new Set(listInRange.filter((b) => isBookingPaymentSettled(b)).map((b) => b.id));
+  const fullySettledBookingIds = new Set(
+    listInRange
+      .filter((b) => {
+        const settlementDate = bookingSettlementReportDate(b);
+        return settlementDate >= start && settlementDate <= end;
+      })
+      .map((b) => b.id)
+  );
   // スタッフ別集計をダッシュボードと同じロジックでミラー
   const staff = {};
   listInRange.forEach((b) => {
@@ -208,6 +230,26 @@ function deriveDashboardSummary(bookings, start, end) {
     staffTotalSales: Object.values(staff).reduce((sum, st) => sum + st.s, 0),
     staffTotalCount: Object.values(staff).reduce((sum, st) => sum + st.c, 0),
   };
+}
+function mergeDashboardBookingSources(...sources) {
+  const mergedMap = new Map();
+  sources.forEach((list) => {
+    (list || []).forEach((b) => {
+      if (!b || !b.id) return;
+      if (!mergedMap.has(b.id)) {
+        mergedMap.set(b.id, b);
+        return;
+      }
+      const current = mergedMap.get(b.id);
+      mergedMap.set(b.id, {
+        ...current,
+        payment_method: current.payment_method || b.payment_method,
+        payment_date: current.payment_date || b.payment_date,
+        payment_breakdown: current.payment_breakdown || b.payment_breakdown,
+      });
+    });
+  });
+  return Array.from(mergedMap.values());
 }
 function bookingMatchesPaymentFilter(b, payment) {
   if (payment === '未選択') return !isBookingPaymentSettled(b);
@@ -312,7 +354,7 @@ function buildSavePayloadFromPayState(payState) {
     payment_breakdown: payState.mode === 'split' ? payState.rows : [],
   };
 }
-function buildExportSummary(bookings) {
+function buildExportSummary(bookings, start = '0000-01-01', end = '9999-12-31') {
   const rows = bookings.map((b) => {
     const fee = Number(b.fee || 0);
     const breakdown = getEffectivePaymentBreakdown(b);
@@ -328,10 +370,13 @@ function buildExportSummary(bookings) {
   });
   return {
     totalAmount: rows.reduce((sum, r) => sum + r.fee, 0),
-    paidRows: rows.filter((r) => isBookingPaymentSettled(r.booking)).length,
-    paidTotal: bookings.reduce((sum, b) => {
-      if (!isBookingPaymentSettled(b)) return sum;
-      return sum + amountCountingTowardTotalSales(b);
+    paidRows: rows.filter((r) => {
+      const settlementDate = bookingSettlementReportDate(r.booking);
+      return settlementDate >= start && settlementDate <= end;
+    }).length,
+    paidTotal: buildDashboardPaymentEntries(bookings, start, end).reduce((sum, entry) => {
+      if (!entry.paid || isVoucherPaymentMethod(entry.method)) return sum;
+      return sum + Number(entry.amount || 0);
     }, 0),
   };
 }
@@ -670,7 +715,10 @@ assert('sweep no NaN amounts', sweepEntries.every((e) => !Number.isNaN(Number(e.
 assert('sweep total sales equals paid non-voucher entries', deriveDashboardSummary(generatedBookings, '2026-06-01', '2026-06-30').totalSales === sweepEntries
   .filter((e) => e.paid && !isVoucherPaymentMethod(e.method))
   .reduce((sum, e) => sum + Number(e.amount || 0), 0));
-assert('sweep paid count equals settled bookings', deriveDashboardSummary(generatedBookings, '2026-06-01', '2026-06-30').paidCount === generatedBookings.filter((b) => isBookingPaymentSettled(b)).length);
+assert('sweep paid count equals bookings settled in range', deriveDashboardSummary(generatedBookings, '2026-06-01', '2026-06-30').paidCount === generatedBookings.filter((b) => {
+  const settlementDate = bookingSettlementReportDate(b);
+  return settlementDate >= '2026-06-01' && settlementDate <= '2026-06-30';
+}).length);
 ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険', '未選択'].forEach((payment) => {
   const filtered = generatedBookings.filter((b) => bookingMatchesPaymentFilter(b, payment));
   assert(`sweep ${payment} filter deterministic`, filtered.every((b) => bookingMatchesPaymentFilter(b, payment)));
@@ -829,6 +877,146 @@ const genSummary = deriveDashboardSummary(generatedBookings, '2026-06-01', '2026
 assert('sweep staff settled count equals paidCount', genSummary.staffTotalCount === genSummary.paidCount);
 // スタッフ売上合計 >= 全体売上（券を含む分だけ多い or 等しい）
 assert('sweep staff sales >= total sales', genSummary.staffTotalSales >= genSummary.totalSales);
+
+// 32. Dashboard source merge: same booking fetched by booking date/payment date/breakdown must not double count.
+const dupDeferred = {
+  id: 'dup-deferred',
+  staff: 'A',
+  payment_method: 'ツケ払い',
+  payment_date: '2026-05-20',
+  payment_breakdown: '[]',
+  fee: 7000,
+  date: '2026-05-10',
+};
+const dupSplit = {
+  id: 'dup-split',
+  staff: 'A',
+  payment_method: '分割',
+  payment_breakdown: [
+    { method: '現金', amount: 3000, payment_date: '' },
+    { method: 'ツケ払い', amount: 4000, payment_date: '2026-05-25' },
+  ],
+  fee: 7000,
+  date: '2026-05-11',
+};
+const mergedDuplicates = mergeDashboardBookingSources(
+  [dupDeferred, dupSplit],
+  [{ ...dupDeferred }],
+  [{ ...dupSplit }]
+);
+const duplicateSummary = deriveDashboardSummary(mergedDuplicates, '2026-05-01', '2026-05-31');
+assert('merge removes duplicate booking rows', mergedDuplicates.length === 2);
+assert('merged duplicate sales counted once per payment part', duplicateSummary.totalSales === 14000);
+assert('merged duplicate paid count counted once per booking', duplicateSummary.paidCount === 2);
+
+// 33. Cross-month deferred: paid in May but booked in June is counted in May, not June, and not duplicated in Apr-Jun.
+const crossMonthDeferred = {
+  id: 'cross-month-deferred',
+  staff: 'B',
+  payment_method: '保険',
+  payment_date: '2026-05-31',
+  payment_breakdown: '[]',
+  fee: 9000,
+  date: '2026-06-02',
+};
+assert('cross-month deferred appears in May sales', deriveDashboardSummary([crossMonthDeferred], '2026-05-01', '2026-05-31').totalSales === 9000);
+assert('cross-month deferred excluded from June sales', deriveDashboardSummary([crossMonthDeferred], '2026-06-01', '2026-06-30').totalSales === 0);
+assert('cross-month deferred counted once in Apr-Jun', deriveDashboardSummary([crossMonthDeferred], '2026-04-01', '2026-06-30').totalSales === 9000);
+assert('cross-month deferred paid count in May only', deriveDashboardSummary([crossMonthDeferred], '2026-05-01', '2026-05-31').paidCount === 1);
+assert('cross-month deferred paid count not in booking month', deriveDashboardSummary([crossMonthDeferred], '2026-06-01', '2026-06-30').paidCount === 0);
+assert('cross-month deferred export paid total follows payment month', buildExportSummary([crossMonthDeferred], '2026-06-01', '2026-06-30').paidTotal === 0);
+
+// 34. Split with cash on booking date and deferred row in next month is split across periods, not double counted.
+const splitAcrossMonths = {
+  id: 'split-across-months',
+  staff: 'C',
+  payment_method: '分割',
+  payment_breakdown: [
+    { method: '現金', amount: 2000, payment_date: '' },
+    { method: 'ツケ払い', amount: 5000, payment_date: '2026-06-05' },
+  ],
+  fee: 7000,
+  date: '2026-05-28',
+};
+assert('split across months May has cash only', deriveDashboardSummary([splitAcrossMonths], '2026-05-01', '2026-05-31').totalSales === 2000);
+assert('split across months June has deferred only', deriveDashboardSummary([splitAcrossMonths], '2026-06-01', '2026-06-30').totalSales === 5000);
+assert('split across months combined has both once', deriveDashboardSummary([splitAcrossMonths], '2026-05-01', '2026-06-30').totalSales === 7000);
+assert('split across months not counted settled before final payment', deriveDashboardSummary([splitAcrossMonths], '2026-05-01', '2026-05-31').paidCount === 0);
+assert('split across months counted settled on final payment month', deriveDashboardSummary([splitAcrossMonths], '2026-06-01', '2026-06-30').paidCount === 1);
+assert('split across months May export paid total cash only', buildExportSummary([splitAcrossMonths], '2026-05-01', '2026-05-31').paidTotal === 2000);
+assert('split across months June export paid total deferred only', buildExportSummary([splitAcrossMonths], '2026-06-01', '2026-06-30').paidTotal === 5000);
+
+// 35. Voucher-only and voucher portions never inflate total sales, but still count as settled/staff sales.
+const voucherAudit = {
+  id: 'voucher-audit',
+  staff: 'D',
+  payment_method: '分割',
+  payment_breakdown: [
+    { method: 'マッサージ券', amount: 6000, payment_date: '' },
+    { method: '現金', amount: 1000, payment_date: '' },
+  ],
+  fee: 7000,
+  date: '2026-05-12',
+};
+const voucherAuditSummary = deriveDashboardSummary([voucherAudit], '2026-05-01', '2026-05-31');
+assert('voucher portion excluded from total sales', voucherAuditSummary.totalSales === 1000);
+assert('voucher portion included in staff sales', voucherAuditSummary.staff.D.s === 7000);
+assert('voucher split counts settled once', voucherAuditSummary.paidCount === 1);
+
+// 36. Merge fills missing payment fields from richer later sources without duplicating the booking.
+const thinBookingRow = {
+  id: 'thin-merge',
+  staff: 'E',
+  payment_method: null,
+  payment_date: null,
+  payment_breakdown: null,
+  fee: 8000,
+  date: '2026-05-03',
+};
+const richBookingRow = {
+  id: 'thin-merge',
+  payment_method: '分割',
+  payment_breakdown: [
+    { method: '現金', amount: 3000, payment_date: '' },
+    { method: 'ツケ払い', amount: 5000, payment_date: '2026-05-15' },
+  ],
+};
+const mergedRich = mergeDashboardBookingSources([thinBookingRow], [richBookingRow]);
+assert('merge keeps one thin/rich booking', mergedRich.length === 1);
+assert('merge fills payment method from rich source', mergedRich[0].payment_method === '分割');
+assert('merge fills payment breakdown from rich source', getEffectivePaymentBreakdown(mergedRich[0])?.length === 2);
+assert('merge-filled rich source contributes full sales', deriveDashboardSummary(mergedRich, '2026-05-01', '2026-05-31').totalSales === 8000);
+
+// 37. Pagination helper keeps fetching past exact 1000-row pages and stops on the first short page.
+async function verifyPagedFetch(pageSize, totalRows) {
+  const allRows = Array.from({ length: totalRows }, (_, i) => ({ id: `row-${i}` }));
+  const ranges = [];
+  async function fetchDashboardPagesForTest(makeQuery) {
+    const all = [];
+    let from = 0;
+    while (true) {
+      const to = from + pageSize - 1;
+      const res = await makeQuery().range(from, to);
+      if (res.error) return res;
+      const rows = res.data || [];
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return { data: all, error: null };
+  }
+  const res = await fetchDashboardPagesForTest(() => ({
+    range(from, to) {
+      ranges.push([from, to]);
+      return Promise.resolve({ data: allRows.slice(from, to + 1), error: null });
+    },
+  }));
+  return { count: res.data.length, ranges };
+}
+const pagedExact = await verifyPagedFetch(1000, 2000);
+assert('pagination fetches exact full pages plus empty sentinel', pagedExact.count === 2000 && pagedExact.ranges.length === 3);
+const pagedShort = await verifyPagedFetch(1000, 2001);
+assert('pagination fetches short final page', pagedShort.count === 2001 && pagedShort.ranges.length === 3);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

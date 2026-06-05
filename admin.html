@@ -3077,8 +3077,66 @@ function buildDashboardPaymentEntries(bookings, start, end) {
   return entries;
 }
 
+function bookingSettlementReportDate(b) {
+  if(!isBookingPaymentSettled(b)) return '';
+
+  const rows = getEffectivePaymentBreakdown(b);
+  if(rows && rows.length > 0) {
+    const dates = rows.map(r => {
+      const method = normalizeDisplayPaymentMethod(r.method || '');
+      return isDeferredPaymentMethod(method) ? String(r.payment_date || '').trim() : b.date;
+    }).filter(Boolean);
+    return dates.length ? dates.sort().slice(-1)[0] : '';
+  }
+
+  const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  return isDeferredPaymentMethod(method) ? String(b.payment_date || '').trim() : b.date;
+}
+
 // ダッシュボード用データ保存
 let dashboardData = [];
+let dashboardPaymentEntries = [];
+const DASHBOARD_FETCH_PAGE_SIZE = 1000;
+
+async function fetchDashboardPages(makeQuery) {
+  const all = [];
+  let from = 0;
+
+  while(true) {
+    const to = from + DASHBOARD_FETCH_PAGE_SIZE - 1;
+    const res = await makeQuery().range(from, to);
+    if(res.error) return res;
+
+    const rows = res.data || [];
+    all.push(...rows);
+    if(rows.length < DASHBOARD_FETCH_PAGE_SIZE) break;
+    from += DASHBOARD_FETCH_PAGE_SIZE;
+  }
+
+  return { data: all, error: null };
+}
+
+function mergeDashboardBookingSources() {
+  const mergedMap = new Map();
+  Array.from(arguments).forEach(list => {
+    (list || []).forEach(b => {
+      if(!b || !b.id) return;
+      if(!mergedMap.has(b.id)) {
+        mergedMap.set(b.id, b);
+        return;
+      }
+
+      const current = mergedMap.get(b.id);
+      mergedMap.set(b.id, {
+        ...current,
+        payment_method: current.payment_method || b.payment_method,
+        payment_date: current.payment_date || b.payment_date,
+        payment_breakdown: current.payment_breakdown || b.payment_breakdown
+      });
+    });
+  });
+  return Array.from(mergedMap.values());
+}
 
 async function loadDashboard() {
   showLoad(true);
@@ -3101,36 +3159,36 @@ async function loadDashboard() {
   // 予約日で期間内の予約を取得（payment_date / payment_method 列が無いDBでも動くよう段階的にフォールバック）
   const selectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo';
   const selectColsMin = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, admin_memo';
-  let r1 = await db.from('bookings')
+  let r1 = await fetchDashboardPages(() => db.from('bookings')
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('date', start)
     .lte('date', end)
     .or('status.is.null,status.neq.キャンセル')
-    .order('date', { ascending: true });
+    .order('date', { ascending: true }));
   if(r1.error && r1.error.message && r1.error.message.indexOf('payment_breakdown') >= 0) {
-    r1 = await db.from('bookings')
+    r1 = await fetchDashboardPages(() => db.from('bookings')
       .select(selectCols + ', payment_date')
       .gte('date', start)
       .lte('date', end)
       .or('status.is.null,status.neq.キャンセル')
-      .order('date', { ascending: true });
+      .order('date', { ascending: true }));
   }
   
   let booksByDate;
   if(r1.error) {
-    const r1b = await db.from('bookings')
+    const r1b = await fetchDashboardPages(() => db.from('bookings')
       .select(selectCols)
       .gte('date', start)
       .lte('date', end)
       .or('status.is.null,status.neq.キャンセル')
-      .order('date', { ascending: true });
+      .order('date', { ascending: true }));
     if(r1b.error) {
-      const r1c = await db.from('bookings')
+      const r1c = await fetchDashboardPages(() => db.from('bookings')
         .select(selectColsMin)
         .gte('date', start)
         .lte('date', end)
         .or('status.is.null,status.neq.キャンセル')
-        .order('date', { ascending: true });
+        .order('date', { ascending: true }));
       if(r1c.error) {
         console.warn('売上データ取得エラー:', r1c.error.message || r1c.error);
         showLoad(false);
@@ -3148,37 +3206,36 @@ async function loadDashboard() {
   
   // 決済日で期間内のツケ払い・保険（payment_date 列が無い場合はスキップ）
   let booksByPaymentDate = [];
-  let r2 = await db.from('bookings')
+  let r2 = await fetchDashboardPages(() => db.from('bookings')
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('payment_date', start)
     .lte('payment_date', end)
     .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
-    .or('status.is.null,status.neq.キャンセル');
+    .or('status.is.null,status.neq.キャンセル')
+    .order('payment_date', { ascending: true }));
   if(r2.error && r2.error.message && r2.error.message.indexOf('payment_breakdown') >= 0) {
-    r2 = await db.from('bookings')
+    r2 = await fetchDashboardPages(() => db.from('bookings')
       .select(selectCols + ', payment_date')
       .gte('payment_date', start)
       .lte('payment_date', end)
       .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
-      .or('status.is.null,status.neq.キャンセル');
+      .or('status.is.null,status.neq.キャンセル')
+      .order('payment_date', { ascending: true }));
   }
   if(!r2.error) booksByPaymentDate = r2.data || [];
 
   // 分割決済の内訳日は親の payment_date では検索できないため、内訳あり予約も取得して画面側で期間判定する
   let booksByBreakdown = [];
-  const r3 = await db.from('bookings')
+  const r3 = await fetchDashboardPages(() => db.from('bookings')
     .select(selectCols + ', payment_date, payment_breakdown')
     .not('payment_breakdown', 'is', null)
-    .or('status.is.null,status.neq.キャンセル');
+    .or('status.is.null,status.neq.キャンセル')
+    .order('date', { ascending: true }));
   if(!r3.error) {
     booksByBreakdown = (r3.data || []).filter(b => getEffectivePaymentBreakdown(b));
   }
   
-  const mergedMap = new Map();
-  (booksByDate || []).forEach(b => mergedMap.set(b.id, b));
-  (booksByPaymentDate || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
-  (booksByBreakdown || []).forEach(b => { if(!mergedMap.has(b.id)) mergedMap.set(b.id, b); });
-  const mergedList = Array.from(mergedMap.values());
+  const mergedList = mergeDashboardBookingSources(booksByDate, booksByPaymentDate, booksByBreakdown);
 
   const paymentEntries = buildDashboardPaymentEntries(mergedList, start, end);
   const paymentRelevantIds = new Set(paymentEntries.map(e => e.booking.id));
@@ -3187,6 +3244,7 @@ async function loadDashboard() {
   });
   
   dashboardData = listInRange;
+  dashboardPaymentEntries = paymentEntries;
   
   const paidEntries = paymentEntries.filter(e => e.paid && !isVoucherPaymentMethod(e.method));
   const bookingSales = {};
@@ -3195,7 +3253,10 @@ async function loadDashboard() {
   const bookingSalesWithVoucher = {};
   paymentEntries.filter(e => e.paid).forEach(e => { bookingSalesWithVoucher[e.booking.id] = (bookingSalesWithVoucher[e.booking.id] || 0) + Number(e.amount || 0); });
   const totalSales = paidEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const fullySettledBookingIds = new Set(listInRange.filter(b => isBookingPaymentSettled(b)).map(b => b.id));
+  const fullySettledBookingIds = new Set(listInRange.filter(b => {
+    const settlementDate = bookingSettlementReportDate(b);
+    return settlementDate >= start && settlementDate <= end;
+  }).map(b => b.id));
   const paidCount = fullySettledBookingIds.size;
   const totalCount = listInRange.length;
   const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length;
@@ -4013,11 +4074,13 @@ function exportToExcel() {
   const totalAmount = rows.reduce((sum, r) => sum + r[5], 0);
   const paidRows = rows.filter((r, i) => {
     const b = dashboardData[i];
-    return b && isBookingPaymentSettled(b);
+    if(!b) return false;
+    const settlementDate = bookingSettlementReportDate(b);
+    return settlementDate >= dateFrom && settlementDate <= dateTo;
   });
-  const paidTotal = dashboardData.reduce((sum, b) => {
-    if(!isBookingPaymentSettled(b)) return sum;
-    return sum + amountCountingTowardTotalSales(b);
+  const paidTotal = (dashboardPaymentEntries || []).reduce((sum, entry) => {
+    if(!entry.paid || isVoucherPaymentMethod(entry.method)) return sum;
+    return sum + Number(entry.amount || 0);
   }, 0);
   csvContent += '\n';
   csvContent += `全件合計,${rows.length}件,,,,${totalAmount},${totalFee},,,,,\n`;
