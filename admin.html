@@ -156,6 +156,8 @@
     .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
+    /* 予約セル内の管理者メモ（氏名の下に表示） */
+    .cell-memo { font-size: 10px; font-weight: 500; opacity: 0.82; max-width: 100%; margin-top: 2px; line-height: 1.2; white-space: normal; word-break: break-word; overflow-wrap: anywhere; text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
     .free:hover { background: #F3F4F6; }
     .booked { background: var(--text); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .cell.booked.staff-0,
@@ -2223,11 +2225,16 @@ function renderGrid() {
       let nameClass = '';
       if(lblText.length > 5) nameClass = ' name-long';
       if(lblText.length > 7) nameClass = ' name-very-long';
+      // 予約セルには氏名の下に管理者メモを表示
+      let memoHtml = '';
+      if(c.status === 'booked' && c.detail && c.detail.admin_memo) {
+        memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
+      }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
