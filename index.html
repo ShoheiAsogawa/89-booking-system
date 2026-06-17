@@ -847,7 +847,10 @@ window.onload = async () => {
     if (typeof liff !== 'undefined') {
       await liff.init({ liffId: LIFF_ID });
       if (liff.isLoggedIn()) {
-        const p = await liff.getProfile(); state.uid = p.userId; loadData();
+        const idToken = liff.getIDToken();
+const { data: { session } } = await db.auth.signInWithIdToken({ provider: 'custom:line', token: idToken });
+state.uid = session.user.id;
+loadData();
       } else {
         if(liff.isInClient()) liff.login(); 
         else { loading(false); document.getElementById('loginOverlay').classList.add('open'); }
