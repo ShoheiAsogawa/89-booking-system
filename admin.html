@@ -105,9 +105,11 @@
     }
     .btn-refresh:hover .refresh-icon { transform: rotate(180deg); }
     .btn-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
-    .schedule-header-row { display: flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 16px; margin: 52px auto 24px; padding: 0 24px; }
-    .schedule-header-row .date-nav { margin: 0; flex-shrink: 0; }
-    .schedule-header-row .btn-refresh { position: static; flex-shrink: 0; }
+    .schedule-header-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 52px auto 24px; padding: 0 24px; }
+    .schedule-header-left { display: flex; align-items: center; justify-self: start; }
+    .schedule-header-row .date-nav { margin: 0; grid-column: 2; justify-self: center; }
+    .schedule-header-right { display: flex; align-items: center; gap: 12px; justify-self: end; grid-column: 3; }
+    .schedule-header-row .btn-refresh { position: static; height: 44px; min-width: 100px; padding: 0 20px; flex-shrink: 0; }
     .btn-advance-tab { background: #E8F0FE; color: #1D4ED8; border-color: #BFDBFE; font-size: 12px; font-weight: 700; height: 44px; padding: 0 16px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: var(--shadow); border: 1px solid #BFDBFE; transition: all 0.2s; }
     .btn-advance-tab:hover { background: #DBEAFE; border-color: #93C5FD; }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
@@ -627,7 +629,10 @@
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
 
       /* Schedule header */
-      .schedule-header-row { flex-wrap: wrap; gap: 10px 12px; padding: 0 8px; margin-top: 0; justify-content: center; }
+      .schedule-header-row { grid-template-columns: 1fr; gap: 12px; padding: 0 8px; margin-top: 0; }
+      .schedule-header-left { justify-self: center; }
+      .schedule-header-row .date-nav { grid-column: 1; }
+      .schedule-header-right { grid-column: 1; justify-self: stretch; justify-content: center; flex-wrap: wrap; }
       .schedule-header-row .btn-refresh { flex: 1 1 calc(50% - 6px); min-width: 120px; }
       
       /* Dashboard Header */
@@ -1018,7 +1023,9 @@
     <!-- SCHEDULE -->
     <div id="viewSchedule">
       <div class="schedule-header-row">
-        <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払い・つけ払い登録</button>
+        <div class="schedule-header-left">
+          <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払い・つけ払い登録</button>
+        </div>
         <div class="date-nav">
           <button class="nav-btn" onclick="move(-1)">‹</button>
           <div class="date-wrapper" onclick="openAdminScheduleCalendar()" role="button" tabindex="0">
@@ -1028,8 +1035,10 @@
           </div>
           <button class="nav-btn" onclick="move(1)">›</button>
         </div>
-        <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
-        <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
+        <div class="schedule-header-right">
+          <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
+          <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
+        </div>
       </div>
       <div class="grid-wrap">
         <table id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
