@@ -109,9 +109,39 @@
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewExpenses { background: #FFFBF7; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
+    #viewAdvancePayments { background: #E8F0FE; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; position: relative; }
+
+    .schedule-top-left-btns { position: absolute; top: 24px; left: 24px; display: flex; gap: 12px; align-items: center; z-index: 2; }
+    .btn-advance-tab { background: #E8F0FE; color: #1D4ED8; border-color: #BFDBFE; font-size: 12px; font-weight: 700; height: 40px; padding: 0 18px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow); border: 1px solid #BFDBFE; transition: all 0.2s; }
+    .btn-advance-tab:hover { background: #DBEAFE; border-color: #93C5FD; }
+
+    .advance-tab-filter-bar { background: var(--surface); border-radius: var(--radius-m); padding: 16px 20px; margin-bottom: 20px; border: 1px solid var(--line); }
+    .advance-tab-filter-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+    .advance-tab-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+    .advance-tab-filter-label { font-size: 11px; font-weight: 700; color: var(--sub); }
+    .advance-tab-filter-inp { margin: 0; width: 140px; }
+    .advance-tab-filter-select { margin: 0; width: 140px; min-width: 0; }
+    .advance-tab-summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .advance-tab-summary-item { background: var(--surface); border-radius: var(--radius-m); padding: 14px 16px; border: 1px solid var(--line); }
+    .advance-tab-summary-label { font-size: 10px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
+    .advance-tab-summary-value { font-size: 18px; font-weight: 800; font-family: var(--font-en); }
+    .advance-tab-list-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--line); }
+    .advance-tab-list-table th { background: #F3F4F6; padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--sub); border-bottom: 1px solid var(--line); }
+    .advance-tab-list-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .advance-tab-list-table tr:last-child td { border-bottom: none; }
+    .advance-tab-row-clickable { cursor: pointer; transition: background 0.15s; }
+    .advance-tab-row-clickable:hover { background: #F9FAFB; }
+    .advance-type-badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+    .advance-type-badge.prepay { background: #DBEAFE; color: #1D4ED8; }
+    .advance-type-badge.tab { background: #FEF3C7; color: #B45309; }
+
+    .advance-type-btns { display: flex; gap: 8px; }
+    .advance-type-btn { flex: 1; padding: 12px; border-radius: var(--radius-m); border: 2px solid var(--line); background: var(--bg); cursor: pointer; text-align: center; font-weight: 700; font-size: 13px; transition: all 0.2s; }
+    .advance-type-btn.active.prepay { border-color: #3B82F6; background: #EFF6FF; color: #1D4ED8; }
+    .advance-type-btn.active.tab { border-color: #F59E0B; background: #FFFBEB; color: #B45309; }
 
     /* SCHEDULE VIEW */
-    .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 0 auto 24px; }
+    .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 52px auto 24px; }
     .nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
     .nav-btn:hover { background: var(--text); color: #fff; }
     .date-disp { font-family: var(--font-en); font-weight: 700; font-size: 22px; min-width: 180px; text-align: center; letter-spacing: 0.05em; }
@@ -289,6 +319,7 @@
     .payment-stat-card.credit { border-color: #3B82F6; background: #EFF6FF; }
     .payment-stat-card.paypay { border-color: #EF4444; background: #FEF2F2; }
     .payment-stat-card.tsuke { border-color: #F59E0B; background: #FFFBEB; }
+    .payment-stat-card.prepay { border-color: #3B82F6; background: #EFF6FF; }
     .payment-stat-card.hoken { border-color: #0EA5E9; background: #F0F9FF; }
     
     .payment-stat-card .pay-icon { 
@@ -530,7 +561,7 @@
     /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
-      #viewSchedule, #viewSearch, #viewDashboard, #viewExpenses { padding: 16px; }
+      #viewSchedule, #viewSearch, #viewDashboard, #viewExpenses, #viewAdvancePayments { padding: 16px; }
       .btn-refresh { top: 16px; right: 16px; min-width: 80px; padding: 0 20px; height: 36px; font-size: 12px; }
       
       /* Header */
@@ -967,6 +998,9 @@
 
     <!-- SCHEDULE -->
     <div id="viewSchedule">
+      <div class="schedule-top-left-btns">
+        <button type="button" class="btn-advance-tab" onclick="openAdvanceTabPage()" title="先払い・つけ払いの登録と一覧">💰 先払いつけ払い</button>
+      </div>
       <div class="schedule-top-btns">
         <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
         <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
@@ -1036,7 +1070,6 @@
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
               <option value="マッサージ券">マッサージ券</option>
-              <option value="ツケ払い">ツケ払い</option>
               <option value="保険">保険</option>
               <option value="未選択">未選択</option>
             </select>
@@ -1239,6 +1272,51 @@
         <div style="text-align:center; padding:40px; color:var(--sub);">期間を選択して「検索」を押してください</div>
       </div>
     </div>
+
+    <!-- 先払い・つけ払い -->
+    <div id="viewAdvancePayments" class="hidden">
+      <div style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <h2 style="font-size:18px; font-weight:800; margin:0;">先払い・つけ払い一覧</h2>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()">💰 先払いつけ払い</button>
+          <button type="button" class="btn-expense-refresh" id="btnAdvanceTabRefresh" onclick="refreshAdvanceTabPage()" title="一覧を再取得">
+            <span class="refresh-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
+            更新
+          </button>
+        </div>
+      </div>
+      <div class="advance-tab-filter-bar">
+        <div class="advance-tab-filter-title">フィルター条件</div>
+        <div class="advance-tab-filter-row">
+          <label class="advance-tab-filter-label">支払日</label>
+          <input type="date" id="atListDateFrom" class="inp advance-tab-filter-inp">
+          <span style="color:var(--sub); font-weight:600;">〜</span>
+          <input type="date" id="atListDateTo" class="inp advance-tab-filter-inp">
+          <label class="advance-tab-filter-label">分類</label>
+          <select id="atListType" class="inp advance-tab-filter-select">
+            <option value="">すべて</option>
+            <option value="先払い">先払い</option>
+            <option value="つけ払い">つけ払い</option>
+          </select>
+          <label class="advance-tab-filter-label">スタッフ</label>
+          <select id="atListStaff" class="inp advance-tab-filter-select">
+            <option value="">すべて</option>
+          </select>
+          <label class="advance-tab-filter-label">支払方法</label>
+          <select id="atListMethod" class="inp advance-tab-filter-select">
+            <option value="">すべて</option>
+            <option value="現金">現金</option>
+            <option value="クレジット">クレジット</option>
+            <option value="ペイペイ">PayPay</option>
+            <option value="マッサージ券">マッサージ券</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadAdvanceTabPage()">検索</button>
+        </div>
+      </div>
+      <div id="advanceTabPageList">
+        <div style="text-align:center; padding:40px; color:var(--sub);">期間を選択して「検索」を押してください</div>
+      </div>
+    </div>
   </div>
 
   <!-- MODALS -->
@@ -1253,7 +1331,6 @@
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
           <button class="payment-btn" data-method="マッサージ券" onclick="selectPayment('マッサージ券')"><span style="font-size:20px;">🎫</span>マッサージ券</button>
-          <button class="payment-btn" data-method="ツケ払い" onclick="selectPayment('ツケ払い')"><span style="font-size:18px;">📋</span>ツケ払い</button>
           <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
         </div>
         <div id="paymentDateSection">
@@ -1590,6 +1667,100 @@
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
         <button class="btn btn-danger" type="button" onclick="confirmDeleteExpenseFromModal()">削除</button>
         <button class="btn btn-primary" onclick="saveExpenseEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先払い・つけ払い 登録モーダル -->
+  <div class="overlay" id="advanceTabMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:500px;">
+      <div class="box-h"><h3 class="box-ttl">💰 先払い・つけ払い 登録</h3></div>
+      <div class="inp-group" style="margin-bottom:16px;">
+        <label class="inp-lbl">分類</label>
+        <div class="advance-type-btns">
+          <button type="button" class="advance-type-btn prepay active" id="atTypePrepay" onclick="selectAdvanceTabType('先払い')">先払い</button>
+          <button type="button" class="advance-type-btn tab" id="atTypeTab" onclick="selectAdvanceTabType('つけ払い')">つけ払い</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+        <div class="inp-group">
+          <label class="inp-lbl">📅 支払日</label>
+          <input type="date" id="atDate" class="inp" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">👤 スタッフ</label>
+          <select id="atStaff" class="inp" style="margin:0;"></select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💴 金額</label>
+          <input type="number" id="atAmount" class="inp" placeholder="0" step="100" min="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💳 支払方法</label>
+          <select id="atMethod" class="inp" style="margin:0;">
+            <option value="">選択してください</option>
+            <option value="現金">現金</option>
+            <option value="クレジット">クレジット</option>
+            <option value="ペイペイ">PayPay</option>
+            <option value="マッサージ券">マッサージ券</option>
+          </select>
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">📎 メモ（任意）</label>
+          <textarea id="atMemo" class="inp" placeholder="備考" style="margin:0; min-height:60px;"></textarea>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveAdvanceTabPayment()">登録</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先払い・つけ払い 編集モーダル -->
+  <div class="overlay" id="advanceTabEditMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:500px;">
+      <div class="box-h"><h3 class="box-ttl">先払い・つけ払い 編集</h3></div>
+      <input type="hidden" id="atEditId">
+      <div class="inp-group" style="margin-bottom:16px;">
+        <label class="inp-lbl">分類</label>
+        <div class="advance-type-btns">
+          <button type="button" class="advance-type-btn prepay" id="atEditTypePrepay" onclick="selectAdvanceTabEditType('先払い')">先払い</button>
+          <button type="button" class="advance-type-btn tab" id="atEditTypeTab" onclick="selectAdvanceTabEditType('つけ払い')">つけ払い</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+        <div class="inp-group">
+          <label class="inp-lbl">📅 支払日</label>
+          <input type="date" id="atEditDate" class="inp" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">👤 スタッフ</label>
+          <select id="atEditStaff" class="inp" style="margin:0;"></select>
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💴 金額</label>
+          <input type="number" id="atEditAmount" class="inp" placeholder="0" step="100" min="0" style="margin:0;">
+        </div>
+        <div class="inp-group">
+          <label class="inp-lbl">💳 支払方法</label>
+          <select id="atEditMethod" class="inp" style="margin:0;">
+            <option value="">選択してください</option>
+            <option value="現金">現金</option>
+            <option value="クレジット">クレジット</option>
+            <option value="ペイペイ">PayPay</option>
+            <option value="マッサージ券">マッサージ券</option>
+          </select>
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
+          <label class="inp-lbl">📎 メモ（任意）</label>
+          <textarea id="atEditMemo" class="inp" placeholder="備考" style="margin:0; min-height:60px;"></textarea>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
+        <button class="btn btn-danger" type="button" onclick="deleteAdvanceTabPayment()">削除</button>
+        <button class="btn btn-primary" onclick="saveAdvanceTabEdit()">保存</button>
       </div>
     </div>
   </div>
@@ -2007,11 +2178,14 @@ function showMain() {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-  document.querySelectorAll('[onclick="switchTab(\''+tab+'\')"]').forEach(e => e.classList.add('active'));
+  if(['schedule', 'search', 'dashboard', 'expenses'].includes(tab)) {
+    document.querySelectorAll('[onclick="switchTab(\''+tab+'\')"]').forEach(e => e.classList.add('active'));
+  }
   document.getElementById('viewSchedule').classList.toggle('hidden', tab!=='schedule');
   document.getElementById('viewSearch').classList.toggle('hidden', tab!=='search');
   document.getElementById('viewDashboard').classList.toggle('hidden', tab!=='dashboard');
   document.getElementById('viewExpenses').classList.toggle('hidden', tab!=='expenses');
+  document.getElementById('viewAdvancePayments').classList.toggle('hidden', tab!=='advancetab');
   document.getElementById('bulkBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
   
   if(tab==='schedule') {
@@ -2020,7 +2194,9 @@ function switchTab(tab) {
   }
   if(tab==='expenses') {
     initExpensesPageDates();
-    // 一覧は「表示」ボタン押下時のみ loadExpensesPage() で読み込む（タブ表示時は読み込まない）
+  }
+  if(tab==='advancetab') {
+    initAdvanceTabPageDates();
   }
 }
 
@@ -2035,6 +2211,8 @@ function refreshData() {
     runSearch();
   } else if(currentTab === 'expenses') {
     loadExpensesPage();
+  } else if(currentTab === 'advancetab') {
+    loadAdvanceTabPage();
   } else {
     load();
   }
@@ -2956,7 +3134,9 @@ const PAYMENT_FEES = {
   'クレジット': 0.0325, // 3.25%
   'マッサージ券': 0,
   'ツケ払い': 0,
-  '保険': 0
+  '保険': 0,
+  '先払い': 0,
+  'つけ払い': 0
 };
 
 function bookingMatchesPaymentFilter(b, payment) {
@@ -3245,6 +3425,7 @@ async function loadDashboard() {
   const mergedList = mergeDashboardBookingSources(booksByDate, booksByPaymentDate, booksByBreakdown);
 
   const paymentEntries = buildDashboardPaymentEntries(mergedList, start, end);
+  const advanceTabRows = await fetchAdvanceTabPayments(start, end);
   const paymentRelevantIds = new Set(paymentEntries.map(e => e.booking.id));
   const listInRange = mergedList.filter(b => {
     return (b.date >= start && b.date <= end) || paymentRelevantIds.has(b.id);
@@ -3259,7 +3440,11 @@ async function loadDashboard() {
   // スタッフ別売上はマッサージ券も含める（UI注記どおり）。全体売上(totalSales)は券を除外する点と区別
   const bookingSalesWithVoucher = {};
   paymentEntries.filter(e => e.paid).forEach(e => { bookingSalesWithVoucher[e.booking.id] = (bookingSalesWithVoucher[e.booking.id] || 0) + Number(e.amount || 0); });
-  const totalSales = paidEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  let totalSales = paidEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  advanceTabRows.forEach(row => {
+    const method = normalizeDisplayPaymentMethod(row.payment_method || '');
+    if(!isVoucherPaymentMethod(method)) totalSales += Number(row.amount || 0);
+  });
   const fullySettledBookingIds = new Set(listInRange.filter(b => {
     const settlementDate = bookingSettlementReportDate(b);
     return settlementDate >= start && settlementDate <= end;
@@ -3296,6 +3481,8 @@ async function loadDashboard() {
     'ペイペイ': { count: 0, amount: 0, fee: 0 },
     'クレジット': { count: 0, amount: 0, fee: 0 },
     'マッサージ券': { count: 0, amount: 0, fee: 0 },
+    '先払い': { count: 0, amount: 0, fee: 0 },
+    'つけ払い': { count: 0, amount: 0, fee: 0 },
     'ツケ払い': { count: 0, amount: 0, fee: 0 },
     '保険': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
@@ -3311,14 +3498,27 @@ async function loadDashboard() {
     payStats[method].amount += amount;
     payStats[method].fee += fee;
   });
+
+  advanceTabRows.forEach(row => {
+    const type = row.payment_type === 'つけ払い' ? 'つけ払い' : '先払い';
+    const method = normalizeDisplayPaymentMethod(row.payment_method || '');
+    const amount = Number(row.amount || 0);
+    if(!payStats[type]) return;
+    payStats[type].count++;
+    if(!isVoucherPaymentMethod(method)) {
+      const feeRate = PAYMENT_FEES[method] || 0;
+      payStats[type].amount += amount;
+      payStats[type].fee += Math.round(amount * feeRate);
+    }
+  });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', 'ツケ払い': 'tsuke', '保険': 'hoken' };
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', 'ツケ払い': 'tsuke', '保険': 'hoken' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '先払い', 'つけ払い', 'ツケ払い', '保険'].forEach(method => {
     const stat = payStats[method];
     const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
@@ -3329,6 +3529,8 @@ async function loadDashboard() {
         </div>` : '';
     const voucherNote = method === 'マッサージ券'
       ? '<div class="pay-voucher-note">スタッフ別の売上には加算されますが、全体の売上合計には含まれません。</div>'
+      : (method === '先払い' || method === 'つけ払い')
+      ? '<div class="pay-voucher-note">先払い・つけ払いページで登録した支払いです。支払日にスタッフ売上へ計上されます。</div>'
       : (method === 'ツケ払い' || method === '保険')
       ? '<div class="pay-voucher-note">件数に未決済（決済日未入力）を含みます。金額・売上合計は決済日入力済みのみです。</div>'
       : '';
@@ -3361,9 +3563,12 @@ async function loadDashboard() {
     if(!stStats[b.staff]) return;
     const staffSale = Number(bookingSalesWithVoucher[b.id] || 0);
     const settled = fullySettledBookingIds.has(b.id);
-    // 決済済み件数はKPI(paidCount)と一致させる。売上はマッサージ券含む実決済額（部分決済の支払済み分も計上）
     if(settled) stStats[b.staff].c++;
     if(staffSale > 0 || settled) stStats[b.staff].s += staffSale;
+  });
+  advanceTabRows.forEach(row => {
+    if(!stStats[row.staff]) return;
+    stStats[row.staff].s += Number(row.amount || 0);
   });
   
   let stHtml = '';
@@ -3396,6 +3601,12 @@ async function loadDashboard() {
     if(dailyData.hasOwnProperty(e.reportDate)) {
       dailyData[e.reportDate] += Number(e.amount || 0);
     }
+  });
+  advanceTabRows.forEach(row => {
+    const method = normalizeDisplayPaymentMethod(row.payment_method || '');
+    if(isVoucherPaymentMethod(method)) return;
+    const d = row.payment_date;
+    if(dailyData.hasOwnProperty(d)) dailyData[d] += Number(row.amount || 0);
   });
   
   // 累積データを計算
@@ -3503,7 +3714,11 @@ function getTimeSlots(startTime, endTime) {
 const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
 // DB上のレガシー別名（つけ払い等）も含めた一覧。集計クエリの取りこぼし防止に使用
 const DEFERRED_PAYMENT_METHODS_DB = ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い', '保険'];
-const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', 'ツケ払い', '保険'];
+const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '保険'];
+const ADVANCE_TAB_PAYMENT_METHODS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券'];
+const ADVANCE_TAB_TYPES = ['先払い', 'つけ払い'];
+let advanceTabEditType = '先払い';
+let advanceTabCreateType = '先払い';
 
 function canonicalPaymentBreakdown(rows) {
   const normalized = (rows || [])
@@ -3989,7 +4204,7 @@ const originalSwitchTab = switchTab;
 switchTab = function(tab) {
   originalSwitchTab(tab);
   document.getElementById('repeatBtn').style.display = tab==='schedule' ? 'inline-flex' : 'none';
-  document.getElementById('expenseBtn').style.display = (tab==='schedule' || tab==='dashboard' || tab==='expenses') ? 'inline-flex' : 'none';
+  document.getElementById('expenseBtn').style.display = (tab==='schedule' || tab==='dashboard' || tab==='expenses' || tab==='advancetab') ? 'inline-flex' : 'none';
 };
 
 // エクセルエクスポート機能
@@ -5116,6 +5331,296 @@ async function exportExpensesToExcel() {
     showToast(`${expenses.length}件の経費データをエクスポートしました`);
   } catch(e) {
     showToast('経費データのエクスポートに失敗しました: ' + (e.message || ''));
+  } finally {
+    showLoad(false);
+  }
+}
+
+// ===== 先払い・つけ払い機能 =====
+function openAdvanceTabPage() {
+  switchTab('advancetab');
+}
+
+function initAdvanceTabPageDates() {
+  const fromEl = document.getElementById('atListDateFrom');
+  const toEl = document.getElementById('atListDateTo');
+  if(!fromEl || !toEl) return;
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  if(!fromEl.value) fromEl.value = fmtLocal(firstDay);
+  if(!toEl.value) toEl.value = fmtLocal(today);
+  const staffEl = document.getElementById('atListStaff');
+  if(staffEl && staffEl.options.length === 1) {
+    STAFFS.forEach(s => staffEl.add(new Option(s, s)));
+  }
+}
+
+function populateAdvanceTabStaffSelect(selectEl, selected) {
+  if(!selectEl) return;
+  selectEl.innerHTML = '';
+  STAFFS.forEach(st => {
+    const opt = new Option(st, st);
+    if(st === selected) opt.selected = true;
+    selectEl.add(opt);
+  });
+}
+
+function selectAdvanceTabType(type) {
+  advanceTabCreateType = type;
+  document.getElementById('atTypePrepay')?.classList.toggle('active', type === '先払い');
+  document.getElementById('atTypeTab')?.classList.toggle('active', type === 'つけ払い');
+}
+
+function selectAdvanceTabEditType(type) {
+  advanceTabEditType = type;
+  document.getElementById('atEditTypePrepay')?.classList.toggle('active', type === '先払い');
+  document.getElementById('atEditTypeTab')?.classList.toggle('active', type === 'つけ払い');
+}
+
+function openAdvanceTabModal() {
+  advanceTabCreateType = '先払い';
+  document.getElementById('atDate').value = fmtLocal(new Date());
+  document.getElementById('atAmount').value = '';
+  document.getElementById('atMethod').value = '';
+  document.getElementById('atMemo').value = '';
+  populateAdvanceTabStaffSelect(document.getElementById('atStaff'), STAFFS[0] || '');
+  selectAdvanceTabType('先払い');
+  openMod('advanceTabMod');
+}
+
+async function fetchAdvanceTabPayments(from, to) {
+  try {
+    const res = await db.from('advance_tab_payments')
+      .select('id, payment_date, staff, amount, payment_method, payment_type, memo, created_at')
+      .gte('payment_date', from)
+      .lte('payment_date', to)
+      .is('deleted_at', null)
+      .order('payment_date', { ascending: false });
+    if(res.error) {
+      if(String(res.error.message || '').includes('advance_tab_payments')) return [];
+      throw res.error;
+    }
+    return res.data || [];
+  } catch(e) {
+    console.warn('先払い・つけ払い取得エラー:', e.message || e);
+    return [];
+  }
+}
+
+async function saveAdvanceTabPayment() {
+  const paymentDate = document.getElementById('atDate').value;
+  const staff = document.getElementById('atStaff').value;
+  const amount = Number(document.getElementById('atAmount').value);
+  const paymentMethod = document.getElementById('atMethod').value;
+  const memo = (document.getElementById('atMemo').value || '').trim() || null;
+  const paymentType = advanceTabCreateType;
+
+  if(!paymentDate) { showToast('支払日を選択してください'); return; }
+  if(!staff) { showToast('スタッフを選択してください'); return; }
+  if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  if(!paymentMethod) { showToast('支払方法を選択してください'); return; }
+  if(!ADVANCE_TAB_TYPES.includes(paymentType)) { showToast('分類を選択してください'); return; }
+
+  showLoad(true);
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const userEmail = session?.user?.email || 'unknown';
+    const { error } = await db.from('advance_tab_payments').insert({
+      payment_date: paymentDate,
+      staff: staff,
+      amount: amount,
+      payment_method: paymentMethod,
+      payment_type: paymentType,
+      memo: memo,
+      created_by: userEmail,
+      created_at: new Date().toISOString()
+    });
+    if(error) throw error;
+    closeAll();
+    showToast(`${paymentType} ¥${amount.toLocaleString()} を登録しました`);
+    if(currentTab === 'advancetab') loadAdvanceTabPage();
+    if(currentTab === 'dashboard') loadDashboard();
+  } catch(e) {
+    if(String(e?.message || '').includes('advance_tab_payments')) {
+      showToast('DBに先払い・つけ払いテーブルがありません。supabase_advance_tab_payments.sql を実行してください');
+      return;
+    }
+    showToast('登録に失敗しました: ' + e.message);
+  } finally {
+    showLoad(false);
+  }
+}
+
+async function loadAdvanceTabPage() {
+  const fromVal = document.getElementById('atListDateFrom')?.value;
+  const toVal = document.getElementById('atListDateTo')?.value;
+  const typeVal = document.getElementById('atListType')?.value;
+  const staffVal = document.getElementById('atListStaff')?.value;
+  const methodVal = document.getElementById('atListMethod')?.value;
+  const container = document.getElementById('advanceTabPageList');
+  if(!container) return;
+
+  if(!fromVal || !toVal) {
+    container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">期間を選択して「検索」を押してください</div>';
+    return;
+  }
+
+  showLoad(true);
+  try {
+    let rows = await fetchAdvanceTabPayments(fromVal, toVal);
+    if(typeVal) rows = rows.filter(r => r.payment_type === typeVal);
+    if(staffVal) rows = rows.filter(r => r.staff === staffVal);
+    if(methodVal) rows = rows.filter(r => normalizeDisplayPaymentMethod(r.payment_method || '') === methodVal);
+
+    if(rows.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">該当するデータはありません</div>';
+      showLoad(false);
+      return;
+    }
+
+    const totalAmount = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const prepayTotal = rows.filter(r => r.payment_type === '先払い').reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const tabTotal = rows.filter(r => r.payment_type === 'つけ払い').reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+    let html = `
+      <div class="advance-tab-summary-box">
+        <div class="advance-tab-summary-item">
+          <div class="advance-tab-summary-label">検索結果</div>
+          <div class="advance-tab-summary-value">${rows.length} 件</div>
+        </div>
+        <div class="advance-tab-summary-item">
+          <div class="advance-tab-summary-label">合計金額</div>
+          <div class="advance-tab-summary-value">¥${totalAmount.toLocaleString()}</div>
+        </div>
+        <div class="advance-tab-summary-item">
+          <div class="advance-tab-summary-label">先払い</div>
+          <div class="advance-tab-summary-value">¥${prepayTotal.toLocaleString()}</div>
+        </div>
+        <div class="advance-tab-summary-item">
+          <div class="advance-tab-summary-label">つけ払い</div>
+          <div class="advance-tab-summary-value">¥${tabTotal.toLocaleString()}</div>
+        </div>
+      </div>
+      <table class="advance-tab-list-table">
+        <thead>
+          <tr>
+            <th>支払日</th>
+            <th>分類</th>
+            <th>スタッフ</th>
+            <th>金額</th>
+            <th>支払方法</th>
+            <th>メモ</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    rows.forEach(row => {
+      const typeCls = row.payment_type === 'つけ払い' ? 'tab' : 'prepay';
+      const methodLabel = row.payment_method === 'ペイペイ' ? 'PayPay' : (row.payment_method || '-');
+      const safeId = Number(row.id) || 0;
+      html += `
+        <tr class="advance-tab-row-clickable" onclick="openAdvanceTabEdit(${safeId})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openAdvanceTabEdit(${safeId}); }">
+          <td style="font-family:var(--font-en); font-weight:600;">${escapeHtml(row.payment_date || '')}</td>
+          <td><span class="advance-type-badge ${typeCls}">${escapeHtml(row.payment_type || '')}</span></td>
+          <td style="font-weight:700;">${escapeHtml(row.staff || '')}</td>
+          <td style="font-family:var(--font-en); font-weight:700;">¥${Number(row.amount || 0).toLocaleString()}</td>
+          <td>${escapeHtml(methodLabel)}</td>
+          <td style="color:var(--sub); font-size:11px;">${escapeHtml(row.memo || '-')}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--sub);">先払い・つけ払いテーブルが未作成です（SQLを実行してください）</div>';
+  }
+  showLoad(false);
+}
+
+function refreshAdvanceTabPage() {
+  const btn = document.getElementById('btnAdvanceTabRefresh');
+  if(btn) { btn.classList.add('spinning'); setTimeout(() => btn.classList.remove('spinning'), 800); }
+  loadAdvanceTabPage();
+}
+
+async function openAdvanceTabEdit(id) {
+  showLoad(true);
+  try {
+    const { data, error } = await db.from('advance_tab_payments')
+      .select('id, payment_date, staff, amount, payment_method, payment_type, memo')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
+    if(error) throw error;
+    if(!data) { showToast('データが見つかりません'); return; }
+
+    document.getElementById('atEditId').value = data.id;
+    document.getElementById('atEditDate').value = data.payment_date || '';
+    document.getElementById('atEditAmount').value = data.amount || '';
+    document.getElementById('atEditMethod').value = data.payment_method || '';
+    document.getElementById('atEditMemo').value = data.memo || '';
+    populateAdvanceTabStaffSelect(document.getElementById('atEditStaff'), data.staff || '');
+    selectAdvanceTabEditType(data.payment_type === 'つけ払い' ? 'つけ払い' : '先払い');
+    openMod('advanceTabEditMod');
+  } catch(e) {
+    showToast('データの取得に失敗しました: ' + e.message);
+  } finally {
+    showLoad(false);
+  }
+}
+
+async function saveAdvanceTabEdit() {
+  const id = document.getElementById('atEditId').value;
+  const paymentDate = document.getElementById('atEditDate').value;
+  const staff = document.getElementById('atEditStaff').value;
+  const amount = Number(document.getElementById('atEditAmount').value);
+  const paymentMethod = document.getElementById('atEditMethod').value;
+  const memo = (document.getElementById('atEditMemo').value || '').trim() || null;
+  const paymentType = advanceTabEditType;
+
+  if(!id) return;
+  if(!paymentDate) { showToast('支払日を選択してください'); return; }
+  if(!staff) { showToast('スタッフを選択してください'); return; }
+  if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
+  if(!paymentMethod) { showToast('支払方法を選択してください'); return; }
+
+  showLoad(true);
+  try {
+    const { error } = await db.from('advance_tab_payments').update({
+      payment_date: paymentDate,
+      staff: staff,
+      amount: amount,
+      payment_method: paymentMethod,
+      payment_type: paymentType,
+      memo: memo
+    }).eq('id', id);
+    if(error) throw error;
+    closeAll();
+    showToast('更新しました');
+    if(currentTab === 'advancetab') loadAdvanceTabPage();
+    if(currentTab === 'dashboard') loadDashboard();
+  } catch(e) {
+    showToast('更新に失敗しました: ' + e.message);
+  } finally {
+    showLoad(false);
+  }
+}
+
+async function deleteAdvanceTabPayment() {
+  const id = document.getElementById('atEditId').value;
+  if(!id || !confirm('この先払い・つけ払いを削除しますか？')) return;
+  showLoad(true);
+  try {
+    const { error } = await db.from('advance_tab_payments')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    if(error) throw error;
+    closeAll();
+    showToast('削除しました');
+    if(currentTab === 'advancetab') loadAdvanceTabPage();
+    if(currentTab === 'dashboard') loadDashboard();
+  } catch(e) {
+    showToast('削除に失敗しました: ' + e.message);
   } finally {
     showLoad(false);
   }
