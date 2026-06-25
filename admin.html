@@ -105,25 +105,50 @@
     }
     .btn-refresh:hover .refresh-icon { transform: rotate(180deg); }
     .btn-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
-    .schedule-top-btns { position: absolute; top: 24px; right: 24px; display: flex; gap: 16px; align-items: center; }
-    .schedule-top-btns .btn-refresh { position: static; }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewExpenses { background: #FFFBF7; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewAdvancePayments { background: #E8F0FE; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; position: relative; }
 
-    .schedule-header-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 52px auto 24px; padding: 0 24px; }
-    .schedule-top-left-btns { display: flex; gap: 12px; align-items: center; justify-self: start; }
-    .schedule-header-row .date-nav { margin: 0; grid-column: 2; }
-    .btn-advance-tab { background: #E8F0FE; color: #1D4ED8; border-color: #BFDBFE; font-size: 12px; font-weight: 700; height: 44px; padding: 0 18px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow); border: 1px solid #BFDBFE; transition: all 0.2s; }
+    .schedule-toolbar {
+      background: var(--surface);
+      border-radius: var(--radius-m);
+      padding: 12px 16px;
+      margin: 24px auto;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      box-shadow: var(--shadow);
+    }
+    .schedule-toolbar-date {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      justify-content: center;
+      min-width: 0;
+    }
+    .schedule-toolbar-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .schedule-toolbar .btn-refresh { position: static; height: 40px; min-width: 0; padding: 0 16px; }
+    .schedule-toolbar .date-disp { font-family: var(--font-en); font-weight: 700; font-size: 20px; min-width: 0; text-align: center; letter-spacing: 0.03em; white-space: nowrap; }
+    .btn-advance-tab { background: #E8F0FE; color: #1D4ED8; border-color: #BFDBFE; font-size: 12px; font-weight: 700; height: 40px; padding: 0 16px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: var(--shadow); border: 1px solid #BFDBFE; transition: all 0.2s; flex-shrink: 0; }
     .btn-advance-tab:hover { background: #DBEAFE; border-color: #93C5FD; }
 
     .advance-tab-filter-bar { background: var(--surface); border-radius: var(--radius-m); padding: 16px 20px; margin-bottom: 20px; border: 1px solid var(--line); }
     .advance-tab-filter-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
     .advance-tab-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-    .advance-tab-filter-label { font-size: 11px; font-weight: 700; color: var(--sub); }
+    .advance-tab-filter-row + .advance-tab-filter-row,
+    .advance-tab-filter-row + .advance-tab-filter-grid,
+    .advance-tab-filter-grid + .advance-tab-filter-row { margin-top: 12px; }
+    .advance-tab-filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .advance-tab-filter-field label { display: block; font-size: 10px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
+    .advance-tab-filter-field .inp { margin: 0; width: 100%; font-size: 12px; }
+    .advance-tab-filter-label { font-size: 11px; font-weight: 700; color: var(--sub); flex-shrink: 0; }
     .advance-tab-filter-inp { margin: 0; width: 140px; }
-    .advance-tab-filter-select { margin: 0; width: 140px; min-width: 0; }
+    .advance-tab-filter-select { margin: 0; width: 100%; min-width: 0; }
     .advance-tab-summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
     .advance-tab-summary-item { background: var(--surface); border-radius: var(--radius-m); padding: 14px 16px; border: 1px solid var(--line); }
     .advance-tab-summary-label { font-size: 10px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
@@ -623,21 +648,12 @@
       .cell.name-very-long { font-size: 9px; }
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
 
-      /* Schedule top buttons を本文の上に出して潰れないように */
-      .schedule-top-btns {
-        position: static;
-        top: auto;
-        right: auto;
-        width: 100%;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-      .schedule-top-btns .btn-refresh {
-        width: auto;
-        flex: 1 1 48%;
-      }
+      /* Schedule toolbar */
+      .schedule-toolbar { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
+      .schedule-toolbar-date { justify-content: center; }
+      .schedule-toolbar .date-disp { font-size: 17px; }
+      .schedule-toolbar-actions { justify-content: center; flex-wrap: wrap; }
+      .schedule-toolbar-actions .btn-refresh { flex: 1 1 calc(50% - 5px); min-width: 120px; }
       
       /* Dashboard Header */
       .dash-header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -669,7 +685,7 @@
       
       /* Search View */
       #viewSearch .search-box { flex-direction: column; }
-      #viewSearch > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      .advance-tab-filter-grid { grid-template-columns: repeat(2, 1fr); }
       .period-selector { flex-wrap: wrap; }
       
       /* Modals */
@@ -731,9 +747,8 @@
       .tab { flex: 0 0 auto; text-align: center; padding: 10px 8px; border-radius: 8px; white-space: nowrap; }
       .header-right .btn { flex: 1 1 100%; min-width: 0; }
       .date-nav { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
-      .schedule-header-row { grid-template-columns: 1fr; gap: 12px; padding: 0 8px; }
-      .schedule-top-left-btns { justify-self: center; }
-      .schedule-header-row .date-nav { grid-column: 1; }
+      #viewSearch > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      .advance-tab-filter-grid { grid-template-columns: 1fr; }
       .date-disp { font-size: 17px; min-width: 0; }
       #tbl { width: 100%; min-width: 0; table-layout: fixed; }
       #tbl th { font-size: 9px; padding: 5px 1px; }
@@ -1027,15 +1042,9 @@
 
     <!-- SCHEDULE -->
     <div id="viewSchedule">
-      <div class="schedule-top-btns">
-        <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
-        <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
-      </div>
-      <div class="schedule-header-row">
-        <div class="schedule-top-left-btns">
-          <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払いつけ払い</button>
-        </div>
-        <div class="date-nav">
+      <div class="schedule-toolbar">
+        <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払い・つけ払い登録</button>
+        <div class="schedule-toolbar-date">
           <button class="nav-btn" onclick="move(-1)">‹</button>
           <div class="date-wrapper" onclick="openAdminScheduleCalendar()" role="button" tabindex="0">
             <div class="date-disp" id="dDisp">YYYY.MM.DD</div>
@@ -1043,6 +1052,10 @@
             <input type="date" id="datePicker">
           </div>
           <button class="nav-btn" onclick="move(1)">›</button>
+        </div>
+        <div class="schedule-toolbar-actions">
+          <button type="button" class="btn-refresh" onclick="goToToday()" title="今日に戻る">今日に戻る</button>
+          <button type="button" class="btn-refresh" id="btnScheduleRefresh" onclick="refreshData()" title="最新の予約・ブロックを反映"><span class="refresh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>更新</button>
         </div>
       </div>
       <div class="grid-wrap">
@@ -1309,7 +1322,7 @@
       <div style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
         <h2 style="font-size:18px; font-weight:800; margin:0;">先払い・つけ払い一覧</h2>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()">先払いつけ払い</button>
+          <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()">先払い・つけ払い登録</button>
           <button type="button" class="btn-expense-refresh" id="btnAdvanceTabRefresh" onclick="refreshAdvanceTabPage()" title="一覧を再取得">
             <span class="refresh-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
             更新
@@ -1323,26 +1336,38 @@
           <input type="date" id="atListDateFrom" class="inp advance-tab-filter-inp">
           <span style="color:var(--sub); font-weight:600;">〜</span>
           <input type="date" id="atListDateTo" class="inp advance-tab-filter-inp">
-          <label class="advance-tab-filter-label">分類</label>
-          <select id="atListType" class="inp advance-tab-filter-select">
-            <option value="">すべて</option>
-            <option value="先払い">先払い</option>
-            <option value="つけ払い">つけ払い</option>
-          </select>
-          <label class="advance-tab-filter-label">スタッフ</label>
-          <select id="atListStaff" class="inp advance-tab-filter-select">
-            <option value="">すべて</option>
-          </select>
-          <label class="advance-tab-filter-label">支払方法</label>
-          <select id="atListMethod" class="inp advance-tab-filter-select">
-            <option value="">すべて</option>
-            <option value="現金">現金</option>
-            <option value="クレジット">クレジット</option>
-            <option value="ペイペイ">PayPay</option>
-            <option value="マッサージ券">マッサージ券</option>
-          </select>
-          <label class="advance-tab-filter-label">患者名</label>
-          <input type="text" id="atListKeyword" class="inp advance-tab-filter-inp" placeholder="患者名で検索" style="min-width:140px;">
+        </div>
+        <div class="advance-tab-filter-grid">
+          <div class="advance-tab-filter-field">
+            <label>分類</label>
+            <select id="atListType" class="inp advance-tab-filter-select">
+              <option value="">すべて</option>
+              <option value="先払い">先払い</option>
+              <option value="つけ払い">つけ払い</option>
+            </select>
+          </div>
+          <div class="advance-tab-filter-field">
+            <label>スタッフ</label>
+            <select id="atListStaff" class="inp advance-tab-filter-select">
+              <option value="">すべて</option>
+            </select>
+          </div>
+          <div class="advance-tab-filter-field">
+            <label>支払方法</label>
+            <select id="atListMethod" class="inp advance-tab-filter-select">
+              <option value="">すべて</option>
+              <option value="現金">現金</option>
+              <option value="クレジット">クレジット</option>
+              <option value="ペイペイ">PayPay</option>
+              <option value="マッサージ券">マッサージ券</option>
+            </select>
+          </div>
+          <div class="advance-tab-filter-field">
+            <label>患者名</label>
+            <input type="text" id="atListKeyword" class="inp advance-tab-filter-select" placeholder="患者名で検索">
+          </div>
+        </div>
+        <div class="advance-tab-filter-row">
           <button class="btn btn-primary" onclick="loadAdvanceTabPage()">検索</button>
         </div>
       </div>
@@ -1392,7 +1417,7 @@
           <div class="audit-empty">読み込み中...</div>
         </div>
       </div>
-      <div class="btns"><button class="btn" style="background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE;" onclick="openAdvanceTabModalFromCurrentBooking()">💰 先払い・つけ払い</button><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
+      <div class="btns"><button class="btn" style="background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE;" onclick="openAdvanceTabModalFromCurrentBooking()">先払い・つけ払い登録</button><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
     </div>
   </div>
 
