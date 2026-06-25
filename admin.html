@@ -2041,16 +2041,22 @@ function paymentMethodDbVariants(method) {
   return n ? [n] : [];
 }
 
+function isLegacyTsukePaymentMethod(method) {
+  return normalizeDisplayPaymentMethod(method) === 'ツケ払い';
+}
+
 function isDeferredPaymentMethod(method) {
   return DEFERRED_PAYMENT_METHODS.indexOf(normalizeDisplayPaymentMethod(method)) >= 0;
 }
 
-/** 売上・KPIに計上済みか（ツケ払い・保険は決済日必須） */
+/** 売上・KPIに計上済みか（保険は決済日必須。旧ツケ払いは先払い・つけ払いページで管理） */
 function isBookingPaymentSettled(b) {
   const rows = getEffectivePaymentBreakdown(b);
   if(rows && rows.length > 0) {
-    if(!rows.some(r => normalizeDisplayPaymentMethod(r.method || ''))) return false;
-    return rows.every(r => {
+    const activeRows = rows.filter(r => !isLegacyTsukePaymentMethod(r.method || ''));
+    if(activeRows.length === 0) return false;
+    if(!activeRows.some(r => normalizeDisplayPaymentMethod(r.method || ''))) return false;
+    return activeRows.every(r => {
       const m = normalizeDisplayPaymentMethod(r.method || '');
       if(!m) return false;
       if(isDeferredPaymentMethod(m)) return !!(r.payment_date || '').trim();
@@ -2058,6 +2064,7 @@ function isBookingPaymentSettled(b) {
     });
   }
   const m = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(isLegacyTsukePaymentMethod(m)) return false;
   if(!m || m === '分割') return false;
   if(isDeferredPaymentMethod(m)) return !!(b.payment_date || '').trim();
   return true;
@@ -3209,7 +3216,10 @@ async function runSearch() {
       const memoHtml = b.admin_memo ? `<div class="res-memo">📝 ${escapeHtml(b.admin_memo)}</div>` : '';
       const paymentLabel = normalizeDisplayPaymentMethod(b.payment_method) || '';
       const settled = isBookingPaymentSettled(b);
-      const paymentHtml = settled && paymentLabel
+      const isLegacyTsuke = isLegacyTsukePaymentMethod(paymentLabel);
+      const paymentHtml = isLegacyTsuke
+        ? `<span style="background:#EFF6FF; color:#1D4ED8; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">旧ツケ払い→先払い・つけ払いへ</span>`
+        : settled && paymentLabel
         ? `<span style="background:#E8F5E9; color:#2E7D32; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}</span>`
         : paymentLabel && isDeferredPaymentMethod(paymentLabel)
         ? `<span style="background:#FFFBEB; color:#B45309; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">${escapeHtml(paymentLabel)}・決済日未入力</span>`
@@ -3242,7 +3252,6 @@ const PAYMENT_FEES = {
   'ペイペイ': 0.018,  // 1.8%
   'クレジット': 0.0325, // 3.25%
   'マッサージ券': 0,
-  'ツケ払い': 0,
   '保険': 0,
   '先払い': 0,
   'つけ払い': 0
@@ -3295,6 +3304,9 @@ function loadPaymentDetailFromBooking(d) {
   if(method === '分割' && !effective) {
     s.currentPaymentMethod = '';
     s.currentPaymentDate = '';
+  } else if(isLegacyTsukePaymentMethod(method)) {
+    s.currentPaymentMethod = '';
+    s.currentPaymentDate = '';
   } else {
     s.currentPaymentMethod = method || '';
     s.currentPaymentDate = isDeferredPaymentMethod(s.currentPaymentMethod)
@@ -3321,12 +3333,14 @@ function amountCountingTowardTotalSales(b) {
   const rows = getEffectivePaymentBreakdown(b);
   if(rows && rows.length > 0) {
     return rows.reduce((sum, r) => {
+      if(isLegacyTsukePaymentMethod(r.method || '')) return sum;
       const amt = Number(r.amount || 0);
       if(isVoucherPaymentMethod(r.method || '')) return sum;
       return sum + amt;
     }, 0);
   }
   const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(isLegacyTsukePaymentMethod(method)) return 0;
   if(method === '分割') return 0;
   if(isVoucherPaymentMethod(method)) return 0;
   return fee;
@@ -3339,6 +3353,7 @@ function buildDashboardPaymentEntries(bookings, start, end) {
     if(rows && rows.length > 0) {
       rows.forEach(r => {
         const method = normalizeDisplayPaymentMethod(r.method || '') || '未選択';
+        if(isLegacyTsukePaymentMethod(method)) return;
         const amount = Number(r.amount || 0);
         const isDeferred = isDeferredPaymentMethod(method);
         const reportDate = isDeferred ? (r.payment_date || '') : b.date;
@@ -3354,6 +3369,7 @@ function buildDashboardPaymentEntries(bookings, start, end) {
     }
 
     const normalizedMethod = normalizeDisplayPaymentMethod(b.payment_method);
+    if(isLegacyTsukePaymentMethod(normalizedMethod)) return;
     const method = normalizedMethod && normalizedMethod !== '分割' ? normalizedMethod : '未選択';
     const amount = Number(b.fee || 0);
     const isDeferred = isDeferredPaymentMethod(method);
@@ -3378,7 +3394,9 @@ function bookingSettlementReportDate(b) {
 
   const rows = getEffectivePaymentBreakdown(b);
   if(rows && rows.length > 0) {
-    const dates = rows.map(r => {
+    const dates = rows
+      .filter(r => !isLegacyTsukePaymentMethod(r.method || ''))
+      .map(r => {
       const method = normalizeDisplayPaymentMethod(r.method || '');
       return isDeferredPaymentMethod(method) ? String(r.payment_date || '').trim() : b.date;
     }).filter(Boolean);
@@ -3386,6 +3404,7 @@ function bookingSettlementReportDate(b) {
   }
 
   const method = normalizeDisplayPaymentMethod(b.payment_method || '');
+  if(isLegacyTsukePaymentMethod(method)) return '';
   return isDeferredPaymentMethod(method) ? String(b.payment_date || '').trim() : b.date;
 }
 
@@ -3500,13 +3519,13 @@ async function loadDashboard() {
     booksByDate = (r1.data || []).map(b => ({ ...b, payment_date: b.payment_date || null }));
   }
   
-  // 決済日で期間内のツケ払い・保険（payment_date 列が無い場合はスキップ）
+  // 決済日で期間内の保険（payment_date 列が無い場合はスキップ）
   let booksByPaymentDate = [];
   let r2 = await fetchDashboardPages(() => db.from('bookings')
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('payment_date', start)
     .lte('payment_date', end)
-    .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
+    .eq('payment_method', '保険')
     .or('status.is.null,status.neq.キャンセル')
     .order('payment_date', { ascending: true }));
   if(r2.error && r2.error.message && r2.error.message.indexOf('payment_breakdown') >= 0) {
@@ -3514,7 +3533,7 @@ async function loadDashboard() {
       .select(selectCols + ', payment_date')
       .gte('payment_date', start)
       .lte('payment_date', end)
-      .in('payment_method', DEFERRED_PAYMENT_METHODS_DB)
+      .eq('payment_method', '保険')
       .or('status.is.null,status.neq.キャンセル')
       .order('payment_date', { ascending: true }));
   }
@@ -3592,7 +3611,6 @@ async function loadDashboard() {
     'マッサージ券': { count: 0, amount: 0, fee: 0 },
     '先払い': { count: 0, amount: 0, fee: 0 },
     'つけ払い': { count: 0, amount: 0, fee: 0 },
-    'ツケ払い': { count: 0, amount: 0, fee: 0 },
     '保険': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
@@ -3622,12 +3640,12 @@ async function loadDashboard() {
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', 'ツケ払い': '📋', '保険': '🏥', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', 'ツケ払い': 'tsuke', '保険': 'hoken' };
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', '保険': '🏥', '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', '保険': 'hoken' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '先払い', 'つけ払い', 'ツケ払い', '保険'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '先払い', 'つけ払い', '保険'].forEach(method => {
     const stat = payStats[method];
     const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
@@ -3640,7 +3658,7 @@ async function loadDashboard() {
       ? '<div class="pay-voucher-note">スタッフ別の売上には加算されますが、全体の売上合計には含まれません。</div>'
       : (method === '先払い' || method === 'つけ払い')
       ? '<div class="pay-voucher-note">先払い・つけ払いページで登録した支払いです。支払日にスタッフ売上へ計上されます。</div>'
-      : (method === 'ツケ払い' || method === '保険')
+      : (method === '保険')
       ? '<div class="pay-voucher-note">件数に未決済（決済日未入力）を含みます。金額・売上合計は決済日入力済みのみです。</div>'
       : '';
     payHtml += `
@@ -3823,10 +3841,10 @@ function getTimeSlots(startTime, endTime) {
   return slots;
 }
 
-// 決済方法関連（ツケ払い・保険は決済日を売上カウント日に使用）
-const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
-// DB上のレガシー別名（つけ払い等）も含めた一覧。集計クエリの取りこぼし防止に使用
-const DEFERRED_PAYMENT_METHODS_DB = ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い', '保険'];
+// 決済方法関連（保険は決済日を売上カウント日に使用。つけ払いは advance_tab_payments で管理）
+const DEFERRED_PAYMENT_METHODS = ['保険'];
+// DB上の旧ツケ払い別名（患者検索のレガシーデータ用）
+const LEGACY_TSUKE_PAYMENT_METHODS_DB = ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い'];
 const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '保険'];
 const ADVANCE_TAB_PAYMENT_METHODS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券'];
 const ADVANCE_TAB_TYPES = ['先払い', 'つけ払い'];
@@ -3912,6 +3930,9 @@ function validatePaymentStateBeforeSave(payState, fee) {
     }
     for(const row of payState.rows) {
       const m = normalizeDisplayPaymentMethod(row.method || '');
+      if(isLegacyTsukePaymentMethod(m)) {
+        return 'つけ払いは「先払い・つけ払い」ページから登録してください';
+      }
       const amt = Number(row.amount || 0);
       if(amt > 0 && isDeferredPaymentMethod(m) && !(row.payment_date || '').trim()) {
         return `${m}の決済日を入力してください（売上の計上日）`;
@@ -3927,6 +3948,9 @@ function validatePaymentStateBeforeSave(payState, fee) {
     return null;
   }
   const m = normalizeDisplayPaymentMethod(payState.method || '');
+  if(isLegacyTsukePaymentMethod(m)) {
+    return 'つけ払いは「先払い・つけ払い」ページから登録してください';
+  }
   if(m && isDeferredPaymentMethod(m) && !(payState.date || '').trim()) {
     return `${m}の決済日を入力してください（売上の計上日）`;
   }
