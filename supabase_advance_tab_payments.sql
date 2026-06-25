@@ -3,6 +3,17 @@
 -- 予約とは別に、支払日ベースでスタッフ売上に計上する
 -- =====================================================
 -- SupabaseのSQLエディターでこのコードを実行してください
+-- ※ 先に supabase_migration.sql または supabase_rls_hardening.sql で is_admin() を作成してください
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(NULLIF(TRIM(auth.jwt() ->> 'email'), '') IS NOT NULL, false);
+$$;
 
 CREATE TABLE IF NOT EXISTS advance_tab_payments (
   id BIGSERIAL PRIMARY KEY,
@@ -39,19 +50,10 @@ COMMENT ON COLUMN advance_tab_payments.deleted_at IS '論理削除日時（NULL=
 ALTER TABLE advance_tab_payments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "advance_tab_payments_select" ON advance_tab_payments
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO authenticated USING (is_admin());
 CREATE POLICY "advance_tab_payments_insert" ON advance_tab_payments
-  FOR INSERT TO authenticated WITH CHECK (true);
+  FOR INSERT TO authenticated WITH CHECK (is_admin());
 CREATE POLICY "advance_tab_payments_update" ON advance_tab_payments
-  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+  FOR UPDATE TO authenticated USING (is_admin()) WITH CHECK (is_admin());
 CREATE POLICY "advance_tab_payments_delete" ON advance_tab_payments
-  FOR DELETE TO authenticated USING (true);
-
-CREATE POLICY "advance_tab_payments_anon_select" ON advance_tab_payments
-  FOR SELECT TO anon USING (true);
-CREATE POLICY "advance_tab_payments_anon_insert" ON advance_tab_payments
-  FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "advance_tab_payments_anon_update" ON advance_tab_payments
-  FOR UPDATE TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "advance_tab_payments_anon_delete" ON advance_tab_payments
-  FOR DELETE TO anon USING (true);
+  FOR DELETE TO authenticated USING (is_admin());

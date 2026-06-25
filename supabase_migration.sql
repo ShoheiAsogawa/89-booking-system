@@ -4,6 +4,17 @@
 -- =====================================================
 -- SupabaseのSQLエディターでこのコードを実行してください
 
+-- 管理者判定（メール+パスワードでログインした Supabase Auth ユーザーのみ true）
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(NULLIF(TRIM(auth.jwt() ->> 'email'), '') IS NOT NULL, false);
+$$;
+
 -- =====================================================
 -- 1. 経費テーブル (expenses)
 -- レジからの直接出金や消耗品購入などを記録
@@ -39,31 +50,18 @@ COMMENT ON COLUMN expenses.created_at IS '登録日時';
 -- RLS（Row Level Security）設定
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
--- 認証済みユーザーは全操作可能
+-- 管理者のみ操作可能
 CREATE POLICY "expenses_select_policy" ON expenses
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO authenticated USING (is_admin());
 
 CREATE POLICY "expenses_insert_policy" ON expenses
-  FOR INSERT TO authenticated WITH CHECK (true);
+  FOR INSERT TO authenticated WITH CHECK (is_admin());
 
 CREATE POLICY "expenses_update_policy" ON expenses
-  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+  FOR UPDATE TO authenticated USING (is_admin()) WITH CHECK (is_admin());
 
 CREATE POLICY "expenses_delete_policy" ON expenses
-  FOR DELETE TO authenticated USING (true);
-
--- anon（匿名ユーザー）もアクセス可能（管理画面のSupabase認証用）
-CREATE POLICY "expenses_anon_select" ON expenses
-  FOR SELECT TO anon USING (true);
-
-CREATE POLICY "expenses_anon_insert" ON expenses
-  FOR INSERT TO anon WITH CHECK (true);
-
-CREATE POLICY "expenses_anon_update" ON expenses
-  FOR UPDATE TO anon USING (true) WITH CHECK (true);
-
-CREATE POLICY "expenses_anon_delete" ON expenses
-  FOR DELETE TO anon USING (true);
+  FOR DELETE TO authenticated USING (is_admin());
 
 
 -- =====================================================
@@ -95,19 +93,12 @@ COMMENT ON COLUMN audit_logs.created_at IS 'アクション発生日時';
 -- RLS設定
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- 認証済みユーザーは閲覧・追加可能（削除・更新は不可 = 改ざん防止）
+-- 閲覧は管理者のみ、追記は認証済み全員（患者の予約ログ含む）
 CREATE POLICY "audit_logs_select_policy" ON audit_logs
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO authenticated USING (is_admin());
 
 CREATE POLICY "audit_logs_insert_policy" ON audit_logs
   FOR INSERT TO authenticated WITH CHECK (true);
-
--- anon用ポリシー
-CREATE POLICY "audit_logs_anon_select" ON audit_logs
-  FOR SELECT TO anon USING (true);
-
-CREATE POLICY "audit_logs_anon_insert" ON audit_logs
-  FOR INSERT TO anon WITH CHECK (true);
 
 -- 注意: audit_logsテーブルにはUPDATE/DELETEポリシーを設定しません
 -- これにより改ざん防止を実現します（追記のみ可能）
@@ -138,10 +129,8 @@ COMMENT ON COLUMN expense_audit_logs.created_at IS '発生日時';
 
 ALTER TABLE expense_audit_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "expense_audit_logs_select" ON expense_audit_logs FOR SELECT TO authenticated USING (true);
-CREATE POLICY "expense_audit_logs_insert" ON expense_audit_logs FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "expense_audit_logs_anon_select" ON expense_audit_logs FOR SELECT TO anon USING (true);
-CREATE POLICY "expense_audit_logs_anon_insert" ON expense_audit_logs FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "expense_audit_logs_select" ON expense_audit_logs FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "expense_audit_logs_insert" ON expense_audit_logs FOR INSERT TO authenticated WITH CHECK (is_admin());
 
 
 -- =====================================================

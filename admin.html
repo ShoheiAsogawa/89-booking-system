@@ -5797,9 +5797,6 @@ async function fetchAdvanceTabPayments(from, to) {
   }
 }
 
-  }
-}
-
 async function enrichAdvanceTabRowsWithBookings(rows) {
   const ids = [...new Set((rows || []).map(r => r.booking_id).filter(Boolean))];
   if(!ids.length) return (rows || []).map(r => ({ ...r, linkedBooking: null }));
