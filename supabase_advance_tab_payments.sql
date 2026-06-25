@@ -7,6 +7,7 @@
 CREATE TABLE IF NOT EXISTS advance_tab_payments (
   id BIGSERIAL PRIMARY KEY,
   payment_date DATE NOT NULL,
+  patient_name TEXT NOT NULL DEFAULT '',
   staff TEXT NOT NULL,
   amount INTEGER NOT NULL CHECK (amount > 0),
   payment_method TEXT NOT NULL,
@@ -24,6 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_deleted_at ON advance_tab_pa
 
 COMMENT ON TABLE advance_tab_payments IS '先払い・つけ払い管理 - 支払日にスタッフ売上へ計上';
 COMMENT ON COLUMN advance_tab_payments.payment_date IS '支払日（売上カウント日）';
+COMMENT ON COLUMN advance_tab_payments.patient_name IS '患者名';
 COMMENT ON COLUMN advance_tab_payments.staff IS '担当スタッフ名';
 COMMENT ON COLUMN advance_tab_payments.amount IS '金額（円）';
 COMMENT ON COLUMN advance_tab_payments.payment_method IS '支払方法: 現金, クレジット, ペイペイ, マッサージ券 など';
