@@ -141,6 +141,28 @@
     .advance-type-btn.active.prepay { border-color: #3B82F6; background: #EFF6FF; color: #1D4ED8; }
     .advance-type-btn.active.tab { border-color: #F59E0B; background: #FFFBEB; color: #B45309; }
 
+    .at-booking-link-box { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 12px 14px; margin-bottom: 4px; }
+    .at-booking-link-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .at-booking-link-title { font-size: 11px; font-weight: 700; color: var(--sub); }
+    .at-booking-link-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .at-booking-link-card { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5; }
+    .at-booking-link-card.empty { background: #F9FAFB; border-style: dashed; color: var(--sub); text-align: center; }
+    .at-booking-link-card .bk-main { font-weight: 700; color: #1D4ED8; }
+    .at-booking-link-card .bk-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
+    .btn-at-pick { height: 32px; padding: 0 12px; font-size: 11px; font-weight: 700; border-radius: 99px; border: 1px solid #BFDBFE; background: #EFF6FF; color: #1D4ED8; cursor: pointer; }
+    .btn-at-pick:hover { background: #DBEAFE; }
+    .btn-at-unlink { height: 32px; padding: 0 12px; font-size: 11px; font-weight: 700; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--sub); cursor: pointer; }
+    .inp.linked-readonly { background: #F3F4F6; color: var(--text); }
+
+    .overlay.stacked { z-index: 110; }
+    .at-booking-pick-list { max-height: 340px; overflow-y: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius-m); }
+    .at-booking-pick-item { padding: 12px 14px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background 0.15s; }
+    .at-booking-pick-item:last-child { border-bottom: none; }
+    .at-booking-pick-item:hover { background: #F9FAFB; }
+    .at-booking-pick-item .pick-main { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+    .at-booking-pick-item .pick-sub { font-size: 11px; color: var(--sub); }
+    .at-booking-pick-empty { padding: 32px 16px; text-align: center; color: var(--sub); font-size: 12px; }
+
     /* SCHEDULE VIEW */
     .date-nav { display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 6px 16px; border-radius: 99px; box-shadow: var(--shadow); width: fit-content; margin: 52px auto 24px; }
     .nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
@@ -1363,7 +1385,7 @@
           <div class="audit-empty">読み込み中...</div>
         </div>
       </div>
-      <div class="btns"><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
+      <div class="btns"><button class="btn" style="background:#EFF6FF; color:#1D4ED8; border-color:#BFDBFE;" onclick="openAdvanceTabModalFromCurrentBooking()">💰 先払い・つけ払い</button><button class="btn btn-danger" onclick="runCancel()">キャンセル実行</button><button class="btn btn-ghost" onclick="closeAll()">閉じる</button></div>
     </div>
   </div>
 
@@ -1688,8 +1710,21 @@
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
         <div class="inp-group" style="grid-column:1/-1;">
+          <div class="at-booking-link-box">
+            <div class="at-booking-link-head">
+              <span class="at-booking-link-title">📅 紐づけ予約</span>
+              <div class="at-booking-link-actions">
+                <button type="button" class="btn-at-pick" onclick="openAdvanceTabBookingPicker('create')">予約を選択</button>
+                <button type="button" class="btn-at-unlink" id="atUnlinkBtn" onclick="clearAdvanceTabBookingLink('create')" style="display:none;">紐づけ解除</button>
+              </div>
+            </div>
+            <div id="atBookingLinkCard" class="at-booking-link-card empty">予約を選択すると患者名・スタッフ・金額が自動入力されます</div>
+          </div>
+          <input type="hidden" id="atBookingId" value="">
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">🧑 患者名</label>
-          <input type="text" id="atPatientName" class="inp" placeholder="患者名を入力" style="margin:0;">
+          <input type="text" id="atPatientName" class="inp" placeholder="予約を選択するか、直接入力" style="margin:0;" oninput="onAdvanceTabPatientNameInput('create')">
         </div>
         <div class="inp-group">
           <label class="inp-lbl">📅 支払日</label>
@@ -1739,8 +1774,21 @@
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
         <div class="inp-group" style="grid-column:1/-1;">
+          <div class="at-booking-link-box">
+            <div class="at-booking-link-head">
+              <span class="at-booking-link-title">📅 紐づけ予約</span>
+              <div class="at-booking-link-actions">
+                <button type="button" class="btn-at-pick" onclick="openAdvanceTabBookingPicker('edit')">予約を選択</button>
+                <button type="button" class="btn-at-unlink" id="atEditUnlinkBtn" onclick="clearAdvanceTabBookingLink('edit')" style="display:none;">紐づけ解除</button>
+              </div>
+            </div>
+            <div id="atEditBookingLinkCard" class="at-booking-link-card empty">予約を選択すると患者名・スタッフ・金額が自動入力されます</div>
+          </div>
+          <input type="hidden" id="atEditBookingId" value="">
+        </div>
+        <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">🧑 患者名</label>
-          <input type="text" id="atEditPatientName" class="inp" placeholder="患者名を入力" style="margin:0;">
+          <input type="text" id="atEditPatientName" class="inp" placeholder="予約を選択するか、直接入力" style="margin:0;" oninput="onAdvanceTabPatientNameInput('edit')">
         </div>
         <div class="inp-group">
           <label class="inp-lbl">📅 支払日</label>
@@ -1773,6 +1821,33 @@
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
         <button class="btn btn-danger" type="button" onclick="deleteAdvanceTabPayment()">削除</button>
         <button class="btn btn-primary" onclick="saveAdvanceTabEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 先払い・つけ払い 予約選択モーダル -->
+  <div class="overlay" id="atBookingPickMod" onclick="if(event.target===this)closeStackedMod('atBookingPickMod')">
+    <div class="box" style="width:560px;">
+      <div class="box-h"><h3 class="box-ttl">📅 予約を選択</h3></div>
+      <div style="display:grid; grid-template-columns:1fr auto; gap:10px; margin-bottom:12px;">
+        <input type="text" id="atPickKeyword" class="inp" placeholder="患者名・電話番号で検索..." style="margin:0;" onkeypress="if(event.key==='Enter')searchAdvanceTabBookings()">
+        <button type="button" class="btn btn-primary" onclick="searchAdvanceTabBookings()">検索</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+        <label style="font-size:11px; font-weight:700; color:var(--sub);">スタッフ</label>
+        <select id="atPickStaff" class="inp" style="margin:0; width:120px; font-size:12px;">
+          <option value="">すべて</option>
+        </select>
+        <label style="font-size:11px; font-weight:700; color:var(--sub);">予約日</label>
+        <input type="date" id="atPickDateFrom" class="inp" style="margin:0; width:140px; font-size:12px;">
+        <span style="color:var(--sub); font-weight:600;">〜</span>
+        <input type="date" id="atPickDateTo" class="inp" style="margin:0; width:140px; font-size:12px;">
+      </div>
+      <div id="atBookingPickList" class="at-booking-pick-list">
+        <div class="at-booking-pick-empty">条件を入力して「検索」を押してください</div>
+      </div>
+      <div class="btns" style="margin-top:16px;">
+        <button type="button" class="btn btn-ghost" onclick="closeStackedMod('atBookingPickMod')">閉じる</button>
       </div>
     </div>
   </div>
@@ -2471,7 +2546,7 @@ async function cellClick(nm, t) {
     // 詳細情報を取得（必要な場合のみ）
     let detail = null;
     let detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time')
       .eq('id', c.id)
       .single();
     if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
@@ -2525,6 +2600,12 @@ async function cellClick(nm, t) {
       payment_method: s.currentPaymentMethod || '',
       payment_date: s.currentPaymentDate || '',
       payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
+    };
+    s.detailBookingMeta = {
+      date: fmtLocal(s.date),
+      start_time: t,
+      end_time: d.end_time || (c.detail && c.detail.end_time) || '',
+      staff: nm
     };
     finishPaymentDetailModalSetup();
     setupDetailSaveButtonState();
@@ -2767,12 +2848,12 @@ async function openSearchDetail(bookingId) {
   s.id = bookingId;
   let detail = null;
   let detailRes = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff, payment_method, payment_date, payment_breakdown')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown')
     .eq('id', bookingId)
     .single();
   if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
     detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, staff, payment_method, payment_date')
+      .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date')
       .eq('id', bookingId)
       .single();
   }
@@ -2833,6 +2914,12 @@ async function openSearchDetail(bookingId) {
     payment_method: s.currentPaymentMethod || '',
     payment_date: s.currentPaymentDate || '',
     payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
+  };
+  s.detailBookingMeta = {
+    date: detail.date || '',
+    start_time: detail.start_time || '',
+    end_time: detail.end_time || '',
+    staff: detail.staff || ''
   };
   finishPaymentDetailModalSetup();
   setupDetailSaveButtonState();
@@ -3691,8 +3778,12 @@ function applyScheduleTodayTheme() {
   scheduleEl.classList.toggle('schedule-today', current.getTime() === today.getTime());
 }
 function openMod(id) { document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open')); document.getElementById(id).classList.add('open'); }
+function openStackedMod(id) { document.getElementById(id)?.classList.add('open', 'stacked'); }
+function closeStackedMod(id) {
+  document.getElementById(id)?.classList.remove('open', 'stacked');
+}
 function closeAll() {
-  document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open'));
+  document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('open', 'stacked'));
   resetPaymentEditorState();
 }
 function showLoad(b){ 
@@ -3731,6 +3822,8 @@ const ADVANCE_TAB_PAYMENT_METHODS = ['現金', 'クレジット', 'ペイペイ'
 const ADVANCE_TAB_TYPES = ['先払い', 'つけ払い'];
 let advanceTabEditType = '先払い';
 let advanceTabCreateType = '先払い';
+let atBookingPickerTarget = 'create';
+let atBookingPickerResults = [];
 
 function canonicalPaymentBreakdown(rows) {
   const normalized = (rows || [])
@@ -5349,6 +5442,255 @@ async function exportExpensesToExcel() {
 }
 
 // ===== 先払い・つけ払い機能 =====
+function advanceTabFieldIds(target) {
+  const isEdit = target === 'edit';
+  return {
+    bookingId: isEdit ? 'atEditBookingId' : 'atBookingId',
+    patientName: isEdit ? 'atEditPatientName' : 'atPatientName',
+    staff: isEdit ? 'atEditStaff' : 'atStaff',
+    amount: isEdit ? 'atEditAmount' : 'atAmount',
+    linkCard: isEdit ? 'atEditBookingLinkCard' : 'atBookingLinkCard',
+    unlinkBtn: isEdit ? 'atEditUnlinkBtn' : 'atUnlinkBtn'
+  };
+}
+
+function formatAdvanceTabBookingLabel(booking) {
+  if(!booking) return '';
+  const date = booking.date || '';
+  const time = booking.start_time ? `${booking.start_time}${booking.end_time ? '〜' + booking.end_time : ''}` : '';
+  const staff = booking.staff || '';
+  const name = booking.patient_name || '';
+  const fee = Number(booking.fee || 0);
+  return `${date} ${time} ${staff} ${name}様${fee > 0 ? ' ¥' + fee.toLocaleString() : ''}`.trim();
+}
+
+function renderAdvanceTabBookingLinkCard(target, booking) {
+  const ids = advanceTabFieldIds(target);
+  const cardEl = document.getElementById(ids.linkCard);
+  const unlinkBtn = document.getElementById(ids.unlinkBtn);
+  const patientEl = document.getElementById(ids.patientName);
+  if(!cardEl) return;
+
+  if(booking && booking.id) {
+    cardEl.className = 'at-booking-link-card';
+    cardEl.innerHTML = `
+      <div class="bk-main">${escapeHtml(formatAdvanceTabBookingLabel(booking))}</div>
+      <div class="bk-sub">予約ID: ${escapeHtml(String(booking.id))}</div>`;
+    if(unlinkBtn) unlinkBtn.style.display = 'inline-flex';
+    if(patientEl) {
+      patientEl.readOnly = true;
+      patientEl.classList.add('linked-readonly');
+    }
+  } else {
+    cardEl.className = 'at-booking-link-card empty';
+    cardEl.textContent = '予約を選択すると患者名・スタッフ・金額が自動入力されます';
+    if(unlinkBtn) unlinkBtn.style.display = 'none';
+    if(patientEl) {
+      patientEl.readOnly = false;
+      patientEl.classList.remove('linked-readonly');
+    }
+  }
+}
+
+function setAdvanceTabBookingLink(target, booking) {
+  const ids = advanceTabFieldIds(target);
+  const bookingIdEl = document.getElementById(ids.bookingId);
+  const patientEl = document.getElementById(ids.patientName);
+  const staffEl = document.getElementById(ids.staff);
+  const amountEl = document.getElementById(ids.amount);
+
+  if(!booking || !booking.id) {
+    if(bookingIdEl) bookingIdEl.value = '';
+    renderAdvanceTabBookingLinkCard(target, null);
+    return;
+  }
+
+  if(bookingIdEl) bookingIdEl.value = booking.id;
+  if(patientEl) patientEl.value = booking.patient_name || '';
+  if(staffEl && booking.staff) staffEl.value = booking.staff;
+  if(amountEl) {
+    const fee = Number(booking.fee || 0);
+    if(fee > 0 && (!amountEl.value || Number(amountEl.value) <= 0)) {
+      amountEl.value = fee;
+    }
+  }
+  renderAdvanceTabBookingLinkCard(target, booking);
+}
+
+function clearAdvanceTabBookingLink(target) {
+  const ids = advanceTabFieldIds(target);
+  const bookingIdEl = document.getElementById(ids.bookingId);
+  if(bookingIdEl) bookingIdEl.value = '';
+  renderAdvanceTabBookingLinkCard(target, null);
+}
+
+function onAdvanceTabPatientNameInput(target) {
+  const ids = advanceTabFieldIds(target);
+  const bookingIdEl = document.getElementById(ids.bookingId);
+  if(bookingIdEl && bookingIdEl.value) {
+    bookingIdEl.value = '';
+    renderAdvanceTabBookingLinkCard(target, null);
+  }
+}
+
+function initAdvanceTabBookingPickerDates() {
+  const fromEl = document.getElementById('atPickDateFrom');
+  const toEl = document.getElementById('atPickDateTo');
+  const staffEl = document.getElementById('atPickStaff');
+  if(!fromEl || !toEl) return;
+  const today = new Date();
+  const from = new Date(today);
+  from.setDate(from.getDate() - 60);
+  const to = new Date(today);
+  to.setDate(to.getDate() + 60);
+  fromEl.value = fmtLocal(from);
+  toEl.value = fmtLocal(to);
+  if(staffEl && staffEl.options.length === 1) {
+    STAFFS.forEach(st => staffEl.add(new Option(st, st)));
+  }
+}
+
+function openAdvanceTabBookingPicker(target) {
+  atBookingPickerTarget = target === 'edit' ? 'edit' : 'create';
+  const ids = advanceTabFieldIds(atBookingPickerTarget);
+  const keywordEl = document.getElementById('atPickKeyword');
+  const staffEl = document.getElementById('atPickStaff');
+  const patientName = (document.getElementById(ids.patientName)?.value || '').trim();
+  const staff = document.getElementById(ids.staff)?.value || '';
+
+  initAdvanceTabBookingPickerDates();
+  if(keywordEl) keywordEl.value = patientName;
+  if(staffEl && staff) staffEl.value = staff;
+
+  const listEl = document.getElementById('atBookingPickList');
+  if(listEl) listEl.innerHTML = '<div class="at-booking-pick-empty">検索中...</div>';
+  openStackedMod('atBookingPickMod');
+  searchAdvanceTabBookings();
+}
+
+async function searchAdvanceTabBookings() {
+  const listEl = document.getElementById('atBookingPickList');
+  if(!listEl) return;
+
+  const keyword = (document.getElementById('atPickKeyword')?.value || '').trim();
+  const staff = document.getElementById('atPickStaff')?.value || '';
+  const dateFrom = document.getElementById('atPickDateFrom')?.value || '';
+  const dateTo = document.getElementById('atPickDateTo')?.value || '';
+
+  if(!dateFrom || !dateTo) {
+    listEl.innerHTML = '<div class="at-booking-pick-empty">予約日の期間を選択してください</div>';
+    return;
+  }
+
+  listEl.innerHTML = '<div class="at-booking-pick-empty">検索中...</div>';
+  try {
+    let query = db.from('bookings')
+      .select('id, date, start_time, end_time, staff, patient_name, phone, fee, status')
+      .gte('date', dateFrom)
+      .lte('date', dateTo)
+      .or('status.is.null,status.neq.キャンセル')
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: true })
+      .limit(100);
+
+    if(staff) query = query.eq('staff', staff);
+
+    const { data, error } = await query;
+    if(error) throw error;
+
+    let rows = data || [];
+    if(keyword) {
+      const k = keyword.toLowerCase();
+      rows = rows.filter(b =>
+        (b.patient_name || '').toLowerCase().includes(k) ||
+        (b.phone || '').toLowerCase().includes(k)
+      );
+    }
+
+    if(rows.length === 0) {
+      atBookingPickerResults = [];
+      listEl.innerHTML = '<div class="at-booking-pick-empty">該当する予約がありません</div>';
+      return;
+    }
+
+    atBookingPickerResults = rows;
+    listEl.innerHTML = rows.map((b, idx) => {
+      const label = escapeHtml(formatAdvanceTabBookingLabel(b));
+      const phone = escapeHtml(b.phone || '');
+      return `
+        <div class="at-booking-pick-item" role="button" tabindex="0"
+          onclick="selectAdvanceTabBookingByIndex(${idx})"
+          onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); selectAdvanceTabBookingByIndex(${idx}); }">
+          <div class="pick-main">${label}</div>
+          <div class="pick-sub">${phone ? '電話: ' + phone : '電話番号なし'}</div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div class="at-booking-pick-empty">予約の取得に失敗しました</div>';
+    console.warn('予約選択検索エラー:', e.message || e);
+  }
+}
+
+function selectAdvanceTabBookingByIndex(idx) {
+  const booking = atBookingPickerResults[idx];
+  if(!booking || !booking.id) return;
+  setAdvanceTabBookingLink(atBookingPickerTarget, booking);
+  closeStackedMod('atBookingPickMod');
+  showToast('予約を紐づけました');
+}
+
+async function fetchBookingForAdvanceTabLink(bookingId) {
+  if(!bookingId) return null;
+  const { data, error } = await db.from('bookings')
+    .select('id, date, start_time, end_time, staff, patient_name, fee, status')
+    .eq('id', bookingId)
+    .single();
+  if(error || !data) return null;
+  if(data.status === 'キャンセル') return null;
+  return data;
+}
+
+async function validateAdvanceTabBookingLink(bookingId) {
+  if(!bookingId) return { ok: true, booking: null };
+  const booking = await fetchBookingForAdvanceTabLink(bookingId);
+  if(!booking) {
+    return { ok: false, message: '紐づけ予約が見つからないか、キャンセル済みです。予約を選び直してください。' };
+  }
+  return { ok: true, booking };
+}
+
+async function insertAdvanceTabPaymentRow(payload) {
+  let current = { ...payload };
+  let res = await db.from('advance_tab_payments').insert(current);
+  if(res.error && current.booking_id && String(res.error.message || '').includes('booking_id')) {
+    const { booking_id, ...rest } = current;
+    current = rest;
+    res = await db.from('advance_tab_payments').insert(current);
+  }
+  if(res.error && current.patient_name && String(res.error.message || '').includes('patient_name')) {
+    const { patient_name, ...rest } = current;
+    current = rest;
+    res = await db.from('advance_tab_payments').insert(current);
+  }
+  return res;
+}
+
+async function updateAdvanceTabPaymentRow(id, payload) {
+  let current = { ...payload };
+  let res = await db.from('advance_tab_payments').update(current).eq('id', id);
+  if(res.error && current.booking_id && String(res.error.message || '').includes('booking_id')) {
+    const { booking_id, ...rest } = current;
+    current = rest;
+    res = await db.from('advance_tab_payments').update(current).eq('id', id);
+  }
+  if(res.error && current.patient_name && String(res.error.message || '').includes('patient_name')) {
+    const { patient_name, ...rest } = current;
+    current = rest;
+    res = await db.from('advance_tab_payments').update(current).eq('id', id);
+  }
+  return res;
+}
+
 function openAdvanceTabModal() {
   advanceTabCreateType = '先払い';
   document.getElementById('atDate').value = fmtLocal(new Date());
@@ -5356,9 +5698,32 @@ function openAdvanceTabModal() {
   document.getElementById('atAmount').value = '';
   document.getElementById('atMethod').value = '';
   document.getElementById('atMemo').value = '';
+  document.getElementById('atBookingId').value = '';
   populateAdvanceTabStaffSelect(document.getElementById('atStaff'), STAFFS[0] || '');
   selectAdvanceTabType('先払い');
+  renderAdvanceTabBookingLinkCard('create', null);
   openMod('advanceTabMod');
+}
+
+function openAdvanceTabModalFromCurrentBooking() {
+  if(!s.id) { showToast('予約が選択されていません'); return; }
+  const meta = s.detailBookingMeta || {};
+  const booking = {
+    id: s.id,
+    patient_name: (document.getElementById('editName')?.value || '').trim(),
+    staff: meta.staff || s.cur?.staff || '',
+    fee: Number(document.getElementById('editFee')?.value || 0),
+    date: meta.date || fmtLocal(s.date),
+    start_time: meta.start_time || s.cur?.time || '',
+    end_time: meta.end_time || ''
+  };
+  if(!booking.patient_name) {
+    showToast('患者名が空です');
+    return;
+  }
+  closeAll();
+  openAdvanceTabModal();
+  setAdvanceTabBookingLink('create', booking);
 }
 
 function initAdvanceTabPageDates() {
@@ -5400,12 +5765,19 @@ function selectAdvanceTabEditType(type) {
 async function fetchAdvanceTabPayments(from, to) {
   try {
     let res = await db.from('advance_tab_payments')
-      .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo, created_at')
+      .select('id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo, created_at')
       .gte('payment_date', from)
       .lte('payment_date', to)
       .is('deleted_at', null)
       .order('payment_date', { ascending: false });
-    if(res.error && String(res.error.message || '').includes('patient_name')) {
+    if(res.error && String(res.error.message || '').includes('booking_id')) {
+      res = await db.from('advance_tab_payments')
+        .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo, created_at')
+        .gte('payment_date', from)
+        .lte('payment_date', to)
+        .is('deleted_at', null)
+        .order('payment_date', { ascending: false });
+    } else if(res.error && String(res.error.message || '').includes('patient_name')) {
       res = await db.from('advance_tab_payments')
         .select('id, payment_date, staff, amount, payment_method, payment_type, memo, created_at')
         .gte('payment_date', from)
@@ -5417,16 +5789,36 @@ async function fetchAdvanceTabPayments(from, to) {
       if(String(res.error.message || '').includes('advance_tab_payments')) return [];
       throw res.error;
     }
-    return (res.data || []).map(r => ({ ...r, patient_name: r.patient_name || '' }));
+    const rows = (res.data || []).map(r => ({ ...r, patient_name: r.patient_name || '', booking_id: r.booking_id || '' }));
+    return enrichAdvanceTabRowsWithBookings(rows);
   } catch(e) {
     console.warn('先払い・つけ払い取得エラー:', e.message || e);
     return [];
   }
 }
 
+  }
+}
+
+async function enrichAdvanceTabRowsWithBookings(rows) {
+  const ids = [...new Set((rows || []).map(r => r.booking_id).filter(Boolean))];
+  if(!ids.length) return (rows || []).map(r => ({ ...r, linkedBooking: null }));
+  const { data, error } = await db.from('bookings')
+    .select('id, date, start_time, end_time, staff, patient_name, fee, status')
+    .in('id', ids);
+  if(error) return (rows || []).map(r => ({ ...r, linkedBooking: null }));
+  const map = {};
+  (data || []).forEach(b => { map[b.id] = b; });
+  return (rows || []).map(r => ({
+    ...r,
+    linkedBooking: r.booking_id ? (map[r.booking_id] || null) : null
+  }));
+}
+
 async function saveAdvanceTabPayment() {
   const paymentDate = document.getElementById('atDate').value;
-  const patientName = (document.getElementById('atPatientName').value || '').trim();
+  let patientName = (document.getElementById('atPatientName').value || '').trim();
+  const bookingId = (document.getElementById('atBookingId').value || '').trim() || null;
   const staff = document.getElementById('atStaff').value;
   const amount = Number(document.getElementById('atAmount').value);
   const paymentMethod = document.getElementById('atMethod').value;
@@ -5434,7 +5826,6 @@ async function saveAdvanceTabPayment() {
   const paymentType = advanceTabCreateType;
 
   if(!paymentDate) { showToast('支払日を選択してください'); return; }
-  if(!patientName) { showToast('患者名を入力してください'); return; }
   if(!staff) { showToast('スタッフを選択してください'); return; }
   if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
   if(!paymentMethod) { showToast('支払方法を選択してください'); return; }
@@ -5442,11 +5833,17 @@ async function saveAdvanceTabPayment() {
 
   showLoad(true);
   try {
+    const linkCheck = await validateAdvanceTabBookingLink(bookingId);
+    if(!linkCheck.ok) { showToast(linkCheck.message); return; }
+    if(linkCheck.booking) patientName = linkCheck.booking.patient_name || patientName;
+    if(!patientName) { showToast('患者名を入力するか、予約を選択してください'); return; }
+
     const { data: { session } } = await db.auth.getSession();
     const userEmail = session?.user?.email || 'unknown';
     const payload = {
       payment_date: paymentDate,
       patient_name: patientName,
+      booking_id: bookingId,
       staff: staff,
       amount: amount,
       payment_method: paymentMethod,
@@ -5455,11 +5852,7 @@ async function saveAdvanceTabPayment() {
       created_by: userEmail,
       created_at: new Date().toISOString()
     };
-    let { error } = await db.from('advance_tab_payments').insert(payload);
-    if(error && String(error.message || '').includes('patient_name')) {
-      const { patient_name, ...fallbackPayload } = payload;
-      ({ error } = await db.from('advance_tab_payments').insert(fallbackPayload));
-    }
+    const { error } = await insertAdvanceTabPaymentRow(payload);
     if(error) throw error;
     closeAll();
     showToast(`${paymentType}（${patientName}様）¥${amount.toLocaleString()} を登録しました`);
@@ -5472,6 +5865,10 @@ async function saveAdvanceTabPayment() {
     }
     if(String(e?.message || '').includes('patient_name')) {
       showToast('DBに患者名カラムがありません。supabase_advance_tab_payments_patient_name.sql を実行してください');
+      return;
+    }
+    if(String(e?.message || '').includes('booking_id')) {
+      showToast('DBに予約紐づけカラムがありません。supabase_advance_tab_payments_booking_id.sql を実行してください');
       return;
     }
     showToast('登録に失敗しました: ' + e.message);
@@ -5537,6 +5934,7 @@ async function loadAdvanceTabPage() {
           <tr>
             <th>支払日</th>
             <th>患者名</th>
+            <th>予約日時</th>
             <th>分類</th>
             <th>スタッフ</th>
             <th>金額</th>
@@ -5550,10 +5948,14 @@ async function loadAdvanceTabPage() {
       const typeCls = row.payment_type === 'つけ払い' ? 'tab' : 'prepay';
       const methodLabel = row.payment_method === 'ペイペイ' ? 'PayPay' : (row.payment_method || '-');
       const safeId = Number(row.id) || 0;
+      const bookingLabel = row.linkedBooking
+        ? `${row.linkedBooking.date || ''} ${row.linkedBooking.start_time || ''}`
+        : (row.booking_id ? '（予約不明）' : '-');
       html += `
         <tr class="advance-tab-row-clickable" onclick="openAdvanceTabEdit(${safeId})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); openAdvanceTabEdit(${safeId}); }">
           <td style="font-family:var(--font-en); font-weight:600;">${escapeHtml(row.payment_date || '')}</td>
           <td style="font-weight:700;">${escapeHtml(row.patient_name || '-')}</td>
+          <td style="font-size:11px; color:var(--sub);">${escapeHtml(bookingLabel)}</td>
           <td><span class="advance-type-badge ${typeCls}">${escapeHtml(row.payment_type || '')}</span></td>
           <td style="font-weight:700;">${escapeHtml(row.staff || '')}</td>
           <td style="font-family:var(--font-en); font-weight:700;">¥${Number(row.amount || 0).toLocaleString()}</td>
@@ -5580,11 +5982,17 @@ async function openAdvanceTabEdit(id) {
   showLoad(true);
   try {
     let res = await db.from('advance_tab_payments')
-      .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo')
+      .select('id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo')
       .eq('id', id)
       .is('deleted_at', null)
       .single();
-    if(res.error && String(res.error.message || '').includes('patient_name')) {
+    if(res.error && String(res.error.message || '').includes('booking_id')) {
+      res = await db.from('advance_tab_payments')
+        .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single();
+    } else if(res.error && String(res.error.message || '').includes('patient_name')) {
       res = await db.from('advance_tab_payments')
         .select('id, payment_date, staff, amount, payment_method, payment_type, memo')
         .eq('id', id)
@@ -5598,11 +6006,21 @@ async function openAdvanceTabEdit(id) {
     document.getElementById('atEditId').value = data.id;
     document.getElementById('atEditDate').value = data.payment_date || '';
     document.getElementById('atEditPatientName').value = data.patient_name || '';
+    document.getElementById('atEditBookingId').value = data.booking_id || '';
     document.getElementById('atEditAmount').value = data.amount || '';
     document.getElementById('atEditMethod').value = data.payment_method || '';
     document.getElementById('atEditMemo').value = data.memo || '';
     populateAdvanceTabStaffSelect(document.getElementById('atEditStaff'), data.staff || '');
     selectAdvanceTabEditType(data.payment_type === 'つけ払い' ? 'つけ払い' : '先払い');
+
+    let linkedBooking = null;
+    if(data.booking_id) linkedBooking = await fetchBookingForAdvanceTabLink(data.booking_id);
+    if(linkedBooking) {
+      setAdvanceTabBookingLink('edit', linkedBooking);
+    } else {
+      document.getElementById('atEditBookingId').value = '';
+      renderAdvanceTabBookingLinkCard('edit', null);
+    }
     openMod('advanceTabEditMod');
   } catch(e) {
     showToast('データの取得に失敗しました: ' + e.message);
@@ -5614,7 +6032,8 @@ async function openAdvanceTabEdit(id) {
 async function saveAdvanceTabEdit() {
   const id = document.getElementById('atEditId').value;
   const paymentDate = document.getElementById('atEditDate').value;
-  const patientName = (document.getElementById('atEditPatientName').value || '').trim();
+  let patientName = (document.getElementById('atEditPatientName').value || '').trim();
+  const bookingId = (document.getElementById('atEditBookingId').value || '').trim() || null;
   const staff = document.getElementById('atEditStaff').value;
   const amount = Number(document.getElementById('atEditAmount').value);
   const paymentMethod = document.getElementById('atEditMethod').value;
@@ -5623,33 +6042,38 @@ async function saveAdvanceTabEdit() {
 
   if(!id) return;
   if(!paymentDate) { showToast('支払日を選択してください'); return; }
-  if(!patientName) { showToast('患者名を入力してください'); return; }
   if(!staff) { showToast('スタッフを選択してください'); return; }
   if(!amount || amount <= 0) { showToast('金額を正しく入力してください'); return; }
   if(!paymentMethod) { showToast('支払方法を選択してください'); return; }
 
   showLoad(true);
   try {
+    const linkCheck = await validateAdvanceTabBookingLink(bookingId);
+    if(!linkCheck.ok) { showToast(linkCheck.message); return; }
+    if(linkCheck.booking) patientName = linkCheck.booking.patient_name || patientName;
+    if(!patientName) { showToast('患者名を入力するか、予約を選択してください'); return; }
+
     const updatePayload = {
       payment_date: paymentDate,
       patient_name: patientName,
+      booking_id: bookingId,
       staff: staff,
       amount: amount,
       payment_method: paymentMethod,
       payment_type: paymentType,
       memo: memo
     };
-    let { error } = await db.from('advance_tab_payments').update(updatePayload).eq('id', id);
-    if(error && String(error.message || '').includes('patient_name')) {
-      const { patient_name, ...fallbackPayload } = updatePayload;
-      ({ error } = await db.from('advance_tab_payments').update(fallbackPayload).eq('id', id));
-    }
+    const { error } = await updateAdvanceTabPaymentRow(id, updatePayload);
     if(error) throw error;
     closeAll();
     showToast('更新しました');
     if(currentTab === 'advancetab') loadAdvanceTabPage();
     if(currentTab === 'dashboard') loadDashboard();
   } catch(e) {
+    if(String(e?.message || '').includes('booking_id')) {
+      showToast('DBに予約紐づけカラムがありません。supabase_advance_tab_payments_booking_id.sql を実行してください');
+      return;
+    }
     showToast('更新に失敗しました: ' + e.message);
   } finally {
     showLoad(false);

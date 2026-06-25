@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS advance_tab_payments (
   id BIGSERIAL PRIMARY KEY,
   payment_date DATE NOT NULL,
   patient_name TEXT NOT NULL DEFAULT '',
+  booking_id TEXT,
   staff TEXT NOT NULL,
   amount INTEGER NOT NULL CHECK (amount > 0),
   payment_method TEXT NOT NULL,
@@ -22,10 +23,12 @@ CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_payment_date ON advance_tab_
 CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_staff ON advance_tab_payments(staff);
 CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_payment_type ON advance_tab_payments(payment_type);
 CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_deleted_at ON advance_tab_payments(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_advance_tab_payments_booking_id ON advance_tab_payments(booking_id);
 
 COMMENT ON TABLE advance_tab_payments IS '先払い・つけ払い管理 - 支払日にスタッフ売上へ計上';
 COMMENT ON COLUMN advance_tab_payments.payment_date IS '支払日（売上カウント日）';
 COMMENT ON COLUMN advance_tab_payments.patient_name IS '患者名';
+COMMENT ON COLUMN advance_tab_payments.booking_id IS '紐づけ予約ID（bookings.id）';
 COMMENT ON COLUMN advance_tab_payments.staff IS '担当スタッフ名';
 COMMENT ON COLUMN advance_tab_payments.amount IS '金額（円）';
 COMMENT ON COLUMN advance_tab_payments.payment_method IS '支払方法: 現金, クレジット, ペイペイ, マッサージ券 など';
