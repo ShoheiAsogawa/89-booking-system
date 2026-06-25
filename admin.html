@@ -3291,12 +3291,13 @@ function loadPaymentDetailFromBooking(d) {
   const method = normalizeDisplayPaymentMethod(d.payment_method || '');
   const effective = getEffectivePaymentBreakdown(d);
   if(effective) {
-    s.currentPaymentBreakdown = effective.map(r => ({
+    const filtered = effective.filter(r => !isLegacyTsukePaymentMethod(r.method || ''));
+    s.currentPaymentBreakdown = filtered.map(r => ({
       method: normalizeDisplayPaymentMethod(r.method || '') || '現金',
       amount: Number(r.amount || 0),
       payment_date: String(r.payment_date || '')
     }));
-    s.isSplitPayment = effective.length >= 2;
+    s.isSplitPayment = filtered.length >= 2;
   } else {
     s.currentPaymentBreakdown = [];
     s.isSplitPayment = false;
