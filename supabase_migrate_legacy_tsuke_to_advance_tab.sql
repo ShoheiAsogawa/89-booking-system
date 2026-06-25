@@ -141,7 +141,7 @@ WHERE b.id = sub.id
 UPDATE bookings b
 SET
   payment_method = sub.only_method,
-  payment_date = NULLIF(sub.only_date, ''),
+  payment_date = NULLIF(sub.only_date, '')::date,
   payment_breakdown = NULL
 FROM (
   SELECT
