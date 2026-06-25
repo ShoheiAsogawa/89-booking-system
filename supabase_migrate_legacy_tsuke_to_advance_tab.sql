@@ -71,8 +71,8 @@ SELECT
 FROM bookings b
 CROSS JOIN LATERAL jsonb_array_elements(
   CASE
-    WHEN b.payment_breakdown IS NULL OR TRIM(b.payment_breakdown::text) = '' THEN '[]'::jsonb
-    WHEN jsonb_typeof(b.payment_breakdown::jsonb) = 'array' THEN b.payment_breakdown::jsonb
+    WHEN b.payment_breakdown IS NULL THEN '[]'::jsonb
+    WHEN jsonb_typeof(b.payment_breakdown) = 'array' THEN b.payment_breakdown
     ELSE '[]'::jsonb
   END
 ) AS row(elem)
@@ -105,7 +105,7 @@ WHERE COALESCE(b.status, '') <> 'キャンセル'
 
 -- 分割決済: 内訳からツケ払い行を除去し、残り1行なら単一決済へ昇格
 UPDATE bookings b
-SET payment_breakdown = sub.new_breakdown::text
+SET payment_breakdown = sub.new_breakdown
 FROM (
   SELECT
     bk.id,
@@ -124,8 +124,8 @@ FROM (
   FROM bookings bk
   CROSS JOIN LATERAL jsonb_array_elements(
     CASE
-      WHEN bk.payment_breakdown IS NULL OR TRIM(bk.payment_breakdown::text) = '' THEN '[]'::jsonb
-      WHEN jsonb_typeof(bk.payment_breakdown::jsonb) = 'array' THEN bk.payment_breakdown::jsonb
+      WHEN bk.payment_breakdown IS NULL THEN '[]'::jsonb
+      WHEN jsonb_typeof(bk.payment_breakdown) = 'array' THEN bk.payment_breakdown
       ELSE '[]'::jsonb
     END
   ) AS elem
@@ -147,9 +147,21 @@ FROM (
     elem->>'method' AS only_method,
     COALESCE(elem->>'payment_date', '') AS only_date
   FROM bookings bk
-  CROSS JOIN LATERAL jsonb_array_elements(bk.payment_breakdown::jsonb) AS elem
+  CROSS JOIN LATERAL jsonb_array_elements(
+    CASE
+      WHEN bk.payment_breakdown IS NULL THEN '[]'::jsonb
+      WHEN jsonb_typeof(bk.payment_breakdown) = 'array' THEN bk.payment_breakdown
+      ELSE '[]'::jsonb
+    END
+  ) AS elem
   WHERE bk.payment_method = '分割'
-    AND jsonb_array_length(bk.payment_breakdown::jsonb) = 1
+    AND jsonb_array_length(
+      CASE
+        WHEN bk.payment_breakdown IS NULL THEN '[]'::jsonb
+        WHEN jsonb_typeof(bk.payment_breakdown) = 'array' THEN bk.payment_breakdown
+        ELSE '[]'::jsonb
+      END
+    ) = 1
 ) sub
 WHERE b.id = sub.id;
 
@@ -161,8 +173,8 @@ SET
 WHERE b.payment_method = '分割'
   AND (
     b.payment_breakdown IS NULL
-    OR TRIM(b.payment_breakdown::text) IN ('', '[]')
-    OR jsonb_array_length(b.payment_breakdown::jsonb) = 0
+    OR b.payment_breakdown = '[]'::jsonb
+    OR jsonb_array_length(b.payment_breakdown) = 0
   );
 
 COMMIT;
