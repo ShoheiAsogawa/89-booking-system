@@ -1,6 +1,7 @@
 -- =====================================================
 -- 旧「ツケ払い」予約を advance_tab_payments（新つけ払い）へ移行
 -- =====================================================
+-- ※ payment_breakdown 列は JSONB 型です（::text へのキャストは不要）
 -- 実行前: supabase_advance_tab_payments.sql を実行済みであること
 -- 効果:
 --   1. 予約の payment_method=ツケ払い（別名含む）を advance_tab_payments に移す
@@ -105,7 +106,7 @@ WHERE COALESCE(b.status, '') <> 'キャンセル'
 
 -- 分割決済: 内訳からツケ払い行を除去し、残り1行なら単一決済へ昇格
 UPDATE bookings b
-SET payment_breakdown = sub.new_breakdown
+SET payment_breakdown = sub.new_breakdown::jsonb
 FROM (
   SELECT
     bk.id,
@@ -116,8 +117,9 @@ FROM (
           'amount', (elem->>'amount')::int,
           'payment_date', COALESCE(elem->>'payment_date', '')
         )
+        ORDER BY elem->>'method'
       ) FILTER (
-        WHERE elem->>'method' NOT IN ('ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い')
+        WHERE COALESCE(elem->>'method', '') NOT IN ('ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い')
       ),
       '[]'::jsonb
     ) AS new_breakdown
