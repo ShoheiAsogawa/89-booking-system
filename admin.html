@@ -32,13 +32,21 @@
       margin: 0; padding: 24px; background: var(--bg); color: var(--text);
       font-family: var(--font-jp); font-size: 13px; -webkit-font-smoothing: antialiased;
     }
-    .cursor-89 {
-      display: none; /* カーソル追従アニメーションを非表示 */
-      position: fixed; pointer-events: none; z-index: 9999;
-      font-family: Impact, var(--font-en); font-size: 14px; font-weight: 900;
-      color: var(--text); line-height: 1; opacity: 0.12;
-      transform: translate(-50%, -50%);
+    @media (hover: hover) and (pointer: fine) {
+      body.admin-large-cursor,
+      body.admin-large-cursor * {
+        cursor: none !important;
+      }
     }
+    .cursor-89 {
+      display: none; /* Hidden until the mouse moves. */
+      position: fixed; left: 0; top: 0; pointer-events: none; z-index: 9999;
+      width: 36px; height: 48px; opacity: 0; transform: translate3d(0,0,0);
+      filter: drop-shadow(0 2px 4px rgba(15,23,42,0.28));
+      transition: opacity 0.12s ease;
+    }
+    .cursor-89.is-visible { display: block; opacity: 1; }
+    .cursor-89 svg { display: block; width: 100%; height: 100%; }
     .en { font-family: var(--font-en); font-weight: 500; font-size: 0.85em; opacity: 0.5; margin-left: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
     .hidden { display: none !important; }
     .flex { display: flex; align-items: center; }
@@ -3580,7 +3588,11 @@ async function loadDashboard() {
   }).map(b => b.id));
   const paidCount = fullySettledBookingIds.size;
   const totalCount = listInRange.length;
-  const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length;
+  const advanceTabPaidCount = advanceTabRows.filter(row => {
+    const method = normalizeDisplayPaymentMethod(row.payment_method || '');
+    return !isVoucherPaymentMethod(method) && Number(row.amount || 0) > 0;
+  }).length;
+  const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length + advanceTabPaidCount;
   const avg = contribAvg ? Math.round(totalSales / contribAvg) : 0;
   
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
@@ -3588,7 +3600,7 @@ async function loadDashboard() {
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
   
   const salesDesc = document.querySelector('.kpi-sales .kpi-desc');
-  if(salesDesc) salesDesc.textContent = `売上合計（決済済み ${paidCount}件・マッサージ券除く）`;
+  if(salesDesc) salesDesc.textContent = `売上合計（予約決済 ${paidCount}件 + 先払い/つけ払い ${advanceTabPaidCount}件・マッサージ券除く）`;
   const countDesc = document.querySelector('.kpi-bookings .kpi-desc');
   if(countDesc) countDesc.textContent = `決済済み / 全${totalCount}件`;
   const avgDesc = document.querySelector('.kpi-avg .kpi-desc');
@@ -4865,6 +4877,14 @@ async function loadExpensesPage() {
       list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
       error = r2.error;
     }
+    if(error && String(error.message || '').includes('deleted_at')) {
+      let q3 = db.from('expenses').select('id, date, category, item_name, amount, staff, memo, created_at').gte('date', fromVal).lte('date', toVal);
+      if(categoryVal) q3 = q3.eq('category', categoryVal);
+      if(staffVal) q3 = q3.eq('staff', staffVal);
+      const r3 = await q3;
+      list = (r3.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
+      error = r3.error;
+    }
     if(error) throw error;
     let expenses = list || [];
     
@@ -5161,18 +5181,28 @@ const EXPENSE_CATEGORY_CLASSES = {
 
 async function loadExpensesDashboard(start, end, paidRevenue, paymentFees) {
   try {
-    let result = await db.from('expenses')
-      .select('id, date, category, item_name, amount, staff, memo, flow, inflow_method, created_by, created_at')
-      .gte('date', start)
-      .lte('date', end)
-      .is('deleted_at', null)
-      .order('date', { ascending: false });
-    if(result.error) {
-      result = await db.from('expenses')
-        .select('id, date, category, item_name, amount, staff, memo, inflow_method, created_by, created_at')
-        .gte('date', start)
-        .lte('date', end)
-        .order('date', { ascending: false });
+    const selectVariants = [
+      'id, date, category, item_name, amount, staff, memo, flow, inflow_method, created_by, created_at',
+      'id, date, category, item_name, amount, staff, memo, inflow_method, created_by, created_at',
+      'id, date, category, item_name, amount, staff, memo, flow, created_by, created_at',
+      'id, date, category, item_name, amount, staff, memo, created_by, created_at'
+    ];
+    let result = { data: [], error: null };
+    for(const useDeletedFilter of [true, false]) {
+      for(const cols of selectVariants) {
+        let query = db.from('expenses')
+          .select(cols)
+          .gte('date', start)
+          .lte('date', end);
+        if(useDeletedFilter) query = query.is('deleted_at', null);
+        result = await query.order('date', { ascending: false });
+        if(!result.error) break;
+        const msg = String(result.error.message || '');
+        if(useDeletedFilter && msg.includes('deleted_at')) break;
+        if(!msg.includes('flow') && !msg.includes('inflow_method')) break;
+      }
+      if(!result.error) break;
+      if(!String(result.error.message || '').includes('deleted_at')) break;
     }
     if(result.error) throw result.error;
     const expenseList = (result.data || []).map(e => ({
@@ -5350,6 +5380,29 @@ async function exportExpensesToExcel() {
       const r2 = await q2;
       list = (r2.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
       error = r2.error;
+    }
+    if(error && String(error.message || '').includes('inflow_method')) {
+      let q3 = db.from('expenses')
+        .select('id, date, category, item_name, amount, staff, memo, created_at')
+        .gte('date', fromVal)
+        .lte('date', toVal)
+        .is('deleted_at', null);
+      if(categoryVal) q3 = q3.eq('category', categoryVal);
+      if(staffVal) q3 = q3.eq('staff', staffVal);
+      const r3 = await q3;
+      list = (r3.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
+      error = r3.error;
+    }
+    if(error && String(error.message || '').includes('deleted_at')) {
+      let q4 = db.from('expenses')
+        .select('id, date, category, item_name, amount, staff, memo, created_at')
+        .gte('date', fromVal)
+        .lte('date', toVal);
+      if(categoryVal) q4 = q4.eq('category', categoryVal);
+      if(staffVal) q4 = q4.eq('staff', staffVal);
+      const r4 = await q4;
+      list = (r4.data || []).map(e => ({ ...e, flow: e.flow || 'out', inflow_method: e.inflow_method || null }));
+      error = r4.error;
     }
     if(error) throw error;
 
@@ -5799,26 +5852,29 @@ function selectAdvanceTabEditType(type) {
 
 async function fetchAdvanceTabPayments(from, to) {
   try {
-    let res = await db.from('advance_tab_payments')
-      .select('id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo, created_at')
-      .gte('payment_date', from)
-      .lte('payment_date', to)
-      .is('deleted_at', null)
-      .order('payment_date', { ascending: false });
-    if(res.error && String(res.error.message || '').includes('booking_id')) {
-      res = await db.from('advance_tab_payments')
-        .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo, created_at')
-        .gte('payment_date', from)
-        .lte('payment_date', to)
-        .is('deleted_at', null)
-        .order('payment_date', { ascending: false });
-    } else if(res.error && String(res.error.message || '').includes('patient_name')) {
-      res = await db.from('advance_tab_payments')
-        .select('id, payment_date, staff, amount, payment_method, payment_type, memo, created_at')
-        .gte('payment_date', from)
-        .lte('payment_date', to)
-        .is('deleted_at', null)
-        .order('payment_date', { ascending: false });
+    const selectVariants = [
+      'id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo, created_at',
+      'id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo, created_at',
+      'id, payment_date, staff, booking_id, amount, payment_method, payment_type, memo, created_at',
+      'id, payment_date, staff, amount, payment_method, payment_type, memo, created_at'
+    ];
+    let res = { data: [], error: null };
+    for(const useDeletedFilter of [true, false]) {
+      for(const cols of selectVariants) {
+        let query = db.from('advance_tab_payments')
+          .select(cols)
+          .gte('payment_date', from)
+          .lte('payment_date', to);
+        if(useDeletedFilter) query = query.is('deleted_at', null);
+        res = await query.order('payment_date', { ascending: false });
+        if(!res.error) break;
+        const msg = String(res.error.message || '');
+        if(msg.includes('advance_tab_payments')) return [];
+        if(useDeletedFilter && msg.includes('deleted_at')) break;
+        if(!msg.includes('booking_id') && !msg.includes('patient_name')) break;
+      }
+      if(!res.error) break;
+      if(!String(res.error.message || '').includes('deleted_at')) break;
     }
     if(res.error) {
       if(String(res.error.message || '').includes('advance_tab_payments')) return [];
@@ -6013,23 +6069,27 @@ function refreshAdvanceTabPage() {
 async function openAdvanceTabEdit(id) {
   showLoad(true);
   try {
-    let res = await db.from('advance_tab_payments')
-      .select('id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo')
-      .eq('id', id)
-      .is('deleted_at', null)
-      .single();
-    if(res.error && String(res.error.message || '').includes('booking_id')) {
-      res = await db.from('advance_tab_payments')
-        .select('id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo')
-        .eq('id', id)
-        .is('deleted_at', null)
-        .single();
-    } else if(res.error && String(res.error.message || '').includes('patient_name')) {
-      res = await db.from('advance_tab_payments')
-        .select('id, payment_date, staff, amount, payment_method, payment_type, memo')
-        .eq('id', id)
-        .is('deleted_at', null)
-        .single();
+    const selectVariants = [
+      'id, payment_date, staff, patient_name, booking_id, amount, payment_method, payment_type, memo',
+      'id, payment_date, staff, patient_name, amount, payment_method, payment_type, memo',
+      'id, payment_date, staff, booking_id, amount, payment_method, payment_type, memo',
+      'id, payment_date, staff, amount, payment_method, payment_type, memo'
+    ];
+    let res = { data: null, error: null };
+    for(const useDeletedFilter of [true, false]) {
+      for(const cols of selectVariants) {
+        let query = db.from('advance_tab_payments')
+          .select(cols)
+          .eq('id', id);
+        if(useDeletedFilter) query = query.is('deleted_at', null);
+        res = await query.single();
+        if(!res.error) break;
+        const msg = String(res.error.message || '');
+        if(useDeletedFilter && msg.includes('deleted_at')) break;
+        if(!msg.includes('booking_id') && !msg.includes('patient_name')) break;
+      }
+      if(!res.error) break;
+      if(!String(res.error.message || '').includes('deleted_at')) break;
     }
     if(res.error) throw res.error;
     const data = res.data;
@@ -6136,22 +6196,22 @@ async function deleteAdvanceTabPayment() {
 (function() {
   const el = document.createElement('div');
   el.className = 'cursor-89';
-  el.textContent = '89';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = `
+    <svg viewBox="-100 -150 200 290" focusable="false" aria-hidden="true">
+      <path d="m -58.588,-126.743 -17.59,186.51 53.55,-38.835 38.776,105.81 L 49.656,115.02 11.025,9.6 76.178,6.4682 Z" transform="translate(-16 20)" fill="#A7A7A7" stroke="#A7A7A7" stroke-width="4" stroke-linejoin="round"/>
+      <path d="m -58.588,-126.743 -17.59,186.51 53.55,-38.835 38.776,105.81 L 49.656,115.02 11.025,9.6 76.178,6.4682 Z" fill="#FFFFFF" stroke="#000000" stroke-width="10" stroke-linejoin="round"/>
+    </svg>
+  `;
   document.body.appendChild(el);
-  let x = 0, y = 0, targetX = 0, targetY = 0;
-  const speed = 0.002;
+  document.body.classList.add('admin-large-cursor');
   document.addEventListener('mousemove', function(e) {
-    targetX = e.clientX;
-    targetY = e.clientY;
+    el.classList.add('is-visible');
+    el.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
   });
-  function tick() {
-    x += (targetX - x) * speed;
-    y += (targetY - y) * speed;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    requestAnimationFrame(tick);
-  }
-  tick();
+  document.addEventListener('mouseleave', function() {
+    el.classList.remove('is-visible');
+  });
 })();
 </script>
 </body>
