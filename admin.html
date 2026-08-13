@@ -54,18 +54,18 @@
 
     /* LAYOUT */
     .wrap { max-width: 1400px; margin: 0 auto; display: none; /* Login後に表示 */ }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; min-height: 48px; height: auto; gap: 16px; }
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 32px; min-height: 48px; height: auto; gap: 12px 16px; }
     
-    .header-left { display: flex; align-items: center; gap: 20px; min-width: 0; }
-    .header-right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .header-left { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 40px); min-width: 0; flex: 1 1 auto; }
+    .header-right { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     
-    h1 { font-family: Impact, var(--font-en); font-size: 20px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); flex-shrink: 0; }
+    h1 { font-family: Impact, var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); flex-shrink: 0; }
     .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
-    .tabs { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; background: var(--surface); padding: 3px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .tabs { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; overflow-x: auto; }
     .tab { 
-      height: 32px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 11px; 
+      height: 36px; padding: 0 clamp(10px, 1.6vw, 24px); border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 12px; 
       color: var(--sub); border: none; background: transparent; transition: all 0.2s;
       display: inline-flex; align-items: center; justify-content: center;
       white-space: nowrap; word-break: keep-all; overflow: hidden; flex-shrink: 0; line-height: 1;
@@ -76,7 +76,7 @@
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
     .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
     .tab.tab-advancetab.active { background: #E8F0FE; color: #1D4ED8; }
-    .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; }
+    .header-right .btn { height: 40px; padding: 0 clamp(12px, 1.4vw, 20px); font-size: 12px; }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; word-break: keep-all; overflow: hidden; line-height: 1; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -602,15 +602,10 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
-    /* ノートPC幅でも上部メニューを1行に収める */
+    /* 狭い幅では余白と並びだけ縮める（フォントサイズは変えない） */
     @media (max-width: 1280px) {
       header { gap: 12px; margin-bottom: 24px; }
-      .header-left { gap: 12px; }
-      h1 { font-size: 18px; }
-      .badge { margin-left: 6px; padding: 2px 6px; }
-      .tab { height: 28px; padding: 0 8px; font-size: 10px; }
-      .header-right { gap: 6px; }
-      .header-right .btn { height: 32px; padding: 0 10px; font-size: 10px; }
+      .header-right { gap: 8px; }
     }
 
     /* ===== MOBILE RESPONSIVE ===== */
@@ -624,9 +619,9 @@
       .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
       h1 { font-size: 18px; }
       .tabs { width: 100%; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-      .tab { height: 32px; padding: 0 14px; font-size: 11px; }
+      .tab { height: 36px; padding: 0 14px; font-size: 12px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
-      .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
+      .header-right .btn { height: 40px; padding: 0 12px; font-size: 12px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
       
       /* Navigation */
       .nav { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
