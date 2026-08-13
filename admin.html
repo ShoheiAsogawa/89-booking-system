@@ -54,18 +54,20 @@
 
     /* LAYOUT */
     .wrap { max-width: 1400px; margin: 0 auto; display: none; /* Login後に表示 */ }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; height: 48px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; min-height: 48px; height: auto; gap: 16px; }
     
-    .header-left { display: flex; align-items: center; gap: 40px; }
+    .header-left { display: flex; align-items: center; gap: 20px; min-width: 0; }
+    .header-right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
     
-    h1 { font-family: Impact, var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); }
+    h1 { font-family: Impact, var(--font-en); font-size: 20px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); flex-shrink: 0; }
     .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
-    .tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .tabs { display: flex; flex-wrap: nowrap; gap: 2px; background: var(--surface); padding: 3px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
     .tab { 
-      padding: 8px 24px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 12px; 
-      color: var(--sub); border: none; background: transparent; transition: all 0.2s; 
+      padding: 6px 12px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 11px; 
+      color: var(--sub); border: none; background: transparent; transition: all 0.2s;
+      white-space: nowrap; flex-shrink: 0; line-height: 1.2;
     }
     .tab:hover { color: var(--text); }
     .tab.tab-schedule.active { background: #E8EAED; color: var(--text); }
@@ -73,6 +75,7 @@
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
     .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
     .tab.tab-advancetab.active { background: #E8F0FE; color: #1D4ED8; }
+    .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -596,6 +599,17 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
+    /* ノートPC幅でも上部メニューを1行に収める */
+    @media (max-width: 1280px) {
+      header { gap: 12px; margin-bottom: 24px; }
+      .header-left { gap: 12px; }
+      h1 { font-size: 18px; }
+      .badge { margin-left: 6px; padding: 2px 6px; }
+      .tab { padding: 6px 8px; font-size: 10px; }
+      .header-right { gap: 6px; }
+      .header-right .btn { height: 32px; padding: 0 10px; font-size: 10px; }
+    }
+
     /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -606,8 +620,8 @@
       header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
       .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
       h1 { font-size: 18px; }
-      .tabs { width: 100%; justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .tab { padding: 8px 14px; font-size: 11px; }
+      .tabs { width: 100%; justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+      .tab { padding: 8px 14px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
       .header-right .btn { padding: 8px 12px; font-size: 11px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
       
@@ -1020,7 +1034,7 @@
           <button class="tab tab-advancetab" onclick="switchTab('advancetab')">先払い・つけ払い</button>
         </div>
       </div>
-      <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
+      <div class="header-right">
         <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
         <button id="expenseBtn" class="btn btn-expense" onclick="openExpenseModal()">経費入力</button>
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
