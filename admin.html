@@ -63,11 +63,12 @@
     .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
 
     /* TABS */
-    .tabs { display: flex; flex-wrap: nowrap; gap: 2px; background: var(--surface); padding: 3px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .tabs { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; background: var(--surface); padding: 3px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); }
     .tab { 
-      padding: 6px 12px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 11px; 
+      height: 32px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 11px; 
       color: var(--sub); border: none; background: transparent; transition: all 0.2s;
-      white-space: nowrap; flex-shrink: 0; line-height: 1.2;
+      display: inline-flex; align-items: center; justify-content: center;
+      white-space: nowrap; word-break: keep-all; overflow: hidden; flex-shrink: 0; line-height: 1;
     }
     .tab:hover { color: var(--text); }
     .tab.tab-schedule.active { background: #E8EAED; color: var(--text); }
@@ -75,10 +76,10 @@
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
     .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
     .tab.tab-advancetab.active { background: #E8F0FE; color: #1D4ED8; }
-    .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+    .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; }
 
     /* BUTTONS */
-    .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
+    .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; word-break: keep-all; overflow: hidden; line-height: 1; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
     .btn:disabled, .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
@@ -99,6 +100,8 @@
       position: absolute; top: 24px; right: 24px;
       min-width: 100px; height: 40px; padding: 0 28px; border-radius: 99px;
       font-size: 13px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      white-space: nowrap; word-break: keep-all; overflow: hidden; line-height: 1;
       background: var(--surface); color: var(--text); border: 1px solid var(--line);
       box-shadow: 0 1px 2px rgba(0,0,0,0.06);
       transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -605,7 +608,7 @@
       .header-left { gap: 12px; }
       h1 { font-size: 18px; }
       .badge { margin-left: 6px; padding: 2px 6px; }
-      .tab { padding: 6px 8px; font-size: 10px; }
+      .tab { height: 28px; padding: 0 8px; font-size: 10px; }
       .header-right { gap: 6px; }
       .header-right .btn { height: 32px; padding: 0 10px; font-size: 10px; }
     }
@@ -620,10 +623,10 @@
       header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
       .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
       h1 { font-size: 18px; }
-      .tabs { width: 100%; justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-      .tab { padding: 8px 14px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+      .tabs { width: 100%; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+      .tab { height: 32px; padding: 0 14px; font-size: 11px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
-      .header-right .btn { padding: 8px 12px; font-size: 11px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
+      .header-right .btn { height: 36px; padding: 0 12px; font-size: 11px; flex: 1 1 calc(50% - 8px); min-width: 140px; }
       
       /* Navigation */
       .nav { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
@@ -746,7 +749,7 @@
       body { padding: 8px; }
       .wrap { margin: 0; }
       .tabs { flex-wrap: nowrap; border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .tab { flex: 0 0 auto; text-align: center; padding: 10px 8px; border-radius: 8px; white-space: nowrap; }
+      .tab { flex: 0 0 auto; text-align: center; height: 32px; padding: 0 8px; border-radius: 8px; }
       .header-right .btn { flex: 1 1 100%; min-width: 0; }
       .date-nav { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
       #viewSearch > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
