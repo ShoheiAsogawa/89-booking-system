@@ -735,7 +735,7 @@ const WORK_HOURS = {
 
 // Init
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let state = { date: new Date(), uid: '', data: {}, pending: null, redirecting: false };
+let state = { date: new Date(), uid: '', data: {}, pending: null, redirecting: false, hasSession: false };
 
 // 料金をDBから読み込む
 async function loadFees() {
@@ -862,6 +862,7 @@ window.onload = async () => {
       const profile = await liff.getProfile();
       if (!profile || !profile.userId) throw new Error('LINE プロフィールを取得できませんでした');
       state.uid = profile.userId;
+      await establishSupabaseSession();
       await loadData();
     } else if (liff.isInClient()) {
       state.redirecting = true;
@@ -1009,6 +1010,43 @@ function clearCache() {
   } catch (e) {}
 }
 
+// Supabase のセッションを確立する（RLS 用）
+// Edge Function line-login が LINE の ID トークンを LINE 公式エンドポイントで検証し、
+// ワンタイム OTP を返す。それを verifyOtp に渡してセッションにする。
+// 失敗しても anon のまま予約機能は動く（own表示と自己キャンセルだけ使えない）。
+// 設計: docs/PATIENT_AUTH_AND_RLS_MIGRATION.md
+async function establishSupabaseSession() {
+  state.hasSession = false;
+  try {
+    if (typeof liff === 'undefined' || !liff.getIDToken) return;
+    const idToken = liff.getIDToken();
+    if (!idToken) return;
+
+    const res = await withTimeout(fetch(SUPABASE_URL + '/functions/v1/line-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+      body: JSON.stringify({ id_token: idToken })
+    }), 8000);
+    if (!res.ok) { console.warn('line-login failed', res.status); return; }
+
+    const payload = await res.json();
+    if (!payload || !payload.email || !payload.token) return;
+
+    let vr = await db.auth.verifyOtp({
+      email: payload.email, token: payload.token, type: payload.verify_type || 'magiclink'
+    });
+    if (vr.error) {
+      // type 不一致で弾かれた場合はトークンが消費されていないので一度だけ再試行する
+      vr = await db.auth.verifyOtp({ email: payload.email, token: payload.token, type: 'email' });
+    }
+    if (vr.error) { console.warn('verifyOtp failed', vr.error.message); return; }
+
+    state.hasSession = !!(vr.data && vr.data.session);
+  } catch (e) {
+    console.warn('establishSupabaseSession', e && e.message);
+  }
+}
+
 // 通信が返らないとき用：指定ミリ秒でrejectしてloadingを必ず止める
 function withTimeout(p, ms) {
   return Promise.race([
@@ -1048,7 +1086,12 @@ async function loadData() {
     }
     
     // 必要なカラムのみ取得（12秒でタイムアウト＝ハング時もローディングが止まる）
-    var qBooks = db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).or('status.is.null,status.neq.キャンセル');
+    // セッションがあるときは氏名・電話を一切含まないビュー booking_slots を使う。
+    // 無いときは従来どおり bookings を読む（anon ポリシー経由のフォールバック）。
+    var useSlotsView = !!state.hasSession;
+    var qBooks = useSlotsView
+      ? db.from('booking_slots').select('id, start_time, end_time, staff, is_mine').eq('date', dStr).or('status.is.null,status.neq.キャンセル')
+      : db.from('bookings').select('id, start_time, end_time, staff, user_id').eq('date', dStr).or('status.is.null,status.neq.キャンセル');
     var qBlocks = db.from('blocks').select('staff, time, reason').eq('date', dStr);
     var both = await withTimeout(Promise.all([qBooks, qBlocks]), 12000);
     if ((both[0] && both[0].error) || (both[1] && both[1].error)) {
@@ -1102,7 +1145,8 @@ async function loadData() {
       const bookingSlots = getTimeSlots(startTime, endTime);
       bookingSlots.forEach(slot => {
         if(res[b.staff] && res[b.staff][slot]) {
-          res[b.staff][slot].status = (b.user_id === state.uid) ? 'own' : 'booked';
+          var mine = useSlotsView ? !!b.is_mine : (b.user_id === state.uid);
+          res[b.staff][slot].status = mine ? 'own' : 'booked';
           res[b.staff][slot].id = b.id;
         }
       });
@@ -1312,8 +1356,15 @@ async function cancelBooking() {
   }
 
   loading(true);
-  const { error } = await db.from('bookings').update({ status: 'キャンセル' }).eq('id', state.pending.id).eq('user_id', state.uid);
-  if(error) alert('エラーが発生しました: ' + error.message); 
+  // .select() を付けて実際に更新された行数を確認する。
+  // RLS で弾かれると error は出ず 0 行になるため、成功と誤認しないようにする。
+  const { data: cancelled, error } = await db.from('bookings')
+    .update({ status: 'キャンセル' })
+    .eq('id', state.pending.id)
+    .eq('user_id', state.uid)
+    .select('id');
+  if(error) alert('エラーが発生しました: ' + error.message);
+  else if(!cancelled || cancelled.length === 0) alert('キャンセルできませんでした。お手数ですが、お電話でご連絡ください。');
   else { 
     // 編集履歴に患者のキャンセルアクションを記録
     const dStr = fmt(state.date);
