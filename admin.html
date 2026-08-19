@@ -230,8 +230,15 @@
     .cell { position: relative; width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
-    /* 予約セル左上の新規顧客バッジ */
-    .cell-new { position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; color: #FDE047; text-shadow: 0 1px 2px rgba(0,0,0,0.55); line-height: 1; pointer-events: none; }
+    /* 予約セル左上の新規バッジ（.badge / .res-tag と同じ黒タグ） */
+    .cell.cell-has-new { padding-top: 16px; }
+    .cell-new {
+      position: absolute; top: 4px; left: 4px;
+      font-family: var(--font-en); font-size: 8px; font-weight: 700;
+      letter-spacing: 0.08em; line-height: 1; padding: 2px 5px; border-radius: 4px;
+      background: var(--text); color: #fff; pointer-events: none;
+    }
+    .cell.booked.paid .cell-new { background: #fff; color: var(--text); }
     /* 予約セル内の管理者メモ（氏名の下に表示） */
     .cell-memo { font-size: 10px; font-weight: 500; opacity: 0.82; max-width: 100%; margin-top: 2px; line-height: 1.2; white-space: normal; word-break: break-word; overflow-wrap: anywhere; text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
     .free:hover { background: #F3F4F6; }
@@ -293,7 +300,7 @@
     .btn-export:hover { background: #059669; }
 
     /* KPI Cards Grid */
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
     
     .kpi-card {
       position: relative; overflow: hidden;
@@ -518,6 +525,41 @@
     .s-chk:hover { background: #FAFAFA; }
     .s-chk input { accent-color: var(--text); }
 
+    /* 新規顧客フラグ（入力欄・料金行と同じトーンのスイッチ） */
+    .flag-switch {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; user-select: none;
+    }
+    .flag-switch-ctrl { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+    .flag-switch-ctrl input {
+      position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none;
+    }
+    .flag-switch-track {
+      width: 40px; height: 22px; border-radius: 99px;
+      background: #E5E7EB; border: 1px solid var(--line);
+      position: relative; transition: background 0.2s, border-color 0.2s;
+    }
+    .flag-switch-track::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.16); transition: transform 0.2s;
+    }
+    .flag-switch-ctrl input:checked + .flag-switch-track {
+      background: var(--text); border-color: var(--text);
+    }
+    .flag-switch-ctrl input:checked + .flag-switch-track::after { transform: translateX(18px); }
+    .flag-switch-ctrl input:focus-visible + .flag-switch-track {
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .flag-switch-label { font-size: 13px; font-weight: 700; color: var(--text); }
+    .flag-switch-field {
+      height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+      background: #FAFAFA; justify-content: space-between;
+    }
+    .flag-switch-field:hover { background: #fff; border-color: #D1D5DB; }
+    #detailMod .info-item-flag { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    #detailMod .info-item-flag .info-lbl { margin-bottom: 0; }
+
     .btns { display: flex; gap: 10px; margin-top: 24px; width: 100%; }
     .btns .btn { flex: 1; }
 
@@ -608,6 +650,7 @@
     @media (max-width: 1280px) {
       header { gap: 12px; margin-bottom: 24px; }
       .header-right { gap: 8px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     /* ===== MOBILE RESPONSIVE ===== */
@@ -648,6 +691,8 @@
       .cell { font-size: 11px; padding: 1px 2px; border-radius: 4px; }
       .cell.name-long { font-size: 10px; }
       .cell.name-very-long { font-size: 9px; }
+      .cell.cell-has-new { padding-top: 12px; }
+      .cell-new { top: 2px; left: 2px; font-size: 7px; padding: 1px 4px; }
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
 
       /* Schedule header */
@@ -1210,7 +1255,7 @@
           <div class="kpi-bg-icon">Ø</div>
         </div>
         <div class="kpi-card kpi-new">
-          <div class="kpi-icon">🆕</div>
+          <div class="kpi-icon">👤</div>
           <div class="kpi-content">
             <div class="kpi-label">New Customers</div>
             <div class="kpi-value" id="kpiNew">0</div>
@@ -1940,9 +1985,13 @@
           <input id="repeatSymptoms" class="inp" placeholder="症状を入力">
         </div>
         <div class="inp-group">
-          <label class="inp-lbl">新規顧客</label>
-          <label class="s-chk" style="height:44px; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="repeatIsNew"> 初めての来院
+          <label class="inp-lbl" for="repeatIsNew">新規顧客</label>
+          <label class="flag-switch flag-switch-field">
+            <span class="flag-switch-label">初めての来院</span>
+            <span class="flag-switch-ctrl">
+              <input type="checkbox" id="repeatIsNew">
+              <span class="flag-switch-track"></span>
+            </span>
           </label>
         </div>
         <div class="inp-group">
@@ -2546,8 +2595,10 @@ function renderGrid() {
       if(lblText.length > 7) nameClass = ' name-very-long';
       // 予約セル左上に新規顧客バッジ
       let newHtml = '';
+      let newClass = '';
       if(c.status === 'booked' && c.detail && c.detail.is_new_patient) {
-        newHtml = '<div class="cell-new">NEW</div>';
+        newHtml = '<span class="cell-new">NEW</span>';
+        newClass = ' cell-has-new';
       }
       // 予約セルには氏名の下に管理者メモを表示
       let memoHtml = '';
@@ -2555,10 +2606,10 @@ function renderGrid() {
         memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
       }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
@@ -2636,10 +2687,16 @@ async function cellClick(nm, t) {
         <span class="info-lbl">🩺 症状（編集可）</span>
         <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
       </div>
-      <div class="info-item">
-        <span class="info-lbl">🆕 新規顧客</span>
-        <label class="s-chk" style="display:flex; align-items:center; gap:8px; font-weight:700;">
-          <input type="checkbox" id="editIsNew"${isNewChecked}> 初めての来院
+      <div class="info-item fee-item full info-item-flag">
+        <div>
+          <span class="info-lbl">新規顧客</span>
+        </div>
+        <label class="flag-switch">
+          <span class="flag-switch-label">初めての来院</span>
+          <span class="flag-switch-ctrl">
+            <input type="checkbox" id="editIsNew"${isNewChecked}>
+            <span class="flag-switch-track"></span>
+          </span>
         </label>
       </div>
       <div class="info-item fee-item full">
@@ -2958,10 +3015,16 @@ async function openSearchDetail(bookingId) {
       <span class="info-lbl">🩺 症状（編集可）</span>
       <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
     </div>
-    <div class="info-item">
-      <span class="info-lbl">🆕 新規顧客</span>
-      <label class="s-chk" style="display:flex; align-items:center; gap:8px; font-weight:700;">
-        <input type="checkbox" id="editIsNew"${isNewChecked}> 初めての来院
+    <div class="info-item fee-item full info-item-flag">
+      <div>
+        <span class="info-lbl">新規顧客</span>
+      </div>
+      <label class="flag-switch">
+        <span class="flag-switch-label">初めての来院</span>
+        <span class="flag-switch-ctrl">
+          <input type="checkbox" id="editIsNew"${isNewChecked}>
+          <span class="flag-switch-track"></span>
+        </span>
       </label>
     </div>
     <div class="info-item fee-item full">
@@ -3657,7 +3720,7 @@ async function loadDashboard() {
   const kpiNewEl = document.getElementById('kpiNew');
   if(kpiNewEl) kpiNewEl.textContent = newPatientCount + '人';
   const kpiNewDescEl = document.getElementById('kpiNewDesc');
-  if(kpiNewDescEl) kpiNewDescEl.textContent = '新規顧客数（予約日ベース・氏名で名寄せ）';
+  if(kpiNewDescEl) kpiNewDescEl.textContent = '新規顧客数';
 
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
   document.getElementById('kpiCount').textContent = paidCount + '件';
