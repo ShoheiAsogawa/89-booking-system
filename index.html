@@ -735,7 +735,7 @@ const WORK_HOURS = {
 
 // Init
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let state = { date: new Date(), uid: '', data: {}, pending: null };
+let state = { date: new Date(), uid: '', data: {}, pending: null, redirecting: false };
 
 // 料金をDBから読み込む
 async function loadFees() {
@@ -843,21 +843,60 @@ window.onload = async () => {
 
   renderHead(); renderDate();
 
+  // ── 患者の本人識別 ──────────────────────────────
+  // Supabase Auth の signInWithIdToken は使わない。
+  // 2026-08-19 頃から Supabase が id_token グラントの issuer を
+  // Apple / Google / Firebase のみに制限したため、LINE の ID トークン
+  // (iss: https://access.line.me) はゲートウェイで 400 で弾かれる:
+  //   {"message":"API request is blocked. Only Apple, Google, Firebase issuer allowed."}
+  // この応答には CORS ヘッダが無く、ブラウザ上は "Failed to fetch" に見える。
+  // 本人識別は LIFF のプロフィール userId で行う（2026-06 以前と同じ方式）。
+  // Supabase Auth 経由に戻して RLS を有効化する手順は
+  // docs/PATIENT_AUTH_AND_RLS_MIGRATION.md を参照。
   try {
-    if (typeof liff !== 'undefined') {
-      await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) {
-        const idToken = liff.getIDToken();
-const { data: { session } } = await db.auth.signInWithIdToken({ provider: 'custom:line', token: idToken });
-state.uid = session.user.id;
-loadData();
-      } else {
-        if(liff.isInClient()) liff.login(); 
-        else { loading(false); document.getElementById('loginOverlay').classList.add('open'); }
-      }
+    if (typeof liff === 'undefined') throw new Error('LIFF SDK を読み込めませんでした');
+
+    await liff.init({ liffId: LIFF_ID });
+
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      if (!profile || !profile.userId) throw new Error('LINE プロフィールを取得できませんでした');
+      state.uid = profile.userId;
+      await loadData();
+    } else if (liff.isInClient()) {
+      state.redirecting = true;
+      liff.login();               // LINE アプリ内: ログインへリダイレクト
+    } else {
+      loading(false);
+      document.getElementById('loginOverlay').classList.add('open');
     }
-  } catch(e) { if(location.hostname.includes('localhost')) { state.uid='DEBUG_USER'; loadData(); } }
+  } catch (e) {
+    console.error('patient login failed', e);
+
+    if (location.hostname.includes('localhost') || location.hostname === '127.0.0.1') {
+      state.uid = 'DEBUG_USER';
+      await loadData();
+      return;
+    }
+
+    // 何が起きてもローディングは必ず解除する（白画面で固まらせない）
+    loading(false);
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay && typeof liff !== 'undefined') overlay.classList.add('open');
+    alert('ログインに失敗しました。通信状況をご確認のうえ、LINEアプリから開き直してもう一度お試しください。');
+  }
 };
+
+// 保険: 起動処理がどこかで止まってもローディングを必ず解除する。
+// （loading(false) に到達しない経路が生まれても白画面で固まらせないための最終防衛線）
+setTimeout(function () {
+  if (state.uid || state.redirecting) return;                 // 正常に進んでいる／リダイレクト中
+  var overlay = document.getElementById('loginOverlay');
+  if (overlay && overlay.classList.contains('open')) return;  // ログイン案内は既に出ている
+  loading(false);
+  if (overlay) overlay.classList.add('open');
+  alert('読み込みに時間がかかっています。通信状況をご確認のうえ、LINEアプリから開き直してお試しください。');
+}, 20000);
 
 // キャッシュ管理（ローカルストレージ）
 const CACHE_PREFIX = '89booking_';
