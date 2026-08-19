@@ -740,7 +740,7 @@ let state = { date: new Date(), uid: '', data: {}, pending: null };
 // 料金をDBから読み込む
 async function loadFees() {
   try {
-    const { data, error } = await db.from('staffs').select('name, fee');
+    const { data, error } = await withTimeout(db.from('staffs').select('name, fee'), 8000);
     if(!error && data && data.length > 0) {
       data.forEach(staff => {
         if(STAFFS.includes(staff.name)) {
@@ -797,9 +797,6 @@ function openBookingDateCalendar() {
 window.onload = async () => {
   window.onscroll = () => document.getElementById('header').classList.toggle('scrolled', window.scrollY > 10);
   
-  // 料金を読み込む
-  await loadFees();
-  
   // Date Limits（本日〜8日先まで）
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -843,20 +840,8 @@ window.onload = async () => {
 
   renderHead(); renderDate();
 
-  try {
-    if (typeof liff !== 'undefined') {
-      await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) {
-        const idToken = liff.getIDToken();
-const { data: { session } } = await db.auth.signInWithIdToken({ provider: 'custom:line', token: idToken });
-state.uid = session.user.id;
-loadData();
-      } else {
-        if(liff.isInClient()) liff.login(); 
-        else { loading(false); document.getElementById('loginOverlay').classList.add('open'); }
-      }
-    }
-  } catch(e) { if(location.hostname.includes('localhost')) { state.uid='DEBUG_USER'; loadData(); } }
+  // 料金取得で認証を止めない。認証失敗時も予約表を出してくるくる固定を防ぐ
+  await Promise.all([loadFees(), initPatientAuth()]);
 };
 
 // キャッシュ管理（ローカルストレージ）
@@ -972,16 +957,92 @@ function clearCache() {
 
 // 通信が返らないとき用：指定ミリ秒でrejectしてloadingを必ず止める
 function withTimeout(p, ms) {
+  var timer;
   return Promise.race([
-    p,
-    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, ms); })
+    Promise.resolve(p).then(function(v) { clearTimeout(timer); return v; }, function(e) { clearTimeout(timer); throw e; }),
+    new Promise(function(_, reject) { timer = setTimeout(function() { reject(new Error('timeout')); }, ms); })
   ]);
+}
+
+function isLocalHost() {
+  const h = location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+}
+
+function showLoginOverlay() {
+  loading(false);
+  const el = document.getElementById('loginOverlay');
+  if (el) el.classList.add('open');
+}
+
+// RLSで authenticated が必要な場合に備える。LINE の ID トークンは Supabase の
+// signInWithIdToken に未対応（独自プロバイダ名は無効で、失敗すると
+// session が null のまま例外→ローディングが止まらなかった）。
+async function ensureSupabaseSession() {
+  try {
+    const existing = await withTimeout(db.auth.getSession(), 8000);
+    if (existing && existing.data && existing.data.session) return existing.data.session;
+  } catch (e) {
+    console.warn('getSession', e);
+  }
+  try {
+    if (typeof db.auth.signInAnonymously === 'function') {
+      const { data, error } = await withTimeout(db.auth.signInAnonymously(), 8000);
+      if (!error && data && data.session) return data.session;
+      if (error) console.warn('signInAnonymously', error.message || error);
+    }
+  } catch (e) {
+    console.warn('signInAnonymously', e);
+  }
+  return null;
+}
+
+async function initPatientAuth() {
+  const watchdog = setTimeout(function() { loading(false); }, 15000);
+  let keepWatchdog = false;
+  try {
+    if (typeof liff === 'undefined') {
+      if (isLocalHost()) state.uid = 'DEBUG_USER';
+      await loadData();
+      return;
+    }
+
+    await withTimeout(liff.init({ liffId: LIFF_ID }), 10000);
+
+    if (!liff.isLoggedIn()) {
+      if (liff.isInClient()) {
+        keepWatchdog = true;
+        try { liff.login(); } catch (loginErr) { showLoginOverlay(); }
+        return;
+      }
+      showLoginOverlay();
+      return;
+    }
+
+    // 予約の「自分の枠」判定・user_id は従来どおり LINE userId を使う
+    const profile = await withTimeout(liff.getProfile(), 8000);
+    state.uid = (profile && profile.userId) ? profile.userId : '';
+    await ensureSupabaseSession();
+    await loadData();
+  } catch (e) {
+    console.error('initPatientAuth', e);
+    if (isLocalHost() && !state.uid) state.uid = 'DEBUG_USER';
+    try {
+      await loadData();
+    } catch (e2) {
+      console.error('initPatientAuth loadData', e2);
+      loading(false);
+    }
+  } finally {
+    if (!keepWatchdog) clearTimeout(watchdog);
+  }
 }
 
 async function loadData() {
   // レート制限チェック
   const rateLimit = checkRateLimit();
   if (!rateLimit.allowed) {
+    loading(false);
     alert(rateLimit.message);
     return;
   }
@@ -1246,8 +1307,8 @@ async function createBooking() {
       document.getElementById('modal').classList.remove('open');
       openModal('completedModal');
     }
-    loading(false);
   } finally {
+    loading(false);
     _bookingInProgress = false;
     if(btn) btn.disabled = false;
   }
