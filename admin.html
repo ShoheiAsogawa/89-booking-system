@@ -227,9 +227,11 @@
     .cell.booked.staff-3.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #1E3A8A; }
     .cell.booked.staff-4.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #4C1D95; }
 
-    .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
+    .cell { position: relative; width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
+    /* 予約セル左上の新規顧客バッジ */
+    .cell-new { position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; color: #FDE047; text-shadow: 0 1px 2px rgba(0,0,0,0.55); line-height: 1; pointer-events: none; }
     /* 予約セル内の管理者メモ（氏名の下に表示） */
     .cell-memo { font-size: 10px; font-weight: 500; opacity: 0.82; max-width: 100%; margin-top: 2px; line-height: 1.2; white-space: normal; word-break: break-word; overflow-wrap: anywhere; text-align: center; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
     .free:hover { background: #F3F4F6; }
@@ -301,7 +303,7 @@
       background: #F3F4F6;
     }
     
-    .kpi-sales, .kpi-bookings, .kpi-avg { background: #F3F4F6; }
+    .kpi-sales, .kpi-bookings, .kpi-avg, .kpi-new { background: #F3F4F6; }
     
     .kpi-icon { 
       font-size: 26px; 
@@ -1207,6 +1209,15 @@
           </div>
           <div class="kpi-bg-icon">Ø</div>
         </div>
+        <div class="kpi-card kpi-new">
+          <div class="kpi-icon">🆕</div>
+          <div class="kpi-content">
+            <div class="kpi-label">New Customers</div>
+            <div class="kpi-value" id="kpiNew">0</div>
+            <div class="kpi-desc" id="kpiNewDesc">新規顧客数</div>
+          </div>
+          <div class="kpi-bg-icon">N</div>
+        </div>
       </div>
 
       <!-- 売上0円のときの案内（予約はあるが決済方法未選択 or payment_method 列なし） -->
@@ -1929,6 +1940,12 @@
           <input id="repeatSymptoms" class="inp" placeholder="症状を入力">
         </div>
         <div class="inp-group">
+          <label class="inp-lbl">新規顧客</label>
+          <label class="s-chk" style="height:44px; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="repeatIsNew"> 初めての来院
+          </label>
+        </div>
+        <div class="inp-group">
           <label class="inp-lbl">作成期間</label>
           <select id="repeatWeeks" class="inp">
             <option value="1">1週間先まで</option>
@@ -2367,13 +2384,13 @@ async function load() {
 
     // 必要なカラムのみ取得（コスト削減）。決済済み表示のため payment_date / payment_breakdown も取得
     let booksRes = await db.from('bookings')
-      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, is_new_patient, payment_method, payment_date, payment_breakdown')
       .eq('date', dStr)
       .or('status.is.null,status.neq.キャンセル');
     if(booksRes.error && booksRes.error.message && (booksRes.error.message.indexOf('payment_breakdown') >= 0 || booksRes.error.message.indexOf('payment_date') >= 0)) {
       // 古いDB（payment_date / payment_breakdown 列なし）へのフォールバック
       booksRes = await db.from('bookings')
-        .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method')
+        .select('id, start_time, end_time, staff, patient_name, admin_memo, is_new_patient, payment_method')
         .eq('date', dStr)
         .or('status.is.null,status.neq.キャンセル');
     }
@@ -2527,16 +2544,21 @@ function renderGrid() {
       let nameClass = '';
       if(lblText.length > 5) nameClass = ' name-long';
       if(lblText.length > 7) nameClass = ' name-very-long';
+      // 予約セル左上に新規顧客バッジ
+      let newHtml = '';
+      if(c.status === 'booked' && c.detail && c.detail.is_new_patient) {
+        newHtml = '<div class="cell-new">NEW</div>';
+      }
       // 予約セルには氏名の下に管理者メモを表示
       let memoHtml = '';
       if(c.status === 'booked' && c.detail && c.detail.admin_memo) {
         memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
       }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + memoHtml + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + safeLbl + memoHtml + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
@@ -2583,12 +2605,12 @@ async function cellClick(nm, t) {
     // 詳細情報を取得（必要な場合のみ）
     let detail = null;
     let detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time')
+      .select('patient_name, phone, symptoms, fee, admin_memo, is_new_patient, payment_method, payment_date, payment_breakdown, end_time')
       .eq('id', c.id)
       .single();
     if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
       detailRes = await db.from('bookings')
-        .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date')
+        .select('patient_name, phone, symptoms, fee, admin_memo, is_new_patient, payment_method, payment_date')
         .eq('id', c.id)
         .single();
     }
@@ -2597,6 +2619,7 @@ async function cellClick(nm, t) {
     const d = detail || c.detail || {};
     loadPaymentDetailFromBooking(d);
     s.originalPatientData = { patient_name: d.patient_name || '', phone: d.phone || '', symptoms: d.symptoms || '' };
+    const isNewChecked = d.is_new_patient ? ' checked' : '';
     const safeName = escapeAttr(d.patient_name || '');
     const safePhone = escapeAttr(d.phone || '');
     const safeSymptoms = escapeHtml(d.symptoms || '');
@@ -2612,6 +2635,12 @@ async function cellClick(nm, t) {
       <div class="info-item full">
         <span class="info-lbl">🩺 症状（編集可）</span>
         <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
+      </div>
+      <div class="info-item">
+        <span class="info-lbl">🆕 新規顧客</span>
+        <label class="s-chk" style="display:flex; align-items:center; gap:8px; font-weight:700;">
+          <input type="checkbox" id="editIsNew"${isNewChecked}> 初めての来院
+        </label>
       </div>
       <div class="info-item fee-item full">
         <div>
@@ -2634,6 +2663,7 @@ async function cellClick(nm, t) {
       symptoms: d.symptoms || '',
       fee: Number(d.fee || 0),
       admin_memo: d.admin_memo || '',
+      is_new_patient: !!d.is_new_patient,
       payment_method: s.currentPaymentMethod || '',
       payment_date: s.currentPaymentDate || '',
       payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
@@ -2885,12 +2915,12 @@ async function openSearchDetail(bookingId) {
   s.id = bookingId;
   let detail = null;
   let detailRes = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown')
+    .select('patient_name, phone, symptoms, fee, admin_memo, is_new_patient, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown')
     .eq('id', bookingId)
     .single();
   if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
     detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date')
+      .select('patient_name, phone, symptoms, fee, admin_memo, is_new_patient, date, start_time, end_time, staff, payment_method, payment_date')
       .eq('id', bookingId)
       .single();
   }
@@ -2906,6 +2936,7 @@ async function openSearchDetail(bookingId) {
   const safeStartTime = escapeHtml(detail.start_time || '');
   const safeStaff = escapeHtml(detail.staff || '-');
   const safeSymptoms = escapeHtml(detail.symptoms || '');
+  const isNewChecked = detail.is_new_patient ? ' checked' : '';
   document.getElementById('info').innerHTML = `
     <div class="info-item">
       <span class="info-lbl">👤 氏名（編集可）</span>
@@ -2926,6 +2957,12 @@ async function openSearchDetail(bookingId) {
     <div class="info-item full">
       <span class="info-lbl">🩺 症状（編集可）</span>
       <textarea id="editSymptoms" class="info-edit-input textarea">${safeSymptoms}</textarea>
+    </div>
+    <div class="info-item">
+      <span class="info-lbl">🆕 新規顧客</span>
+      <label class="s-chk" style="display:flex; align-items:center; gap:8px; font-weight:700;">
+        <input type="checkbox" id="editIsNew"${isNewChecked}> 初めての来院
+      </label>
     </div>
     <div class="info-item fee-item full">
       <div>
@@ -2948,6 +2985,7 @@ async function openSearchDetail(bookingId) {
     symptoms: detail.symptoms || '',
     fee: Number(detail.fee || 0),
     admin_memo: detail.admin_memo || '',
+    is_new_patient: !!detail.is_new_patient,
     payment_method: s.currentPaymentMethod || '',
     payment_date: s.currentPaymentDate || '',
     payment_breakdown: s.isSplitPayment ? canonicalPaymentBreakdown(s.currentPaymentBreakdown) : '[]'
@@ -3493,8 +3531,8 @@ async function loadDashboard() {
   }
   
   // 予約日で期間内の予約を取得（payment_date / payment_method 列が無いDBでも動くよう段階的にフォールバック）
-  const selectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo';
-  const selectColsMin = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, admin_memo';
+  const selectCols = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, payment_method, admin_memo, is_new_patient';
+  const selectColsMin = 'id, date, start_time, end_time, staff, patient_name, phone, symptoms, fee, admin_memo, is_new_patient';
   let r1 = await fetchDashboardPages(() => db.from('bookings')
     .select(selectCols + ', payment_date, payment_breakdown')
     .gte('date', start)
@@ -3607,6 +3645,20 @@ async function loadDashboard() {
   const contribAvg = Object.keys(bookingSales).filter(id => bookingSales[id] > 0).length + advanceTabPaidCount;
   const avg = contribAvg ? Math.round(totalSales / contribAvg) : 0;
   
+  // 新規顧客数: 期間内の予約のうち新規フラグが立っているものを、氏名で名寄せして人数を数える
+  // （同じ新規の方が期間内に2回来ても1人としてカウントする）
+  const newPatientNames = new Set();
+  (booksByDate || []).forEach(function(row) {
+    if(!row || !row.is_new_patient) return;
+    const key = String(row.patient_name || '').trim();
+    if(key) newPatientNames.add(key);
+  });
+  const newPatientCount = newPatientNames.size;
+  const kpiNewEl = document.getElementById('kpiNew');
+  if(kpiNewEl) kpiNewEl.textContent = newPatientCount + '人';
+  const kpiNewDescEl = document.getElementById('kpiNewDesc');
+  if(kpiNewDescEl) kpiNewDescEl.textContent = '新規顧客数（予約日ベース・氏名で名寄せ）';
+
   document.getElementById('kpiSales').textContent = '¥' + totalSales.toLocaleString();
   document.getElementById('kpiCount').textContent = paidCount + '件';
   document.getElementById('kpiAvg').textContent = '¥' + avg.toLocaleString();
@@ -4202,6 +4254,8 @@ function openRepeatModal() {
   document.getElementById('repeatPhone').value = '';
   document.getElementById('repeatSymptoms').value = '';
   document.getElementById('repeatMemo').value = '';
+  const isNewEl = document.getElementById('repeatIsNew');
+  if(isNewEl) isNewEl.checked = false;
   openMod('repeatMod');
 }
 
@@ -4217,6 +4271,7 @@ async function createRepeatBookings() {
   const phone = document.getElementById('repeatPhone').value.trim();
   const symptoms = document.getElementById('repeatSymptoms').value.trim();
   const memo = document.getElementById('repeatMemo').value.trim();
+  const isNewPatient = !!(document.getElementById('repeatIsNew') && document.getElementById('repeatIsNew').checked);
   const weeks = parseInt(document.getElementById('repeatWeeks').value);
   
   if(!name) { alert('患者名を入力してください'); return; }
@@ -4323,6 +4378,7 @@ async function createRepeatBookings() {
         symptoms,
         admin_memo: memo,
         fee,
+        is_new_patient: isNewPatient,
         status: '予約済み'
       });
     }
@@ -4496,11 +4552,12 @@ function setupDetailSaveButtonState() {
   const symptoms = (document.getElementById('editSymptoms')?.value ?? '').trim();
   const fee = Number(document.getElementById('editFee')?.value ?? 0);
   const memo = (document.getElementById('memo')?.value ?? '').trim();
+  const isNew = !!document.getElementById('editIsNew')?.checked;
   const o = s.originalDetail;
   const currentPayKey = getCurrentPaymentState(fee).compareKey;
   const oldPayKey = getOriginalPaymentCompareKey(o);
   const changed = (name !== o.patient_name) || (phone !== o.phone) || (symptoms !== o.symptoms) ||
-    (fee !== o.fee) || (memo !== o.admin_memo) || (currentPayKey !== oldPayKey);
+    (fee !== o.fee) || (memo !== o.admin_memo) || (isNew !== !!o.is_new_patient) || (currentPayKey !== oldPayKey);
   saveBtn.style.background = changed ? '#3B82F6' : '#9CA3AF';
   saveBtn.textContent = changed ? '保存（変更あり）' : '保存';
 }
@@ -4510,6 +4567,8 @@ function setupPatientEditListeners() {
     const el = document.getElementById(id);
     if(el) el.addEventListener('input', setupDetailSaveButtonState);
   });
+  const newEl = document.getElementById('editIsNew');
+  if(newEl) newEl.addEventListener('change', setupDetailSaveButtonState);
 }
 
 async function savePatientInfo() {
@@ -4520,6 +4579,7 @@ async function savePatientInfo() {
   const newSymptoms = (document.getElementById('editSymptoms')?.value ?? '').trim();
   const newFee = Number(document.getElementById('editFee')?.value ?? 0);
   const newMemo = (document.getElementById('memo')?.value ?? '').trim();
+  const newIsNew = !!document.getElementById('editIsNew')?.checked;
   const payState = getCurrentPaymentState(newFee);
   const normalizedRows = payState.rows;
   
@@ -4536,6 +4596,7 @@ async function savePatientInfo() {
   if(newSymptoms !== (o.symptoms || '')) changeLines.push(`症状: ${(o.symptoms || '') || '(空)'} → ${newSymptoms || '(空)'}`);
   if(newFee !== (o.fee || 0)) changeLines.push(`料金: ¥${Number(o.fee || 0).toLocaleString()} → ¥${newFee.toLocaleString()}`);
   if(newMemo !== (o.admin_memo || '')) changeLines.push(`メモ: ${(o.admin_memo || '') || '(空)'} → ${newMemo || '(空)'}`);
+  if(newIsNew !== !!o.is_new_patient) changeLines.push(`新規顧客: ${o.is_new_patient ? 'はい' : 'いいえ'} → ${newIsNew ? 'はい' : 'いいえ'}`);
   const oldPayKey = getOriginalPaymentCompareKey(o);
   const newPayKey = payState.compareKey;
   if(newPayKey !== oldPayKey) {
@@ -4568,6 +4629,7 @@ async function savePatientInfo() {
     symptoms: newSymptoms,
     fee: newFee,
     admin_memo: newMemo,
+    is_new_patient: newIsNew,
     payment_method: legacyPaymentMethod,
     payment_date: legacyPaymentDate,
     payment_breakdown: payState.mode === 'split' ? normalizedRows : []
