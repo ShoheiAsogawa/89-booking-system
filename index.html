@@ -1294,11 +1294,26 @@ async function createBooking() {
       }
     }
 
+    // 新規顧客の自動判定: この LINE ユーザーの予約が1件も無ければ初回来院とみなす。
+    // セッションが無いと自分の予約を読めないので判定できない。その場合は false のままにし、
+    // 管理画面の予約詳細のチェックボックスから後で切り替えられる。
+    let isNewPatient = false;
+    if(state.hasSession && state.uid) {
+      try {
+        const prior = await withTimeout(db.from('bookings')
+          .select('id')
+          .eq('user_id', state.uid)
+          .or('status.is.null,status.neq.キャンセル')
+          .limit(1), 8000);
+        if(!prior.error) isNewPatient = !(prior.data && prior.data.length > 0);
+      } catch(e) { console.warn('new patient check failed', e && e.message); }
+    }
+
     const id = Math.random().toString(36).substr(2, 9).toUpperCase();
     const { error } = await db.from('bookings').insert({
       id: id, date: dStr, start_time: p.time, end_time: endTime,
       staff: p.staff, patient_name: name, phone: phone, symptoms: document.getElementById('pSym').value,
-      fee: 0, user_id: state.uid, status: '予約済み'
+      fee: 0, user_id: state.uid, is_new_patient: isNewPatient, status: '予約済み'
     });
 
     if(error) alert('エラーが発生しました: ' + error.message); 
