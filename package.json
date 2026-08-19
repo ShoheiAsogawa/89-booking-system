@@ -6,7 +6,8 @@
   "scripts": {
     "start": "http-server -p 3000 -c-1",
     "dev": "http-server -p 3000 -c-1 -o",
-    "test:payment": "node scripts/verify-payment-logic.mjs"
+    "test:payment": "node scripts/verify-payment-logic.mjs",
+    "test:patient-loader": "node scripts/verify-patient-loader.mjs"
   },
   "devDependencies": {
     "http-server": "^14.1.1",

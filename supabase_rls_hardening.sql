@@ -34,23 +34,23 @@ DROP POLICY IF EXISTS "Enable read access for all users" ON bookings;
 DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON bookings;
 DROP POLICY IF EXISTS "Enable update for users based on email" ON bookings;
 
--- 予約枠表示のため、認証済みユーザーは一覧参照可（患者アプリの空き確認に必要）
+-- 予約枠表示: 患者画面は LINE userId 運用のため anon でも一覧参照可
 CREATE POLICY "bookings_select_authenticated" ON bookings
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO anon, authenticated USING (true);
 
--- 患者: 自分の user_id で予約作成 / 管理者: 電話予約など自由に作成
+-- 患者: ログイン済みなら LINE userId で予約作成可 / 管理者: 電話予約など自由に作成
 CREATE POLICY "bookings_insert_policy" ON bookings
   FOR INSERT TO authenticated
   WITH CHECK (
     is_admin()
-    OR (user_id IS NOT NULL AND user_id = auth.uid()::text)
+    OR (user_id IS NOT NULL AND auth.uid() IS NOT NULL)
   );
 
--- 患者: 自分の予約のみ更新（キャンセル等） / 管理者: 全件
+-- 患者: ログイン済みなら自分の予約を更新（キャンセル等はアプリ側で user_id 一致） / 管理者: 全件
 CREATE POLICY "bookings_update_policy" ON bookings
   FOR UPDATE TO authenticated
-  USING (is_admin() OR (user_id IS NOT NULL AND user_id = auth.uid()::text))
-  WITH CHECK (is_admin() OR (user_id IS NOT NULL AND user_id = auth.uid()::text));
+  USING (is_admin() OR (user_id IS NOT NULL AND auth.uid() IS NOT NULL))
+  WITH CHECK (is_admin() OR (user_id IS NOT NULL AND auth.uid() IS NOT NULL));
 
 -- 物理削除は管理者のみ（通常はステータス変更で運用）
 CREATE POLICY "bookings_delete_admin" ON bookings
@@ -73,7 +73,7 @@ DROP POLICY IF EXISTS "blocks_update_admin" ON blocks;
 DROP POLICY IF EXISTS "blocks_delete_admin" ON blocks;
 
 CREATE POLICY "blocks_select_authenticated" ON blocks
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO anon, authenticated USING (true);
 
 CREATE POLICY "blocks_insert_admin" ON blocks
   FOR INSERT TO authenticated WITH CHECK (is_admin());
@@ -101,7 +101,7 @@ DROP POLICY IF EXISTS "staffs_update_admin" ON staffs;
 DROP POLICY IF EXISTS "staffs_delete_admin" ON staffs;
 
 CREATE POLICY "staffs_select_authenticated" ON staffs
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO anon, authenticated USING (true);
 
 CREATE POLICY "staffs_insert_admin" ON staffs
   FOR INSERT TO authenticated WITH CHECK (is_admin());
