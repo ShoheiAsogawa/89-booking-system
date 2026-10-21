@@ -1507,7 +1507,7 @@
       <div class="btns">
         <button class="btn" id="actionBlockBtn" onclick="openBlockModalFromCurrent()">ブロック</button>
         <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">予約可にする</button>
-        <button class="btn btn-primary" onclick="openMod('createMod')">予約作成</button>
+        <button class="btn btn-primary" onclick="openCreateFromAction()">予約作成</button>
       </div>
       <button class="btn w-full" id="actionRestoreHoursBtn" style="display:none; margin-top:8px;" onclick="runRestoreHoursOverride()">時間外に戻す</button>
       <button class="btn w-full" id="actionHoursSettingBtn" style="display:none; margin-top:8px;" onclick="openHoursModal()">このスタッフの時間外を設定</button>
@@ -1519,6 +1519,7 @@
     <div class="box" style="width:500px;">
       <div class="box-h"><h3 class="box-ttl">➕ 新規予約作成</h3></div>
       <div id="createModSlotInfo" class="mod-slot-info"></div>
+      <p id="createOutsideHint" style="display:none; margin:0 0 16px; font-size:12px; line-height:1.6; color:var(--text); background:#F3F4F6; border-radius:8px; padding:10px 12px;">時間外の枠です。ブロックを消さずに、このまま予約を入れられます。患者さんの予約画面は時間外のままです。</p>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
         <div class="inp-group">
           <label class="inp-lbl">👤 氏名</label>
@@ -2623,19 +2624,21 @@ function renderGrid() {
       let cellStatus = c.status === 'open_override' ? 'free' : c.status;
       const outsideHours = isOutsideStaffHours(nm, t);
       const weeklyOff = WEEKLY_OFF[nm] === dow;
-      if(c.status === 'booked' || c.status === 'blocked') {
-        cellStatus = c.status;
-      } else if(c.status === 'open_override') {
-        cellStatus = 'free';
-        displayLabel = '';
+      if(c.status === 'booked') {
+        cellStatus = 'booked';
       } else if(weeklyOff) {
         cellStatus = 'dayoff';
         displayLabel = '定休日';
       } else if(outsideHours) {
         cellStatus = 'outside';
         displayLabel = '時間外';
+      } else if(c.status === 'blocked') {
+        cellStatus = 'blocked';
+      } else if(c.status === 'open_override') {
+        cellStatus = 'free';
+        displayLabel = '';
       }
-      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (c.status === 'blocked' ? (c.label || 'ブロック') : displayLabel);
+      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       const lblText = String(lbl || '');
       const clickTime = run ? run.startTime : t;
       const safeLbl = escapeHtml(lblText);
@@ -2717,6 +2720,31 @@ function setSlotInfo(id) {
 function openBlockModalFromCurrent() {
   setSlotInfo('blockModSlotInfo');
   openMod('blockMod');
+}
+
+function openCreateModalForCurrent() {
+  const slotHtml = getCurrentSlotInfoHtml();
+  const createSlotEl = document.getElementById('createModSlotInfo');
+  if(createSlotEl) { createSlotEl.innerHTML = slotHtml; createSlotEl.style.display = 'block'; }
+  const hint = document.getElementById('createOutsideHint');
+  const outside = !!(s.cur && isOutsideStaffHours(s.cur.staff, s.cur.time));
+  if(hint) hint.style.display = outside ? 'block' : 'none';
+  const nameEl = document.getElementById('cName');
+  const phoneEl = document.getElementById('cPhone');
+  const symEl = document.getElementById('cSym');
+  const durationEl = document.getElementById('cDuration');
+  if(nameEl) nameEl.value = '';
+  if(phoneEl) phoneEl.value = '';
+  if(symEl) symEl.value = '';
+  if(durationEl) durationEl.value = '60';
+  openMod('createMod');
+}
+
+function openCreateFromAction() {
+  const hint = document.getElementById('createOutsideHint');
+  const outside = !!(s.cur && isOutsideStaffHours(s.cur.staff, s.cur.time));
+  if(hint) hint.style.display = outside ? 'block' : 'none';
+  openMod('createMod');
 }
 
 function openOpenOverrideModal() {
@@ -2824,6 +2852,8 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     openMod('detailMod');
     loadAuditLogs(c.id);
+  } else if(isOutsideStaffHours(nm, t)) {
+    openCreateModalForCurrent();
   } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c)) {
     const closureKind = slotClosureKind(nm, t, c);
     const isDerivedClosed = closureKind === 'outside' || closureKind === 'dayoff';
@@ -2914,9 +2944,20 @@ async function runCreate() {
     }
     if(existingBlocks && existingBlocks.length > 0) {
       for(const slot of requiredSlots) {
+        if(isOutsideStaffHours(s.cur.staff, slot)) continue;
         if(existingBlocks.some(b => b.time === slot && b.reason !== OPEN_OVERRIDE_REASON)) {
           showLoad(false);
           alert(`選択した時間帯（${s.cur.time}〜${endTime}）にはブロックがあります。ブロックを解除するか、別の時間を選択してください。`);
+          return;
+        }
+      }
+      for(const slot of requiredSlots) {
+        if(!isOutsideStaffHours(s.cur.staff, slot)) continue;
+        if(!existingBlocks.some(b => b.time === slot)) continue;
+        const removed = await db.from('blocks').delete().match({ date:dStr, time:slot, staff:s.cur.staff });
+        if(removed.error) {
+          showLoad(false);
+          alert('時間外のブロックを外せませんでした。通信状態を確認して再度お試しください。');
           return;
         }
       }
@@ -4582,7 +4623,6 @@ async function createRepeatBookings() {
   if(!name) { alert('患者名を入力してください'); return; }
   if(!phone) { alert('電話番号を入力してください'); return; }
   
-  const hours = STAFF_HOURS[staff];
   const endTime = addTime(time, duration);
   
   // 二重クリック防止
@@ -4595,6 +4635,7 @@ async function createRepeatBookings() {
   try {
     const bookings = [];
     const skippedDates = [];
+    const outsideBlocksToClear = [];
     const today = new Date();
     
     for(let w = 0; w < weeks; w++) {
@@ -4650,21 +4691,25 @@ async function createRepeatBookings() {
         const openOverrideTimes = new Set((existingBlocks || [])
           .filter(bl => bl.reason === OPEN_OVERRIDE_REASON)
           .map(bl => bl.time));
+        const clearForDate = [];
         if(existingBlocks) {
           for(const slot of requiredSlots) {
-            const normallyOpen = (!hours || (slot >= hours.start && slot < hours.end)) && WEEKLY_OFF[staff] !== targetDate.getDay();
-            if(!normallyOpen && !openOverrideTimes.has(slot)) {
+            const outside = isOutsideStaffHours(staff, slot);
+            const dayOff = WEEKLY_OFF[staff] === targetDate.getDay();
+            if(dayOff && !outside && !openOverrideTimes.has(slot)) {
               hasConflict = true;
-              skippedDates.push(`${dateStr}（診療時間外または定休日）`);
+              skippedDates.push(`${dateStr}（定休日）`);
               break;
             }
-            if(existingBlocks.some(bl => bl.time === slot && bl.reason !== OPEN_OVERRIDE_REASON)) {
+            if(!outside && existingBlocks.some(bl => bl.time === slot && bl.reason !== OPEN_OVERRIDE_REASON)) {
               hasConflict = true;
               skippedDates.push(`${dateStr}（ブロックあり）`);
               break;
             }
+            if(outside && existingBlocks.some(bl => bl.time === slot)) clearForDate.push({ date:dateStr, time:slot, staff });
           }
         }
+        if(!hasConflict) outsideBlocksToClear.push(...clearForDate);
       }
       
       if(hasConflict) continue;
@@ -4698,6 +4743,15 @@ async function createRepeatBookings() {
       return;
     }
     
+    for(const block of outsideBlocksToClear) {
+      const removed = await db.from('blocks').delete().match({ date:block.date, time:block.time, staff:block.staff });
+      if(removed.error) {
+        showLoad(false);
+        alert('時間外のブロックを外せませんでした。通信状態を確認して再度お試しください。');
+        return;
+      }
+    }
+
     // 一括挿入
     const { error } = await db.from('bookings').insert(bookings);
     
