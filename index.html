@@ -725,6 +725,7 @@ function isBookingDateOutOfRange(d) {
 }
 
 // スタッフごとの診療時間（時間外はclosedとして表示）
+// 管理画面で時間外を上書きしても、患者画面の診療時間はここを維持する
 const WORK_HOURS = {
   '麻生川': { start: '12:00', end: '21:00' },
   '松田': { start: '11:00', end: '21:00' },
@@ -1120,14 +1121,15 @@ async function loadData() {
           const timeDate = new Date(); timeDate.setHours(h, m, 0, 0);
           if (timeDate < now) { st = 'past'; isPastSlot = true; }
         }
-        // 診療時間外チェック
-        if (t < workHours.start || t >= workHours.end) {
+        // 診療時間外は、管理画面の予約可上書きがあっても患者は選べない
+        const outsideHours = t < workHours.start || t >= workHours.end;
+        if (outsideHours) {
           st = 'closed';
         }
         if (WEEKLY_OFF[s] === dow) {
           st = 'closed';
         }
-        if (openSlots[s] && openSlots[s].has(t) && !isPastSlot) {
+        if (openSlots[s] && openSlots[s].has(t) && !isPastSlot && !outsideHours) {
           st = 'free';
         }
         res[s][t] = { status: st, id:'' };
@@ -1277,7 +1279,12 @@ async function createBooking() {
       .map(b => b.time));
     const selectedDow = state.date.getDay();
     for(const slot of requiredSlots) {
-      const normallyOpen = WEEKLY_OFF[p.staff] !== selectedDow && slot >= workHours.start && slot < workHours.end;
+      if(slot < workHours.start || slot >= workHours.end) {
+        loading(false);
+        alert(`選択した時間帯（${p.time}〜${endTime}）は診療時間外のため予約できません。`);
+        return;
+      }
+      const normallyOpen = WEEKLY_OFF[p.staff] !== selectedDow;
       if(!normallyOpen && !openOverrideTimes.has(slot)) {
         loading(false);
         alert(`選択した時間帯（${p.time}〜${endTime}）は予約不可です。別の時間帯を選択してください。`);

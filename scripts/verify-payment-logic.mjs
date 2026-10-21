@@ -8,11 +8,27 @@ const DEFERRED_PAYMENT_METHODS = ['ツケ払い', '保険'];
 function isVoucherPaymentMethod(m) {
   return m === 'マッサージ券' || m === 'チケット' || m === '商品券';
 }
+const COMBINED_WALLET_METHOD = 'D払い・メルペイ';
+function foldPaymentLabel(method) {
+  return String(method || '').trim()
+    .replace(/\u3000/g, '')
+    .replace(/[Ｄｄ]/g, 'd')
+    .replace(/[Ｐｐ]/g, 'p')
+    .replace(/[Ａａ]/g, 'a')
+    .replace(/[Ｙｙ]/g, 'y')
+    .replace(/[・･]/g, '・')
+    .toLowerCase();
+}
+function isCombinedWalletAlias(method) {
+  const s = foldPaymentLabel(method);
+  return s === 'd払い・メルペイ' || s === 'd払い/メルペイ' || s === 'd払い' || s === 'dpay' || s === 'メルペイ' || s === 'めるぺい' || s === 'merpay';
+}
 function normalizeDisplayPaymentMethod(m) {
   if (!m) return '';
   const s = String(m).trim();
   if (isVoucherPaymentMethod(s)) return 'マッサージ券';
   if (s === 'つけ払い' || s === '付け払い' || s === '掛け払い' || s === '掛払い') return 'ツケ払い';
+  if (isCombinedWalletAlias(s)) return COMBINED_WALLET_METHOD;
   return s;
 }
 function isDeferredPaymentMethod(method) {
@@ -22,6 +38,7 @@ function paymentMethodDbVariants(method) {
   const n = normalizeDisplayPaymentMethod(method);
   if (n === 'マッサージ券') return ['マッサージ券', 'チケット', '商品券'];
   if (n === 'ツケ払い') return ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い'];
+  if (n === COMBINED_WALLET_METHOD) return [COMBINED_WALLET_METHOD, 'D払い', 'メルペイ'];
   return n ? [n] : [];
 }
 function buildPaymentSearchOrClause(payment) {
@@ -1017,6 +1034,30 @@ const pagedExact = await verifyPagedFetch(1000, 2000);
 assert('pagination fetches exact full pages plus empty sentinel', pagedExact.count === 2000 && pagedExact.ranges.length === 3);
 const pagedShort = await verifyPagedFetch(1000, 2001);
 assert('pagination fetches short final page', pagedShort.count === 2001 && pagedShort.ranges.length === 3);
+
+// 38. D払いとメルペイは1つの決済方法に正規化し、売上は合算する
+assert('dbarai alias', normalizeDisplayPaymentMethod('D払い') === 'D払い・メルペイ');
+assert('merpay alias', normalizeDisplayPaymentMethod('メルペイ') === 'D払い・メルペイ');
+assert('merpay en alias', normalizeDisplayPaymentMethod('Merpay') === 'D払い・メルペイ');
+assert('combined label stays combined', normalizeDisplayPaymentMethod('D払い・メルペイ') === 'D払い・メルペイ');
+assert('wallet variants include both names', ['D払い・メルペイ', 'D払い', 'メルペイ'].every((v) => paymentMethodDbVariants('D払い').includes(v)));
+assert('wallet search covers merpay', buildPaymentSearchOrClause('メルペイ').includes('payment_method.eq.D払い'));
+assert('wallet search covers combined', buildPaymentSearchOrClause('D払い・メルペイ').includes('payment_method.eq.メルペイ'));
+assert('stored dbarai matches combined filter', bookingMatchesPaymentFilter({ payment_method: 'D払い', payment_breakdown: '[]' }, 'D払い・メルペイ') === true);
+assert('stored merpay matches combined filter', bookingMatchesPaymentFilter({ payment_method: 'メルペイ', payment_breakdown: '[]' }, 'D払い・メルペイ') === true);
+const walletEntries = buildDashboardPaymentEntries([
+  { id: 'd1', payment_method: 'D払い', payment_breakdown: '[]', fee: 3000, date: '2026-06-10' },
+  { id: 'm1', payment_method: 'メルペイ', payment_breakdown: '[]', fee: 2000, date: '2026-06-11' },
+], '2026-06-01', '2026-06-30');
+assert('wallet entries share one method', walletEntries.length === 2 && walletEntries.every((e) => e.method === 'D払い・メルペイ' && e.paid));
+assert('wallet sales are summed', walletEntries.reduce((sum, e) => sum + e.amount, 0) === 5000);
+assert('split wallet row matches combined filter', bookingMatchesPaymentFilter({
+  payment_method: '分割',
+  payment_breakdown: [
+    { method: '現金', amount: 1000, payment_date: '' },
+    { method: 'D払い', amount: 2000, payment_date: '' },
+  ],
+}, 'D払い・メルペイ') === true);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
