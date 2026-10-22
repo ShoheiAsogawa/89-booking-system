@@ -410,6 +410,10 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
     .paypay-logo img { width: 24px; height: 24px; object-fit: contain; }
+    .wallet-logos { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .payment-btn .wallet-logos img,
+    .payment-stat-card .wallet-logos img { width: auto; height: 28px; max-width: 72px; object-fit: contain; }
+    .payment-stat-card .wallet-logos img { height: 32px; max-width: 84px; }
 
     /* Charts Grid */
     .charts-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
@@ -1464,7 +1468,7 @@
           <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
-          <button class="payment-btn" data-method="D払い・メルペイ" onclick="selectPayment('D払い・メルペイ')"><span style="font-size:18px;">📱</span>D払い・メルペイ</button>
+          <button class="payment-btn" data-method="D払い・メルペイ" onclick="selectPayment('D払い・メルペイ')"><span class="wallet-logos"><img src="dbarai.png" alt="d払い"><img src="merpay.png" alt="メルペイ"></span>D払い・メルペイ</button>
           <button class="payment-btn" data-method="マッサージ券" onclick="selectPayment('マッサージ券')"><span style="font-size:20px;">🎫</span>マッサージ券</button>
           <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
         </div>
@@ -4061,7 +4065,8 @@ async function loadDashboard() {
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', '保険': '🏥', 'D払い・メルペイ': '📱', '未選択': '❓' };
+  const walletLogoImg = `<div class="wallet-logos"><img src="dbarai.png" alt="d払い"><img src="merpay.png" alt="メルペイ"></div>`;
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', '保険': '🏥', 'D払い・メルペイ': walletLogoImg, '未選択': '❓' };
   const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', '保険': 'hoken', 'D払い・メルペイ': 'wallet' };
   let payHtml = '';
   let totalFees = 0;
