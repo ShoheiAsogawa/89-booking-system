@@ -54,21 +54,21 @@
 
     /* LAYOUT */
     .wrap { max-width: 1400px; margin: 0 auto; display: none; /* Login後に表示 */ }
-    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 32px; min-height: 48px; height: auto; gap: 12px 16px; }
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; margin-bottom: 32px; min-height: 48px; height: auto; gap: 8px 10px; overflow-x: auto; }
     
-    .header-left { display: flex; align-items: center; gap: clamp(12px, 2.4vw, 40px); min-width: 0; flex: 1 1 auto; }
-    .header-right { display: flex; flex-wrap: nowrap; gap: 12px; align-items: center; flex: 0 0 auto; min-width: 0; }
+    .header-left { display: flex; align-items: center; flex-wrap: nowrap; gap: 10px; min-width: max-content; flex: 0 0 auto; }
+    .header-right { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; flex: 0 0 auto; min-width: max-content; }
     
-    h1 { font-family: Impact, var(--font-en); font-size: 22px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); flex-shrink: 0; }
-    .badge { background: var(--text); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; vertical-align: middle; font-weight: 700; letter-spacing: 0.05em; font-family: var(--font-jp); }
+    h1 { font-family: Impact, var(--font-en); font-size: 20px; font-weight: 900; letter-spacing: 0.02em; margin: 0; display: flex; align-items: center; color: var(--accent); flex-shrink: 0; white-space: nowrap; }
+    .badge { background: var(--text); color: #fff; padding: 3px 7px; border-radius: 4px; font-size: 10px; margin-left: 8px; vertical-align: middle; font-weight: 700; letter-spacing: 0.04em; font-family: var(--font-jp); white-space: nowrap; }
 
     /* TABS */
-    .tabs { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; background: var(--surface); padding: 4px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; overflow-x: auto; }
+    .tabs { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; background: var(--surface); padding: 3px; border-radius: 99px; border: 1px solid var(--line); box-shadow: var(--shadow); flex: 0 0 auto; overflow: visible; }
     .tab { 
-      height: 36px; padding: 0 clamp(10px, 1.6vw, 24px); border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 12px; 
+      height: 34px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-weight: 700; font-size: 12px; 
       color: var(--sub); border: none; background: transparent; transition: all 0.2s;
       display: inline-flex; align-items: center; justify-content: center;
-      white-space: nowrap; word-break: keep-all; overflow: hidden; flex-shrink: 0; line-height: 1;
+      white-space: nowrap; word-break: keep-all; overflow: visible; flex: 0 0 auto; line-height: 1;
     }
     .tab:hover { color: var(--text); }
     .tab.tab-schedule.active { background: #E8EAED; color: var(--text); }
@@ -76,7 +76,7 @@
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
     .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
     .tab.tab-advancetab.active { background: #E8F0FE; color: #1D4ED8; }
-    .header-right .btn { height: 40px; padding: 0 clamp(10px, 1.2vw, 20px); font-size: 12px; flex-shrink: 1; min-width: 0; }
+    .header-right .btn { height: 34px; padding: 0 12px; font-size: 12px; flex: 0 0 auto; min-width: max-content; overflow: visible; white-space: nowrap; }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; word-break: keep-all; overflow: hidden; line-height: 1; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -120,12 +120,14 @@
     .btn-refresh:hover .refresh-icon { transform: rotate(180deg); }
     .btn-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
     .schedule-header-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 0 0 24px; }
-    .schedule-header-left { display: flex; align-items: center; justify-self: start; }
+    .schedule-header-left { display: flex; align-items: center; justify-self: start; gap: 8px; flex-wrap: nowrap; }
     .schedule-header-row .date-nav { margin: 0; grid-column: 2; justify-self: center; }
     .schedule-header-right { display: flex; align-items: center; gap: 12px; justify-self: end; grid-column: 3; }
     .schedule-header-row .btn-refresh { position: static; height: 44px; min-width: 100px; padding: 0 20px; flex-shrink: 0; }
     .btn-advance-tab { background: #E8F0FE; color: #1D4ED8; border-color: #BFDBFE; font-size: 12px; font-weight: 700; height: 44px; padding: 0 16px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: var(--shadow); border: 1px solid #BFDBFE; transition: all 0.2s; }
     .btn-advance-tab:hover { background: #DBEAFE; border-color: #93C5FD; }
+    .btn-hours { background: #F3F4F6; color: var(--text); border: 1px solid var(--line); font-size: 12px; font-weight: 700; height: 44px; padding: 0 16px; border-radius: 99px; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: var(--shadow); transition: all 0.2s; }
+    .btn-hours:hover { background: #E5E7EB; }
     #viewSearch { background: #D4D8DC; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewDashboard { background: #B8BEC6; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
     #viewExpenses { background: #FFFBF7; border-radius: var(--radius-l); padding: 24px; margin-top: 16px; }
@@ -374,6 +376,7 @@
     .payment-stat-card.tsuke { border-color: #F59E0B; background: #FFFBEB; }
     .payment-stat-card.prepay { border-color: #3B82F6; background: #EFF6FF; }
     .payment-stat-card.hoken { border-color: #0EA5E9; background: #F0F9FF; }
+    .payment-stat-card.wallet { border-color: #EA580C; background: #FFF7ED; }
     
     .payment-stat-card .pay-icon { 
       font-size: 32px; margin-bottom: 10px; 
@@ -407,6 +410,10 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
     .paypay-logo img { width: 24px; height: 24px; object-fit: contain; }
+    .wallet-logos { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .payment-btn .wallet-logos img,
+    .payment-stat-card .wallet-logos img { width: auto; height: 28px; max-width: 72px; object-fit: contain; }
+    .payment-stat-card .wallet-logos img { height: 32px; max-width: 84px; }
 
     /* Charts Grid */
     .charts-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
@@ -646,13 +653,23 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
-    /* 縦モニター・ノート幅: タブ行の下にボタン軍を横一列で置く（折り返しなし） */
+    /* 縦モニターでもヘッダーは1行。文字を小さくして折り返さない */
     @media (max-width: 1280px), (orientation: portrait) {
-      header { gap: 12px; margin-bottom: 24px; }
-      .header-left { flex: 1 1 100%; }
-      .header-right { width: 100%; flex-wrap: nowrap; gap: 8px; }
-      .header-right .btn { flex: 1 1 0; min-width: 0; padding: 0 10px; }
+      header { gap: 8px; margin-bottom: 24px; flex-wrap: nowrap; }
+      .header-left { flex: 0 0 auto; gap: 8px; min-width: max-content; }
+      .header-right { width: auto; flex: 0 0 auto; flex-wrap: nowrap; gap: 6px; }
+      h1 { font-size: 18px; }
+      .tab { height: 32px; padding: 0 10px; font-size: 12px; }
+      .header-right .btn { flex: 0 0 auto; min-width: max-content; height: 32px; padding: 0 10px; font-size: 12px; }
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 1000px) {
+      h1 { font-size: 16px; }
+      .badge { font-size: 9px; margin-left: 6px; padding: 2px 5px; }
+      .header-left { gap: 8px; }
+      .tab { height: 30px; padding: 0 8px; font-size: 11px; }
+      .header-right { gap: 4px; }
+      .header-right .btn { height: 30px; padding: 0 8px; font-size: 11px; }
     }
 
     /* ===== MOBILE RESPONSIVE ===== */
@@ -661,14 +678,14 @@
       #viewSchedule, #viewSearch, #viewDashboard, #viewExpenses, #viewAdvancePayments { padding: 16px; }
       .btn-refresh { top: 16px; right: 16px; min-width: 80px; padding: 0 20px; height: 36px; font-size: 12px; }
       
-      /* Header */
-      header { flex-direction: column; align-items: flex-start; gap: 12px; height: auto; margin-bottom: 20px; }
-      .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
+      /* Header: 段は分けても、各ボタンの文字は折り返さない */
+      header { flex-direction: column; align-items: stretch; gap: 12px; height: auto; margin-bottom: 20px; overflow-x: visible; }
+      .header-left { flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; min-width: 0; }
       h1 { font-size: 18px; }
       .tabs { width: 100%; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-      .tab { height: 36px; padding: 0 14px; font-size: 12px; }
-      .header-right { width: 100%; justify-content: stretch; flex-wrap: nowrap; gap: 8px; }
-      .header-right .btn { height: 40px; padding: 0 8px; font-size: 12px; flex: 1 1 0; min-width: 0; }
+      .tab { height: 32px; padding: 0 10px; font-size: 11px; flex: 0 0 auto; white-space: nowrap; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: nowrap; gap: 6px; overflow-x: auto; min-width: 0; }
+      .header-right .btn { height: 32px; padding: 0 10px; font-size: 11px; flex: 0 0 auto; min-width: max-content; }
       
       /* Navigation */
       .nav { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
@@ -793,8 +810,8 @@
       body { padding: 8px; }
       .wrap { margin: 0; }
       .tabs { flex-wrap: nowrap; border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .tab { flex: 0 0 auto; text-align: center; height: 32px; padding: 0 8px; border-radius: 8px; }
-      .header-right .btn { flex: 1 1 0; min-width: 0; padding: 0 6px; font-size: 11px; }
+      .tab { flex: 0 0 auto; text-align: center; height: 30px; padding: 0 8px; border-radius: 8px; font-size: 10px; white-space: nowrap; }
+      .header-right .btn { flex: 0 0 auto; min-width: max-content; padding: 0 8px; font-size: 10px; white-space: nowrap; }
       .date-nav { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
       #viewSearch > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
       .advance-tab-filter-grid { grid-template-columns: 1fr; }
@@ -1094,6 +1111,7 @@
       <div class="schedule-header-row">
         <div class="schedule-header-left">
           <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払い・つけ払い登録</button>
+          <button type="button" class="btn-hours" onclick="openHoursModal()" title="管理画面の時間外を設定">時間外設定</button>
         </div>
         <div class="date-nav">
           <button class="nav-btn" onclick="move(-1)">‹</button>
@@ -1164,6 +1182,7 @@
               <option value="現金">現金</option>
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
+              <option value="D払い・メルペイ">D払い・メルペイ</option>
               <option value="マッサージ券">マッサージ券</option>
               <option value="保険">保険</option>
               <option value="未選択">未選択</option>
@@ -1419,6 +1438,7 @@
               <option value="現金">現金</option>
               <option value="クレジット">クレジット</option>
               <option value="ペイペイ">PayPay</option>
+              <option value="D払い・メルペイ">D払い・メルペイ</option>
               <option value="マッサージ券">マッサージ券</option>
             </select>
           </div>
@@ -1448,6 +1468,7 @@
           <button class="payment-btn" data-method="現金" onclick="selectPayment('現金')"><span style="font-size:20px;">💴</span>現金</button>
           <button class="payment-btn" data-method="クレジット" onclick="selectPayment('クレジット')"><span style="font-size:20px;">💳</span>クレジット</button>
           <button class="payment-btn" data-method="ペイペイ" onclick="selectPayment('ペイペイ')"><img src="paypay.png" alt="PayPay">PayPay</button>
+          <button class="payment-btn" data-method="D払い・メルペイ" onclick="selectPayment('D払い・メルペイ')"><span class="wallet-logos"><img src="dbarai.png" alt="d払い"><img src="merpay.png" alt="メルペイ"></span>D払い・メルペイ</button>
           <button class="payment-btn" data-method="マッサージ券" onclick="selectPayment('マッサージ券')"><span style="font-size:20px;">🎫</span>マッサージ券</button>
           <button class="payment-btn" data-method="保険" onclick="selectPayment('保険')"><span style="font-size:18px;">🏥</span>保険</button>
         </div>
@@ -1489,9 +1510,12 @@
       <div style="text-align:center; margin-bottom:24px; font-weight:700;" id="actTarget"></div>
       <div class="btns">
         <button class="btn" id="actionBlockBtn" onclick="openBlockModalFromCurrent()">ブロック</button>
-        <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">ブロック解除</button>
-        <button class="btn btn-primary" onclick="openMod('createMod')">予約作成</button>
+        <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">定休日を解除</button>
+        <button class="btn btn-primary" onclick="openCreateFromAction()">予約作成</button>
       </div>
+      <button class="btn w-full" id="actionRestoreDayOffBtn" style="display:none; margin-top:8px;" onclick="runRestoreDayOff()">定休日に戻す</button>
+      <button class="btn w-full" id="actionRestoreHoursBtn" style="display:none; margin-top:8px;" onclick="runRestoreHoursOverride()">時間外に戻す</button>
+      <button class="btn w-full" id="actionHoursSettingBtn" style="display:none; margin-top:8px;" onclick="openHoursModal()">このスタッフの時間外を設定</button>
       <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
     </div>
   </div>
@@ -1500,6 +1524,7 @@
     <div class="box" style="width:500px;">
       <div class="box-h"><h3 class="box-ttl">➕ 新規予約作成</h3></div>
       <div id="createModSlotInfo" class="mod-slot-info"></div>
+      <p id="createOutsideHint" style="display:none; margin:0 0 16px; font-size:12px; line-height:1.6; color:var(--text); background:#F3F4F6; border-radius:8px; padding:10px 12px;">時間外の枠です。ブロックを消さずに、このまま予約を入れられます。患者さんの予約画面は時間外のままです。</p>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
         <div class="inp-group">
           <label class="inp-lbl">👤 氏名</label>
@@ -1574,9 +1599,9 @@
 
   <div class="overlay" id="openOverrideMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h"><h3 class="box-ttl">ブロック解除</h3></div>
+      <div class="box-h"><h3 class="box-ttl" id="openOverrideTitle">定休日を解除</h3></div>
       <div id="openOverrideSlotInfo" class="mod-slot-info"></div>
-      <p style="text-align:center; margin-bottom:16px; color:var(--text);">定休日・時間外を患者さんも予約できる枠にします。</p>
+      <p id="openOverrideHelp" style="text-align:center; margin-bottom:16px; color:var(--text); line-height:1.6;">定休日を解除すると、選んだ時間は患者さんも予約できます。時間外の枠は解除しません。</p>
       <div class="inp-group">
         <label class="inp-lbl">予約可能にする時間</label>
         <select id="openOverrideDuration" class="inp" style="margin:0;">
@@ -1593,7 +1618,7 @@
       </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="closeAll()">キャンセル</button>
-        <button class="btn btn-primary" onclick="runOpenOverride()">解除実行</button>
+        <button class="btn btn-primary" id="openOverrideSubmitBtn" onclick="runOpenOverride()">予約可にする</button>
       </div>
     </div>
   </div>
@@ -1636,6 +1661,18 @@
         <button class="btn btn-danger" onclick="runBulk(true)">ブロック実行</button>
       </div>
       <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="hoursMod" onclick="if(event.target===this)closeAll()">
+    <div class="box" style="width:520px;">
+      <div class="box-h"><h3 class="box-ttl">時間外設定</h3></div>
+      <p style="font-size:12px; color:var(--sub); margin:0 0 16px; line-height:1.6;">スタッフごとの診療時間です。ここを変えると、管理画面の「時間外」表示が上書きされます。患者さんの予約画面の時間外は変わりません。</p>
+      <div id="hoursList" style="display:grid; gap:12px; margin-bottom:24px;"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="closeAll()">閉じる</button>
+        <button class="btn btn-primary" onclick="saveStaffHours()">保存</button>
+      </div>
     </div>
   </div>
 
@@ -1835,6 +1872,7 @@
             <option value="現金">現金</option>
             <option value="クレジット">クレジット</option>
             <option value="ペイペイ">PayPay</option>
+            <option value="D払い・メルペイ">D払い・メルペイ</option>
             <option value="マッサージ券">マッサージ券</option>
           </select>
         </div>
@@ -1897,6 +1935,7 @@
             <option value="現金">現金</option>
             <option value="クレジット">クレジット</option>
             <option value="ペイペイ">PayPay</option>
+            <option value="D払い・メルペイ">D払い・メルペイ</option>
             <option value="マッサージ券">マッサージ券</option>
           </select>
         </div>
@@ -2113,11 +2152,27 @@ function escapeJsArg(text) {
 function isVoucherPaymentMethod(m) {
   return m === 'マッサージ券' || m === 'チケット' || m === '商品券';
 }
+const COMBINED_WALLET_METHOD = 'D払い・メルペイ';
+function foldPaymentLabel(method) {
+  return String(method || '').trim()
+    .replace(/\u3000/g, '')
+    .replace(/[Ｄｄ]/g, 'd')
+    .replace(/[Ｐｐ]/g, 'p')
+    .replace(/[Ａａ]/g, 'a')
+    .replace(/[Ｙｙ]/g, 'y')
+    .replace(/[・･]/g, '・')
+    .toLowerCase();
+}
+function isCombinedWalletAlias(method) {
+  const s = foldPaymentLabel(method);
+  return s === 'd払い・メルペイ' || s === 'd払い/メルペイ' || s === 'd払い' || s === 'dpay' || s === 'メルペイ' || s === 'めるぺい' || s === 'merpay';
+}
 function normalizeDisplayPaymentMethod(m) {
   if(!m) return '';
   const s = String(m).trim();
   if(isVoucherPaymentMethod(s)) return 'マッサージ券';
   if(s === 'つけ払い' || s === '付け払い' || s === '掛け払い' || s === '掛払い') return 'ツケ払い';
+  if(isCombinedWalletAlias(s)) return COMBINED_WALLET_METHOD;
   return s;
 }
 
@@ -2126,6 +2181,7 @@ function paymentMethodDbVariants(method) {
   const n = normalizeDisplayPaymentMethod(method);
   if(n === 'マッサージ券') return ['マッサージ券', 'チケット', '商品券'];
   if(n === 'ツケ払い') return ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い'];
+  if(n === COMBINED_WALLET_METHOD) return [COMBINED_WALLET_METHOD, 'D払い', 'メルペイ'];
   return n ? [n] : [];
 }
 
@@ -2359,9 +2415,10 @@ function playNotificationSound() {
     osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.25);
   } catch (e) {}
 }
-function showMain() {
+async function showMain() {
   document.getElementById('loginScreen').style.display = 'none';
   document.querySelector('.wrap').style.display = 'block';
+  await loadStaffHours();
   renderHead();
   load();
   setupNewBookingNotification();
@@ -2570,20 +2627,26 @@ function renderGrid() {
       const c = run ? run.firstCell : s.data[nm][t];
       let displayLabel = '';
       let cellStatus = c.status === 'open_override' ? 'free' : c.status;
-      const slotTime = run ? run.startTime : t;
-      if(c.status === 'open_override') {
-        displayLabel = '';
-      } else if(WEEKLY_OFF[nm] === dow && c.status !== 'booked') {
+      const outsideHours = isOutsideStaffHours(nm, t);
+      const weeklyOff = WEEKLY_OFF[nm] === dow;
+      if(c.status === 'booked') {
+        cellStatus = 'booked';
+      } else if(c.status === 'blocked') {
+        cellStatus = 'blocked';
+      } else if(c.status === 'open_override' && !outsideHours) {
+        cellStatus = 'free';
+        displayLabel = '予約可';
+      } else if(outsideHours) {
+        cellStatus = 'outside';
+        displayLabel = '時間外';
+      } else if(weeklyOff) {
         cellStatus = 'dayoff';
         displayLabel = '定休日';
-      } else {
-        const hours = STAFF_HOURS[nm];
-        if(hours && (t < hours.start || t >= hours.end) && c.status !== 'booked') {
-          cellStatus = 'outside';
-          displayLabel = '時間外';
-        }
+      } else if(c.status === 'open_override') {
+        cellStatus = 'free';
+        displayLabel = '予約可';
       }
-      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (c.status === 'blocked' ? (c.label || 'ブロック') : displayLabel);
+      const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       const lblText = String(lbl || '');
       const clickTime = run ? run.startTime : t;
       const safeLbl = escapeHtml(lblText);
@@ -2628,11 +2691,33 @@ function getCurrentSlotInfoHtml() {
   return '<span class="mod-slot-staff">' + escapeHtml(s.cur.staff) + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + escapeHtml(s.cur.time) + '</span>';
 }
 
+function normalizeHourValue(value) {
+  const matched = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if(!matched) return '';
+  return ('0' + matched[1]).slice(-2) + ':' + matched[2];
+}
+function isOutsideStaffHours(staff, time) {
+  const hours = STAFF_HOURS[staff];
+  if(!hours || !time) return false;
+  return time < hours.start || time >= hours.end;
+}
 function isDerivedClosedSlot(staff, time, cell) {
   if(!cell || cell.status === 'booked' || cell.status === 'blocked' || cell.status === 'open_override') return false;
   if(WEEKLY_OFF[staff] === s.date.getDay()) return true;
-  const hours = STAFF_HOURS[staff];
-  return !!(hours && (time < hours.start || time >= hours.end));
+  return isOutsideStaffHours(staff, time);
+}
+function slotClosureKind(staff, time, cell) {
+  if(!cell || cell.status === 'booked' || cell.status === 'blocked') return '';
+  const outside = isOutsideStaffHours(staff, time);
+  const off = WEEKLY_OFF[staff] === s.date.getDay();
+  if(cell.status === 'open_override') {
+    if(outside) return 'override-outside';
+    if(off) return 'override-off';
+    return '';
+  }
+  if(off) return 'dayoff';
+  if(outside) return 'outside';
+  return '';
 }
 
 function setSlotInfo(id) {
@@ -2645,10 +2730,48 @@ function openBlockModalFromCurrent() {
   openMod('blockMod');
 }
 
+function openCreateModalForCurrent() {
+  const slotHtml = getCurrentSlotInfoHtml();
+  const createSlotEl = document.getElementById('createModSlotInfo');
+  if(createSlotEl) { createSlotEl.innerHTML = slotHtml; createSlotEl.style.display = 'block'; }
+  const hint = document.getElementById('createOutsideHint');
+  const outside = !!(s.cur && isOutsideStaffHours(s.cur.staff, s.cur.time));
+  if(hint) hint.style.display = outside ? 'block' : 'none';
+  const nameEl = document.getElementById('cName');
+  const phoneEl = document.getElementById('cPhone');
+  const symEl = document.getElementById('cSym');
+  const durationEl = document.getElementById('cDuration');
+  if(nameEl) nameEl.value = '';
+  if(phoneEl) phoneEl.value = '';
+  if(symEl) symEl.value = '';
+  if(durationEl) durationEl.value = '60';
+  openMod('createMod');
+}
+
+function openCreateFromAction() {
+  const hint = document.getElementById('createOutsideHint');
+  const outside = !!(s.cur && isOutsideStaffHours(s.cur.staff, s.cur.time));
+  if(hint) hint.style.display = outside ? 'block' : 'none';
+  openMod('createMod');
+}
+
 function openOpenOverrideModal() {
   setSlotInfo('openOverrideSlotInfo');
   var durationEl = document.getElementById('openOverrideDuration');
-  if(durationEl) durationEl.value = '60';
+  const kind = s.cur ? slotClosureKind(s.cur.staff, s.cur.time, s.data[s.cur.staff][s.cur.time]) : '';
+  if(durationEl) durationEl.value = kind === 'outside' ? '60' : 'day';
+  const title = document.getElementById('openOverrideTitle');
+  const help = document.getElementById('openOverrideHelp');
+  const submit = document.getElementById('openOverrideSubmitBtn');
+  if(kind === 'outside') {
+    if(title) title.textContent = '時間外を予約可にする';
+    if(help) help.textContent = 'この時間外を、管理画面から予約できる枠にします。患者さんの予約画面では時間外のまま、予約できません。';
+    if(submit) submit.textContent = '管理画面で予約可にする';
+  } else {
+    if(title) title.textContent = '定休日を解除';
+    if(help) help.textContent = '定休日を解除すると、選んだ時間は患者さんも予約できます。時間外の枠は解除しません。';
+    if(submit) submit.textContent = '定休日を解除';
+  }
   openMod('openOverrideMod');
 }
 
@@ -2740,8 +2863,13 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     openMod('detailMod');
     loadAuditLogs(c.id);
+  } else if(WEEKLY_OFF[nm] === s.date.getDay() && !isOutsideStaffHours(nm, t) && c.status !== 'blocked' && c.status !== 'open_override') {
+    openOpenOverrideModal();
+  } else if(isOutsideStaffHours(nm, t)) {
+    openCreateModalForCurrent();
   } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c)) {
-    const isDerivedClosed = isDerivedClosedSlot(nm, t, c);
+    const closureKind = slotClosureKind(nm, t, c);
+    const isDerivedClosed = closureKind === 'outside' || closureKind === 'dayoff';
     var slotHtml = getCurrentSlotInfoHtml();
     var actSlotEl = document.getElementById('actionModSlotInfo');
     if(actSlotEl) { actSlotEl.innerHTML = slotHtml; actSlotEl.style.display = 'block'; }
@@ -2750,7 +2878,16 @@ async function cellClick(nm, t) {
     var blockBtn = document.getElementById('actionBlockBtn');
     if(blockBtn) blockBtn.style.display = isDerivedClosed ? 'none' : '';
     var openBtn = document.getElementById('actionOpenOverrideBtn');
-    if(openBtn) openBtn.style.display = isDerivedClosed ? '' : 'none';
+    if(openBtn) {
+      openBtn.style.display = isDerivedClosed ? '' : 'none';
+      openBtn.textContent = closureKind === 'outside' ? '時間外を予約可にする' : '定休日を解除';
+    }
+    var restoreBtn = document.getElementById('actionRestoreHoursBtn');
+    if(restoreBtn) restoreBtn.style.display = closureKind === 'override-outside' ? '' : 'none';
+    var restoreDayBtn = document.getElementById('actionRestoreDayOffBtn');
+    if(restoreDayBtn) restoreDayBtn.style.display = closureKind === 'override-off' ? '' : 'none';
+    var hoursBtn = document.getElementById('actionHoursSettingBtn');
+    if(hoursBtn) hoursBtn.style.display = (closureKind === 'outside' || closureKind === 'override-outside') ? '' : 'none';
     var createSlotEl = document.getElementById('createModSlotInfo');
     if(createSlotEl) { createSlotEl.innerHTML = slotHtml; createSlotEl.style.display = 'block'; }
     openMod('actionMod');
@@ -2822,9 +2959,20 @@ async function runCreate() {
     }
     if(existingBlocks && existingBlocks.length > 0) {
       for(const slot of requiredSlots) {
+        if(isOutsideStaffHours(s.cur.staff, slot)) continue;
         if(existingBlocks.some(b => b.time === slot && b.reason !== OPEN_OVERRIDE_REASON)) {
           showLoad(false);
           alert(`選択した時間帯（${s.cur.time}〜${endTime}）にはブロックがあります。ブロックを解除するか、別の時間を選択してください。`);
+          return;
+        }
+      }
+      for(const slot of requiredSlots) {
+        if(!isOutsideStaffHours(s.cur.staff, slot)) continue;
+        if(!existingBlocks.some(b => b.time === slot)) continue;
+        const removed = await db.from('blocks').delete().match({ date:dStr, time:slot, staff:s.cur.staff });
+        if(removed.error) {
+          showLoad(false);
+          alert('時間外のブロックを外せませんでした。通信状態を確認して再度お試しください。');
           return;
         }
       }
@@ -2967,6 +3115,111 @@ async function saveFees() {
     closeAll();
   }
   showLoad(false);
+}
+
+const STAFF_HOURS_STORAGE_KEY = '89admin_staff_hours';
+const HOUR_BOUND_OPTIONS = [];
+for(let hour = 9; hour <= 21; hour++) {
+  for(let minute = 0; minute < 60; minute += 30) {
+    if(hour === 21 && minute > 0) break;
+    HOUR_BOUND_OPTIONS.push(('0' + hour).slice(-2) + ':' + ('0' + minute).slice(-2));
+  }
+}
+
+function applySavedStaffHours(saved) {
+  if(!saved || typeof saved !== 'object') return;
+  STAFFS.forEach(staff => {
+    const row = saved[staff];
+    if(!row) return;
+    const start = normalizeHourValue(row.start);
+    const end = normalizeHourValue(row.end);
+    if(start && end && start < end) STAFF_HOURS[staff] = { start, end };
+  });
+}
+
+function readLocalStaffHours() {
+  try {
+    const saved = localStorage.getItem(STAFF_HOURS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function loadStaffHours() {
+  applySavedStaffHours(readLocalStaffHours());
+  if(!db) return;
+  try {
+    const { data, error } = await db.from('staffs').select('name, hours_start, hours_end');
+    if(error || !data) return;
+    let changed = false;
+    data.forEach(row => {
+      const start = normalizeHourValue(row.hours_start);
+      const end = normalizeHourValue(row.hours_end);
+      if(STAFFS.includes(row.name) && start && end && start < end) {
+        STAFF_HOURS[row.name] = { start, end };
+        changed = true;
+      }
+    });
+    if(changed) localStorage.setItem(STAFF_HOURS_STORAGE_KEY, JSON.stringify(STAFF_HOURS));
+  } catch(e) {}
+}
+
+function hourOptionsHtml(selected) {
+  return HOUR_BOUND_OPTIONS.map(t => `<option value="${t}"${t === selected ? ' selected' : ''}>${t}</option>`).join('');
+}
+
+function openHoursModal() {
+  const list = document.getElementById('hoursList');
+  if(!list) return;
+  list.innerHTML = STAFFS.map(staff => {
+    const hours = STAFF_HOURS[staff] || { start: '09:00', end: '19:00' };
+    return `
+      <div style="display:grid; grid-template-columns: 88px 1fr auto 1fr; gap:8px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:8px;">
+        <span style="font-weight:700; font-size:14px;">${escapeHtml(staff)}</span>
+        <select id="hoursStart_${escapeAttr(staff)}" class="inp" style="margin:0; padding:6px 8px; font-size:13px;">${hourOptionsHtml(hours.start)}</select>
+        <span style="font-weight:700; color:var(--sub);">〜</span>
+        <select id="hoursEnd_${escapeAttr(staff)}" class="inp" style="margin:0; padding:6px 8px; font-size:13px;">${hourOptionsHtml(hours.end)}</select>
+      </div>`;
+  }).join('');
+  openMod('hoursMod');
+}
+
+async function saveStaffHours() {
+  const next = {};
+  for(const staff of STAFFS) {
+    const start = document.getElementById('hoursStart_' + staff)?.value || '';
+    const end = document.getElementById('hoursEnd_' + staff)?.value || '';
+    if(!start || !end || start >= end) {
+      alert(staff + 'の終了時刻は開始時刻より後にしてください');
+      return;
+    }
+    next[staff] = { start, end };
+  }
+  Object.keys(next).forEach(staff => { STAFF_HOURS[staff] = next[staff]; });
+  localStorage.setItem(STAFF_HOURS_STORAGE_KEY, JSON.stringify(STAFF_HOURS));
+  let remoteOk = true;
+  if(db) {
+    for(const staff of STAFFS) {
+      const hoursPayload = {
+        hours_start: STAFF_HOURS[staff].start,
+        hours_end: STAFF_HOURS[staff].end
+      };
+      const updated = await db.from('staffs').update(hoursPayload).eq('name', staff).select('name');
+      if(updated.error) { remoteOk = false; break; }
+      if(updated.data && updated.data.length > 0) continue;
+      const inserted = await db.from('staffs').insert({
+        name: staff,
+        fee: Number(FEES[staff] || 0),
+        ...hoursPayload
+      });
+      if(inserted.error) { remoteOk = false; break; }
+    }
+  }
+  clearAdminCache();
+  closeAll();
+  if(currentTab === 'schedule') load();
+  showToast(remoteOk ? '時間外設定を保存しました' : 'このブラウザに時間外設定を保存しました');
 }
 
 // 患者検索の詳細を開く
@@ -3123,20 +3376,92 @@ async function runSingleUnblock() {
 async function runOpenOverride() {
   if(!s.cur) return;
   const durationValue = document.getElementById('openOverrideDuration').value;
-  const slots = durationValue === 'day'
+  const staff = s.cur.staff;
+  const dayOff = WEEKLY_OFF[staff] === s.date.getDay() && !isOutsideStaffHours(staff, s.cur.time);
+  let slots = durationValue === 'day'
     ? TIMES.slice()
     : getTimeSlots(s.cur.time, addTime(s.cur.time, parseInt(durationValue) || 60));
+  if(dayOff) {
+    slots = slots.filter(t => {
+      if(isOutsideStaffHours(staff, t)) return false;
+      const cell = s.data[staff] && s.data[staff][t];
+      if(!cell || cell.status === 'booked' || cell.status === 'blocked') return false;
+      return true;
+    });
+  }
+  if(!slots.length) {
+    alert('解除できる定休日の枠がありません。予約済みと休憩はそのままです。');
+    return;
+  }
   const dStr = fmtLocal(s.date);
-  const rows = slots.map(t => ({ date:dStr, time:t, staff:s.cur.staff, reason:OPEN_OVERRIDE_REASON }));
+  const outside = isOutsideStaffHours(staff, s.cur.time);
+  const rows = slots.map(t => ({ date:dStr, time:t, staff:staff, reason:OPEN_OVERRIDE_REASON }));
 
   for(const t of slots) {
-    await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff });
+    const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff });
+    if(deleted.error) {
+      showToast('時間外の上書きに失敗しました');
+      return;
+    }
   }
-  await db.from('blocks').insert(rows);
+  const inserted = await db.from('blocks').insert(rows);
+  if(inserted.error) {
+    showToast('時間外の上書きに失敗しました');
+    return;
+  }
   clearAdminCache();
   closeAll();
   load();
-  showToast('予約可能枠にしました');
+  showToast(outside ? '管理画面の予約枠にしました（患者画面は時間外のままです）' : '定休日を解除しました。患者さんも予約できます');
+}
+
+async function runRestoreDayOff() {
+  if(!s.cur) return;
+  const staff = s.cur.staff;
+  const dStr = fmtLocal(s.date);
+  const times = TIMES.filter(t => s.data[staff] && s.data[staff][t] && s.data[staff][t].status === 'open_override' && !isOutsideStaffHours(staff, t));
+  if(!times.length) return;
+  for(const t of times) {
+    const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff, reason:OPEN_OVERRIDE_REASON });
+    if(deleted.error) {
+      showToast('定休日に戻せませんでした');
+      return;
+    }
+  }
+  clearAdminCache();
+  closeAll();
+  load();
+  showToast('定休日に戻しました');
+}
+
+async function runRestoreHoursOverride() {
+  if(!s.cur) return;
+  const staff = s.cur.staff;
+  const dStr = fmtLocal(s.date);
+  const startIdx = TIMES.indexOf(s.cur.time);
+  if(startIdx < 0) return;
+  const times = [];
+  let i = startIdx;
+  while(i >= 0 && s.data[staff] && s.data[staff][TIMES[i]] && s.data[staff][TIMES[i]].status === 'open_override' && isOutsideStaffHours(staff, TIMES[i])) {
+    times.unshift(TIMES[i]);
+    i--;
+  }
+  i = startIdx + 1;
+  while(i < TIMES.length && s.data[staff] && s.data[staff][TIMES[i]] && s.data[staff][TIMES[i]].status === 'open_override' && isOutsideStaffHours(staff, TIMES[i])) {
+    times.push(TIMES[i]);
+    i++;
+  }
+  for(const t of times) {
+    const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff, reason:OPEN_OVERRIDE_REASON });
+    if(deleted.error) {
+      showToast('時間外に戻せませんでした');
+      return;
+    }
+  }
+  clearAdminCache();
+  closeAll();
+  load();
+  showToast('時間外に戻しました');
 }
 
 async function runBulk(enable) {
@@ -3377,7 +3702,8 @@ const PAYMENT_FEES = {
   'マッサージ券': 0,
   '保険': 0,
   '先払い': 0,
-  'つけ払い': 0
+  'つけ払い': 0,
+  'D払い・メルペイ': 0
 };
 
 function bookingMatchesPaymentFilter(b, payment) {
@@ -3754,6 +4080,7 @@ async function loadDashboard() {
     '先払い': { count: 0, amount: 0, fee: 0 },
     'つけ払い': { count: 0, amount: 0, fee: 0 },
     '保険': { count: 0, amount: 0, fee: 0 },
+    'D払い・メルペイ': { count: 0, amount: 0, fee: 0 },
     '未選択': { count: 0, amount: 0, fee: 0 }
   };
   
@@ -3782,12 +4109,13 @@ async function loadDashboard() {
   });
   
   const paypayLogoImg = `<div class="paypay-logo"><img src="paypay.png" alt="PayPay"></div>`;
-  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', '保険': '🏥', '未選択': '❓' };
-  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', '保険': 'hoken' };
+  const walletLogoImg = `<div class="wallet-logos"><img src="dbarai.png" alt="d払い"><img src="merpay.png" alt="メルペイ"></div>`;
+  const payIcons = { '現金': '💴', 'ペイペイ': paypayLogoImg, 'クレジット': '💳', 'マッサージ券': '🎫', '先払い': '💰', 'つけ払い': '📋', '保険': '🏥', 'D払い・メルペイ': walletLogoImg, '未選択': '❓' };
+  const payClasses = { '現金': 'cash', 'ペイペイ': 'paypay', 'クレジット': 'credit', 'マッサージ券': 'giftcard', '先払い': 'prepay', 'つけ払い': 'tsuke', '保険': 'hoken', 'D払い・メルペイ': 'wallet' };
   let payHtml = '';
   let totalFees = 0;
   
-  ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '先払い', 'つけ払い', '保険'].forEach(method => {
+  ['現金', 'クレジット', 'ペイペイ', 'D払い・メルペイ', 'マッサージ券', '先払い', 'つけ払い', '保険'].forEach(method => {
     const stat = payStats[method];
     const feeRate = (PAYMENT_FEES[method] || 0) * 100;
     totalFees += stat.fee;
@@ -3802,6 +4130,8 @@ async function loadDashboard() {
       ? '<div class="pay-voucher-note">先払い・つけ払いページで登録した支払いです。支払日にスタッフ売上へ計上されます。</div>'
       : (method === '保険')
       ? '<div class="pay-voucher-note">件数に未決済（決済日未入力）を含みます。金額・売上合計は決済日入力済みのみです。</div>'
+      : (method === 'D払い・メルペイ')
+      ? '<div class="pay-voucher-note">D払いとメルペイの合計です。個別には分けて集計しません。</div>'
       : '';
     payHtml += `
       <div class="payment-stat-card ${payClasses[method]}">
@@ -3987,8 +4317,8 @@ function getTimeSlots(startTime, endTime) {
 const DEFERRED_PAYMENT_METHODS = ['保険'];
 // DB上の旧ツケ払い別名（患者検索のレガシーデータ用）
 const LEGACY_TSUKE_PAYMENT_METHODS_DB = ['ツケ払い', 'つけ払い', '付け払い', '掛け払い', '掛払い'];
-const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券', '保険'];
-const ADVANCE_TAB_PAYMENT_METHODS = ['現金', 'クレジット', 'ペイペイ', 'マッサージ券'];
+const PAYMENT_METHOD_OPTIONS = ['現金', 'クレジット', 'ペイペイ', 'D払い・メルペイ', 'マッサージ券', '保険'];
+const ADVANCE_TAB_PAYMENT_METHODS = ['現金', 'クレジット', 'ペイペイ', 'D払い・メルペイ', 'マッサージ券'];
 const ADVANCE_TAB_TYPES = ['先払い', 'つけ払い'];
 let advanceTabEditType = '先払い';
 let advanceTabCreateType = '先払い';
@@ -4342,7 +4672,6 @@ async function createRepeatBookings() {
   if(!name) { alert('患者名を入力してください'); return; }
   if(!phone) { alert('電話番号を入力してください'); return; }
   
-  const hours = STAFF_HOURS[staff];
   const endTime = addTime(time, duration);
   
   // 二重クリック防止
@@ -4355,6 +4684,7 @@ async function createRepeatBookings() {
   try {
     const bookings = [];
     const skippedDates = [];
+    const outsideBlocksToClear = [];
     const today = new Date();
     
     for(let w = 0; w < weeks; w++) {
@@ -4410,21 +4740,25 @@ async function createRepeatBookings() {
         const openOverrideTimes = new Set((existingBlocks || [])
           .filter(bl => bl.reason === OPEN_OVERRIDE_REASON)
           .map(bl => bl.time));
+        const clearForDate = [];
         if(existingBlocks) {
           for(const slot of requiredSlots) {
-            const normallyOpen = (!hours || (slot >= hours.start && slot < hours.end)) && WEEKLY_OFF[staff] !== targetDate.getDay();
-            if(!normallyOpen && !openOverrideTimes.has(slot)) {
+            const outside = isOutsideStaffHours(staff, slot);
+            const dayOff = WEEKLY_OFF[staff] === targetDate.getDay();
+            if(dayOff && !outside && !openOverrideTimes.has(slot)) {
               hasConflict = true;
-              skippedDates.push(`${dateStr}（診療時間外または定休日）`);
+              skippedDates.push(`${dateStr}（定休日）`);
               break;
             }
-            if(existingBlocks.some(bl => bl.time === slot && bl.reason !== OPEN_OVERRIDE_REASON)) {
+            if(!outside && existingBlocks.some(bl => bl.time === slot && bl.reason !== OPEN_OVERRIDE_REASON)) {
               hasConflict = true;
               skippedDates.push(`${dateStr}（ブロックあり）`);
               break;
             }
+            if(outside && existingBlocks.some(bl => bl.time === slot)) clearForDate.push({ date:dateStr, time:slot, staff });
           }
         }
+        if(!hasConflict) outsideBlocksToClear.push(...clearForDate);
       }
       
       if(hasConflict) continue;
@@ -4458,6 +4792,15 @@ async function createRepeatBookings() {
       return;
     }
     
+    for(const block of outsideBlocksToClear) {
+      const removed = await db.from('blocks').delete().match({ date:block.date, time:block.time, staff:block.staff });
+      if(removed.error) {
+        showLoad(false);
+        alert('時間外のブロックを外せませんでした。通信状態を確認して再度お試しください。');
+        return;
+      }
+    }
+
     // 一括挿入
     const { error } = await db.from('bookings').insert(bookings);
     
@@ -6173,7 +6516,8 @@ async function loadAdvanceTabPage() {
 
     rows.forEach(row => {
       const typeCls = row.payment_type === 'つけ払い' ? 'tab' : 'prepay';
-      const methodLabel = row.payment_method === 'ペイペイ' ? 'PayPay' : (row.payment_method || '-');
+      const normalizedPay = normalizeDisplayPaymentMethod(row.payment_method || '');
+      const methodLabel = normalizedPay === 'ペイペイ' ? 'PayPay' : (normalizedPay || '-');
       const safeId = Number(row.id) || 0;
       const bookingLabel = row.linkedBooking
         ? `${row.linkedBooking.date || ''} ${row.linkedBooking.start_time || ''}`
