@@ -1510,9 +1510,10 @@
       <div style="text-align:center; margin-bottom:24px; font-weight:700;" id="actTarget"></div>
       <div class="btns">
         <button class="btn" id="actionBlockBtn" onclick="openBlockModalFromCurrent()">ブロック</button>
-        <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">予約可にする</button>
+        <button class="btn btn-primary" id="actionOpenOverrideBtn" onclick="openOpenOverrideModal()">定休日を解除</button>
         <button class="btn btn-primary" onclick="openCreateFromAction()">予約作成</button>
       </div>
+      <button class="btn w-full" id="actionRestoreDayOffBtn" style="display:none; margin-top:8px;" onclick="runRestoreDayOff()">定休日に戻す</button>
       <button class="btn w-full" id="actionRestoreHoursBtn" style="display:none; margin-top:8px;" onclick="runRestoreHoursOverride()">時間外に戻す</button>
       <button class="btn w-full" id="actionHoursSettingBtn" style="display:none; margin-top:8px;" onclick="openHoursModal()">このスタッフの時間外を設定</button>
       <button class="btn btn-ghost w-full" style="margin-top:12px; border:none; color:var(--sub);" onclick="closeAll()">閉じる</button>
@@ -1598,9 +1599,9 @@
 
   <div class="overlay" id="openOverrideMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h"><h3 class="box-ttl">ブロック解除</h3></div>
+      <div class="box-h"><h3 class="box-ttl" id="openOverrideTitle">定休日を解除</h3></div>
       <div id="openOverrideSlotInfo" class="mod-slot-info"></div>
-      <p id="openOverrideHelp" style="text-align:center; margin-bottom:16px; color:var(--text); line-height:1.6;">定休日を、患者さんも予約できる枠にします。</p>
+      <p id="openOverrideHelp" style="text-align:center; margin-bottom:16px; color:var(--text); line-height:1.6;">定休日を解除すると、選んだ時間は患者さんも予約できます。時間外の枠は解除しません。</p>
       <div class="inp-group">
         <label class="inp-lbl">予約可能にする時間</label>
         <select id="openOverrideDuration" class="inp" style="margin:0;">
@@ -2630,17 +2631,20 @@ function renderGrid() {
       const weeklyOff = WEEKLY_OFF[nm] === dow;
       if(c.status === 'booked') {
         cellStatus = 'booked';
-      } else if(weeklyOff) {
-        cellStatus = 'dayoff';
-        displayLabel = '定休日';
+      } else if(c.status === 'blocked') {
+        cellStatus = 'blocked';
+      } else if(c.status === 'open_override' && !outsideHours) {
+        cellStatus = 'free';
+        displayLabel = '予約可';
       } else if(outsideHours) {
         cellStatus = 'outside';
         displayLabel = '時間外';
-      } else if(c.status === 'blocked') {
-        cellStatus = 'blocked';
+      } else if(weeklyOff) {
+        cellStatus = 'dayoff';
+        displayLabel = '定休日';
       } else if(c.status === 'open_override') {
         cellStatus = 'free';
-        displayLabel = '';
+        displayLabel = '予約可';
       }
       const lbl = c.status === 'booked' ? (run ? run.label : c.label) : (cellStatus === 'blocked' ? (c.label || 'ブロック') : displayLabel);
       const lblText = String(lbl || '');
@@ -2754,16 +2758,19 @@ function openCreateFromAction() {
 function openOpenOverrideModal() {
   setSlotInfo('openOverrideSlotInfo');
   var durationEl = document.getElementById('openOverrideDuration');
-  if(durationEl) durationEl.value = '60';
   const kind = s.cur ? slotClosureKind(s.cur.staff, s.cur.time, s.data[s.cur.staff][s.cur.time]) : '';
+  if(durationEl) durationEl.value = kind === 'outside' ? '60' : 'day';
+  const title = document.getElementById('openOverrideTitle');
   const help = document.getElementById('openOverrideHelp');
   const submit = document.getElementById('openOverrideSubmitBtn');
   if(kind === 'outside') {
+    if(title) title.textContent = '時間外を予約可にする';
     if(help) help.textContent = 'この時間外を、管理画面から予約できる枠にします。患者さんの予約画面では時間外のまま、予約できません。';
     if(submit) submit.textContent = '管理画面で予約可にする';
   } else {
-    if(help) help.textContent = '定休日を、患者さんも予約できる枠にします。';
-    if(submit) submit.textContent = '患者も予約可にする';
+    if(title) title.textContent = '定休日を解除';
+    if(help) help.textContent = '定休日を解除すると、選んだ時間は患者さんも予約できます。時間外の枠は解除しません。';
+    if(submit) submit.textContent = '定休日を解除';
   }
   openMod('openOverrideMod');
 }
@@ -2856,6 +2863,8 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     openMod('detailMod');
     loadAuditLogs(c.id);
+  } else if(WEEKLY_OFF[nm] === s.date.getDay() && !isOutsideStaffHours(nm, t) && c.status !== 'blocked' && c.status !== 'open_override') {
+    openOpenOverrideModal();
   } else if(isOutsideStaffHours(nm, t)) {
     openCreateModalForCurrent();
   } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c)) {
@@ -2871,10 +2880,12 @@ async function cellClick(nm, t) {
     var openBtn = document.getElementById('actionOpenOverrideBtn');
     if(openBtn) {
       openBtn.style.display = isDerivedClosed ? '' : 'none';
-      openBtn.textContent = closureKind === 'outside' ? '時間外を予約可にする' : '定休を予約可にする';
+      openBtn.textContent = closureKind === 'outside' ? '時間外を予約可にする' : '定休日を解除';
     }
     var restoreBtn = document.getElementById('actionRestoreHoursBtn');
     if(restoreBtn) restoreBtn.style.display = closureKind === 'override-outside' ? '' : 'none';
+    var restoreDayBtn = document.getElementById('actionRestoreDayOffBtn');
+    if(restoreDayBtn) restoreDayBtn.style.display = closureKind === 'override-off' ? '' : 'none';
     var hoursBtn = document.getElementById('actionHoursSettingBtn');
     if(hoursBtn) hoursBtn.style.display = (closureKind === 'outside' || closureKind === 'override-outside') ? '' : 'none';
     var createSlotEl = document.getElementById('createModSlotInfo');
@@ -3365,12 +3376,26 @@ async function runSingleUnblock() {
 async function runOpenOverride() {
   if(!s.cur) return;
   const durationValue = document.getElementById('openOverrideDuration').value;
-  const slots = durationValue === 'day'
+  const staff = s.cur.staff;
+  const dayOff = WEEKLY_OFF[staff] === s.date.getDay() && !isOutsideStaffHours(staff, s.cur.time);
+  let slots = durationValue === 'day'
     ? TIMES.slice()
     : getTimeSlots(s.cur.time, addTime(s.cur.time, parseInt(durationValue) || 60));
+  if(dayOff) {
+    slots = slots.filter(t => {
+      if(isOutsideStaffHours(staff, t)) return false;
+      const cell = s.data[staff] && s.data[staff][t];
+      if(!cell || cell.status === 'booked' || cell.status === 'blocked') return false;
+      return true;
+    });
+  }
+  if(!slots.length) {
+    alert('解除できる定休日の枠がありません。予約済みと休憩はそのままです。');
+    return;
+  }
   const dStr = fmtLocal(s.date);
-  const outside = isOutsideStaffHours(s.cur.staff, s.cur.time);
-  const rows = slots.map(t => ({ date:dStr, time:t, staff:s.cur.staff, reason:OPEN_OVERRIDE_REASON }));
+  const outside = isOutsideStaffHours(staff, s.cur.time);
+  const rows = slots.map(t => ({ date:dStr, time:t, staff:staff, reason:OPEN_OVERRIDE_REASON }));
 
   for(const t of slots) {
     const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff });
@@ -3387,7 +3412,26 @@ async function runOpenOverride() {
   clearAdminCache();
   closeAll();
   load();
-  showToast(outside ? '管理画面の予約枠にしました（患者画面は時間外のままです）' : '予約可能枠にしました');
+  showToast(outside ? '管理画面の予約枠にしました（患者画面は時間外のままです）' : '定休日を解除しました。患者さんも予約できます');
+}
+
+async function runRestoreDayOff() {
+  if(!s.cur) return;
+  const staff = s.cur.staff;
+  const dStr = fmtLocal(s.date);
+  const times = TIMES.filter(t => s.data[staff] && s.data[staff][t] && s.data[staff][t].status === 'open_override' && !isOutsideStaffHours(staff, t));
+  if(!times.length) return;
+  for(const t of times) {
+    const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff, reason:OPEN_OVERRIDE_REASON });
+    if(deleted.error) {
+      showToast('定休日に戻せませんでした');
+      return;
+    }
+  }
+  clearAdminCache();
+  closeAll();
+  load();
+  showToast('定休日に戻しました');
 }
 
 async function runRestoreHoursOverride() {
