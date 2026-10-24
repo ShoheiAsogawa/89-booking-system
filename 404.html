@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>89CENTER</title>
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://www.89center.dev/">
+  <meta http-equiv="refresh" content="0; url=https://www.89center.dev/">
+</head>
+<body>
+  <p><a id="go" href="https://www.89center.dev/">89CENTER の予約ページへ移動します。</a></p>
+  <script>
+    (function () {
+      var path = location.pathname || "/";
+      var prefix = "/89-booking-system";
+      if (path === prefix || path.indexOf(prefix + "/") === 0) {
+        path = path.slice(prefix.length) || "/";
+      }
+      var tail = location.search + location.hash;
+      var dest = "https://www.89center.dev" + (path === "/index.html" || path === "/index" ? "/" : path) + tail;
+      if (path === "/admin" || path === "/admin/" || path === "/admin.html") {
+        dest = "https://admin.89center.dev/" + tail;
+      }
+      var link = document.getElementById("go");
+      if (link) link.href = dest;
+      location.replace(dest);
+    })();
+  </script>
+</body>
+</html>
