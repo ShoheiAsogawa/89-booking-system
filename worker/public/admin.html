@@ -242,8 +242,9 @@
     .block-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .block-color-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
     .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
-    .cell.cell-has-new { position: relative; padding-left: 16px; padding-right: 16px; }
-    .cell-new { position: absolute; top: 3px; right: 3px; z-index: 1; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
+    .cell.cell-has-new { position: relative; padding-left: 22px; padding-right: 22px; }
+    .cell-name { display: block; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cell-new { position: absolute; top: 4px; right: 4px; z-index: 1; width: 17px; height: 17px; box-sizing: border-box; padding: 0 0 1.6px; border-radius: 99px; background: #111827; color: #fff; font-family: var(--font-jp); font-size: 10px; font-weight: 700; line-height: 1; letter-spacing: 0; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(17,24,39,0.25), 0 0 0 1.5px rgba(255,255,255,0.9); pointer-events: none; }
     .btn-advance-tab.btn-repeat { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
     .btn-advance-tab.btn-repeat:hover { background: #C8E6C9; border-color: #81C784; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -648,8 +649,8 @@
         width: calc((100% - 40px) / 5);
       }
       .cell { font-size: 11px; padding: 1px 2px; border-radius: 4px; }
-      .cell.cell-has-new { padding-left: 12px; padding-right: 12px; }
-      .cell-new { top: 2px; right: 2px; font-size: 8px; padding: 1px; }
+      .cell.cell-has-new { padding-left: 16px; padding-right: 16px; }
+      .cell-new { top: 2px; right: 2px; width: 13px; height: 13px; font-size: 8px; }
       .cell.name-long { font-size: 10px; }
       .cell.name-very-long { font-size: 9px; }
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
@@ -768,8 +769,8 @@
         width: calc((100% - 32px) / 5);
       }
       .cell { font-size: 9px; border-radius: 3px; padding: 0 1px; }
-      .cell.cell-has-new { padding-left: 10px; padding-right: 10px; }
-      .cell-new { top: 1px; right: 1px; font-size: 7px; padding: 1px; }
+      .cell.cell-has-new { padding-left: 14px; padding-right: 14px; }
+      .cell-new { top: 2px; right: 2px; width: 11px; height: 11px; padding: 0; font-size: 7px; box-shadow: 0 0 0 1px rgba(255,255,255,0.9); }
       .cell.name-long { font-size: 8px; }
       .cell.name-very-long { font-size: 7px; }
       th .en { display: none; }
@@ -2705,10 +2706,10 @@ function renderGrid() {
         memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
       }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + (newHtml ? '<span class="cell-name">' + safeLbl + '</span>' : safeLbl) + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + (newHtml ? '<span class="cell-name">' + safeLbl + '</span>' : safeLbl) + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
