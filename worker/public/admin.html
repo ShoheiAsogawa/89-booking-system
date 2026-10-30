@@ -242,8 +242,8 @@
     .block-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .block-color-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
     .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
-    .cell.cell-has-new { padding-right: 14px; }
-    .cell-new { position: absolute; top: 2px; right: 2px; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
+    .cell.cell-has-new { position: relative; padding-left: 16px; padding-right: 16px; }
+    .cell-new { position: absolute; top: 3px; right: 3px; z-index: 1; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
     .btn-advance-tab.btn-repeat { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
     .btn-advance-tab.btn-repeat:hover { background: #C8E6C9; border-color: #81C784; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -648,6 +648,8 @@
         width: calc((100% - 40px) / 5);
       }
       .cell { font-size: 11px; padding: 1px 2px; border-radius: 4px; }
+      .cell.cell-has-new { padding-left: 12px; padding-right: 12px; }
+      .cell-new { top: 2px; right: 2px; font-size: 8px; padding: 1px; }
       .cell.name-long { font-size: 10px; }
       .cell.name-very-long { font-size: 9px; }
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
@@ -766,6 +768,8 @@
         width: calc((100% - 32px) / 5);
       }
       .cell { font-size: 9px; border-radius: 3px; padding: 0 1px; }
+      .cell.cell-has-new { padding-left: 10px; padding-right: 10px; }
+      .cell-new { top: 1px; right: 1px; font-size: 7px; padding: 1px; }
       .cell.name-long { font-size: 8px; }
       .cell.name-very-long { font-size: 7px; }
       th .en { display: none; }
@@ -2485,7 +2489,7 @@ async function load() {
 
     // 必要なカラムのみ取得（コスト削減）。決済済み表示のため payment_date / payment_breakdown も取得
     let booksRes = await db.from('bookings')
-      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient, user_id')
       .eq('date', dStr)
       .or('status.is.null,status.neq.キャンセル');
     if(booksRes.error && booksRes.error.message && (booksRes.error.message.indexOf('payment_breakdown') >= 0 || booksRes.error.message.indexOf('payment_date') >= 0)) {
@@ -2502,6 +2506,7 @@ async function load() {
     if(blocksRes.error) throw blocksRes.error;
     const books = booksRes.data || [];
     const blocks = blocksRes.data || [];
+    await markNewIdBookings(books);
 
     const res = {};
     STAFFS.forEach(nm => { res[nm] = {}; TIMES.forEach(t => res[nm][t] = { status:'free', label:'' }); });
@@ -2550,6 +2555,34 @@ async function load() {
   } finally {
     showLoad(false);
   }
+}
+
+// 「新」: 新しいID（Webアカウント user_id）からの予約は、その人の予約すべてに付ける。
+// 新しいID = そのuser_idの最初の予約（キャンセル除く）の登録日時が NEW_ID_SINCE 以降、
+//            またはそのuser_idの予約のどれかに is_new_patient が付いているもの。
+// user_idのない予約（電話・管理画面入力）は、その予約の is_new_patient のみで判定（従来どおり）。
+const NEW_ID_SINCE = '2026-10-30T09:41:27Z'; // 「新」機能を本番に出した時刻（2026-10-30 18:41 JST）
+async function markNewIdBookings(books) {
+  books.forEach(b => { b._isNew = !!b.is_new_patient; });
+  const ids = [...new Set(books.map(b => b.user_id).filter(Boolean))];
+  if(!ids.length) return;
+  try {
+    const r = await db.from('bookings')
+      .select('user_id, created_at, is_new_patient, status')
+      .in('user_id', ids.slice(0, 500))
+      .order('created_at', { ascending: true })
+      .limit(5000);
+    if(r.error) throw r.error;
+    const first = {}; const flagged = new Set();
+    (r.data || []).forEach(x => {
+      if(!x.user_id) return;
+      if(x.is_new_patient) flagged.add(x.user_id);
+      if(x.status === 'キャンセル') return;
+      if(!first[x.user_id] || x.created_at < first[x.user_id]) first[x.user_id] = x.created_at;
+    });
+    const newIds = new Set(ids.filter(id => flagged.has(id) || (first[id] && first[id] >= NEW_ID_SINCE)));
+    books.forEach(b => { if(b.user_id && newIds.has(b.user_id)) b._isNew = true; });
+  } catch(e) { console.warn('新しいIDの判定エラー:', e && e.message ? e.message : e); }
 }
 
 function renderHead() { 
@@ -2656,7 +2689,7 @@ function renderGrid() {
       // PR#10移植: 新規予約の右上に「新」、ブロックの色
       let newHtml = '';
       let newClass = '';
-      if(c.status === 'booked' && c.detail && c.detail.is_new_patient) {
+      if(c.status === 'booked' && c.detail && (c.detail._isNew || c.detail.is_new_patient)) {
         newHtml = '<span class="cell-new">新</span>';
         newClass = ' cell-has-new';
       }
