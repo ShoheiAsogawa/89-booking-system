@@ -76,7 +76,8 @@
     .tab.tab-dashboard.active { background: #B8BEC6; color: var(--text); }
     .tab.tab-expenses.active { background: #FFF8F0; color: #C2410C; }
     .tab.tab-advancetab.active { background: #E8F0FE; color: #1D4ED8; }
-    .header-right .btn { height: 34px; padding: 0 12px; font-size: 12px; flex: 0 0 auto; min-width: max-content; overflow: visible; white-space: nowrap; }
+    .header-right .btn, .header-left .btn-repeat { height: 34px; padding: 0 12px; font-size: 12px; flex: 0 0 auto; min-width: max-content; overflow: visible; white-space: nowrap; }
+    .header-left .btn-repeat { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
 
     /* BUTTONS */
     .btn { height: 40px; padding: 0 20px; border: 1px solid transparent; background: var(--surface); border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; word-break: keep-all; overflow: hidden; line-height: 1; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow); color: var(--text); }
@@ -233,12 +234,12 @@
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
     /* 予約セル左上の新規バッジ（.badge / .res-tag と同じ黒タグ） */
-    .cell.cell-has-new { padding-top: 16px; }
+    .cell.cell-has-new { padding-right: 14px; }
     .cell-new {
-      position: absolute; top: 4px; left: 4px;
-      font-family: var(--font-en); font-size: 8px; font-weight: 700;
-      letter-spacing: 0.08em; line-height: 1; padding: 2px 5px; border-radius: 4px;
-      background: var(--text); color: #fff; pointer-events: none;
+      position: absolute; top: 2px; right: 2px;
+      font-family: var(--font-jp); font-size: 9px; font-weight: 700;
+      line-height: 1; padding: 1px 2px; border-radius: 2px;
+      background: rgba(255,255,255,0.92); color: #111827; pointer-events: none;
     }
     .cell.booked.paid .cell-new { background: #fff; color: var(--text); }
     /* 予約セル内の管理者メモ（氏名の下に表示） */
@@ -251,7 +252,19 @@
     .cell.booked.staff-3,
     .cell.booked.staff-4 { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .blocked { background: #9CA3AF; color: #fff; background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 6px); font-size: 16px; font-weight: 600; }
-.blocked:hover { background: #6B7280; }
+    .blocked:hover { background: #6B7280; }
+    .cell.blocked.has-block-color {
+      background-color: var(--block-bg);
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.22) 4px, rgba(255,255,255,0.22) 6px);
+      color: #fff;
+    }
+    .cell.blocked.has-block-color:hover { background-color: var(--block-bg); filter: brightness(0.92); }
+    .block-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .block-color-swatch {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff;
+      box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0;
+    }
+    .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
     .outside:hover { background: #D0D0D0; cursor: pointer; }
     .dayoff { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -660,7 +673,7 @@
       .header-right { width: auto; flex: 0 0 auto; flex-wrap: nowrap; gap: 6px; }
       h1 { font-size: 18px; }
       .tab { height: 32px; padding: 0 10px; font-size: 12px; }
-      .header-right .btn { flex: 0 0 auto; min-width: max-content; height: 32px; padding: 0 10px; font-size: 12px; }
+      .header-right .btn, .header-left .btn-repeat { flex: 0 0 auto; min-width: max-content; height: 32px; padding: 0 10px; font-size: 12px; }
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 1000px) {
@@ -669,7 +682,7 @@
       .header-left { gap: 8px; }
       .tab { height: 30px; padding: 0 8px; font-size: 11px; }
       .header-right { gap: 4px; }
-      .header-right .btn { height: 30px; padding: 0 8px; font-size: 11px; }
+      .header-right .btn, .header-left .btn-repeat { height: 30px; padding: 0 8px; font-size: 11px; }
     }
 
     /* ===== MOBILE RESPONSIVE ===== */
@@ -685,7 +698,7 @@
       .tabs { width: 100%; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
       .tab { height: 32px; padding: 0 10px; font-size: 11px; flex: 0 0 auto; white-space: nowrap; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: nowrap; gap: 6px; overflow-x: auto; min-width: 0; }
-      .header-right .btn { height: 32px; padding: 0 10px; font-size: 11px; flex: 0 0 auto; min-width: max-content; }
+      .header-right .btn, .header-left .btn-repeat { height: 32px; padding: 0 10px; font-size: 11px; flex: 0 0 auto; min-width: max-content; }
       
       /* Navigation */
       .nav { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
@@ -710,8 +723,8 @@
       .cell { font-size: 11px; padding: 1px 2px; border-radius: 4px; }
       .cell.name-long { font-size: 10px; }
       .cell.name-very-long { font-size: 9px; }
-      .cell.cell-has-new { padding-top: 12px; }
-      .cell-new { top: 2px; left: 2px; font-size: 7px; padding: 1px 4px; }
+      .cell.cell-has-new { padding-right: 12px; }
+      .cell-new { top: 1px; right: 1px; font-size: 8px; padding: 0 1px; }
       th .en { font-size: 7px; transform: none; margin-top: 1px; }
 
       /* Schedule header */
@@ -811,7 +824,7 @@
       .wrap { margin: 0; }
       .tabs { flex-wrap: nowrap; border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .tab { flex: 0 0 auto; text-align: center; height: 30px; padding: 0 8px; border-radius: 8px; font-size: 10px; white-space: nowrap; }
-      .header-right .btn { flex: 0 0 auto; min-width: max-content; padding: 0 8px; font-size: 10px; white-space: nowrap; }
+      .header-right .btn, .header-left .btn-repeat { flex: 0 0 auto; min-width: max-content; padding: 0 8px; font-size: 10px; white-space: nowrap; }
       .date-nav { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
       #viewSearch > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
       .advance-tab-filter-grid { grid-template-columns: 1fr; }
@@ -1097,9 +1110,9 @@
           <button class="tab tab-expenses" onclick="switchTab('expenses')">小口経費</button>
           <button class="tab tab-advancetab" onclick="switchTab('advancetab')">先払い・つけ払い</button>
         </div>
+        <button id="repeatBtn" type="button" class="btn btn-repeat" onclick="openRepeatModal()">繰り返し予約</button>
       </div>
       <div class="header-right">
-        <button id="repeatBtn" class="btn" style="background:#E8F5E9; color:#2E7D32; border-color:#A5D6A7;" onclick="openRepeatModal()">繰り返し予約</button>
         <button id="expenseBtn" class="btn btn-expense" onclick="openExpenseModal()">経費入力</button>
         <button id="bulkBtn" class="btn btn-danger" onclick="openMod('bulkMod')">一括ブロック</button>
         <button class="btn btn-ghost" onclick="handleLogout()">ログアウト</button>
@@ -1571,7 +1584,22 @@
           <option value="180">180分</option>
           <option value="210">210分</option>
           <option value="240">240分</option>
+          <option value="day">1日</option>
         </select>
+      </div>
+      <div class="inp-group">
+        <label class="inp-lbl">色</label>
+        <input type="hidden" id="sBlkColor" value="">
+        <div class="block-color-row" id="sBlkColors">
+          <button type="button" class="block-color-swatch is-selected" data-color="" style="background:#9CA3AF" title="グレー" onclick="selectBlockColor('')"></button>
+          <button type="button" class="block-color-swatch" data-color="#EF4444" style="background:#EF4444" title="赤" onclick="selectBlockColor('#EF4444')"></button>
+          <button type="button" class="block-color-swatch" data-color="#F59E0B" style="background:#F59E0B" title="橙" onclick="selectBlockColor('#F59E0B')"></button>
+          <button type="button" class="block-color-swatch" data-color="#10B981" style="background:#10B981" title="緑" onclick="selectBlockColor('#10B981')"></button>
+          <button type="button" class="block-color-swatch" data-color="#3B82F6" style="background:#3B82F6" title="青" onclick="selectBlockColor('#3B82F6')"></button>
+          <button type="button" class="block-color-swatch" data-color="#8B5CF6" style="background:#8B5CF6" title="紫" onclick="selectBlockColor('#8B5CF6')"></button>
+          <button type="button" class="block-color-swatch" data-color="#EC4899" style="background:#EC4899" title="桃" onclick="selectBlockColor('#EC4899')"></button>
+          <button type="button" class="block-color-swatch" data-color="#111827" style="background:#111827" title="黒" onclick="selectBlockColor('#111827')"></button>
+        </div>
       </div>
       <div class="inp-group">
         <label class="inp-lbl">理由</label>
@@ -2079,6 +2107,29 @@ const WEEKLY_OFF = { '麻生川':1, '松田':2, '堀江':4, '山口':5, '岡野'
 const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
 const OPEN_OVERRIDE_REASON = '__OPEN_OVERRIDE__';
 const OPEN_OVERRIDE_LABEL = '予約可';
+const BLOCK_COLOR_PRESETS = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#111827'];
+function parseBlockReason(reason) {
+  const raw = String(reason || '');
+  const matched = raw.match(/^\[\[(#[0-9A-Fa-f]{6})\]\]([\s\S]*)$/);
+  if(!matched) return { color: '', label: raw || 'ブロック' };
+  const color = matched[1].toUpperCase();
+  if(BLOCK_COLOR_PRESETS.indexOf(color) < 0) return { color: '', label: raw || 'ブロック' };
+  return { color: color, label: matched[2] || 'ブロック' };
+}
+function formatBlockReason(color, label) {
+  const text = String(label || '').trim();
+  const normalized = String(color || '').toUpperCase();
+  if(BLOCK_COLOR_PRESETS.indexOf(normalized) < 0) return text;
+  return '[[' + normalized + ']]' + text;
+}
+function selectBlockColor(color) {
+  const normalized = BLOCK_COLOR_PRESETS.indexOf(String(color || '').toUpperCase()) >= 0 ? String(color).toUpperCase() : '';
+  const input = document.getElementById('sBlkColor');
+  if(input) input.value = normalized;
+  document.querySelectorAll('#sBlkColors .block-color-swatch').forEach(function(btn) {
+    btn.classList.toggle('is-selected', (btn.getAttribute('data-color') || '') === normalized);
+  });
+}
 
 let db = null;
 try {
@@ -2520,7 +2571,8 @@ async function load() {
     });
     blocks.forEach(b => {
       if(res[b.staff] && res[b.staff][b.time] && b.reason !== OPEN_OVERRIDE_REASON) {
-          res[b.staff][b.time] = { status:'blocked', label:b.reason||'BLOCK' };
+          const parsedBlock = parseBlockReason(b.reason);
+          res[b.staff][b.time] = { status:'blocked', label: parsedBlock.label, color: parsedBlock.color };
       }
     });
     books.forEach(b => {
@@ -2658,12 +2710,18 @@ function renderGrid() {
       let nameClass = '';
       if(lblText.length > 5) nameClass = ' name-long';
       if(lblText.length > 7) nameClass = ' name-very-long';
-      // 予約セル左上に新規顧客バッジ
+      // 予約セル右上に新規の印
       let newHtml = '';
       let newClass = '';
       if(c.status === 'booked' && c.detail && c.detail.is_new_patient) {
-        newHtml = '<span class="cell-new">NEW</span>';
+        newHtml = '<span class="cell-new">新</span>';
         newClass = ' cell-has-new';
+      }
+      let blockColorClass = '';
+      let blockColorAttr = '';
+      if(cellStatus === 'blocked' && /^#[0-9A-Fa-f]{6}$/.test(c.color || '')) {
+        blockColorClass = ' has-block-color';
+        blockColorAttr = ' style="--block-bg:' + c.color + '"';
       }
       // 予約セルには氏名の下に管理者メモを表示
       let memoHtml = '';
@@ -2671,10 +2729,10 @@ function renderGrid() {
         memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
       }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + '" onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
@@ -2727,6 +2785,11 @@ function setSlotInfo(id) {
 
 function openBlockModalFromCurrent() {
   setSlotInfo('blockModSlotInfo');
+  const durationEl = document.getElementById('sBlkDuration');
+  if(durationEl) durationEl.value = '60';
+  const reasonEl = document.getElementById('sBlkReason');
+  if(reasonEl) reasonEl.value = '';
+  selectBlockColor('');
   openMod('blockMod');
 }
 
@@ -2863,12 +2926,14 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     openMod('detailMod');
     loadAuditLogs(c.id);
-  } else if(WEEKLY_OFF[nm] === s.date.getDay() && !isOutsideStaffHours(nm, t) && c.status !== 'blocked' && c.status !== 'open_override') {
+  } else if(c.status === 'blocked') {
+    document.getElementById('unblkTarget').textContent = `${nm} ${t} (${c.label})`;
+    openMod('unblockMod');
+  } else if(WEEKLY_OFF[nm] === s.date.getDay() && !isOutsideStaffHours(nm, t) && c.status !== 'open_override') {
     openOpenOverrideModal();
-  } else if(isOutsideStaffHours(nm, t)) {
-    openCreateModalForCurrent();
-  } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c)) {
-    const closureKind = slotClosureKind(nm, t, c);
+  } else if(c.status === 'free' || c.status === 'open_override' || isDerivedClosedSlot(nm, t, c) || isOutsideStaffHours(nm, t)) {
+    let closureKind = slotClosureKind(nm, t, c);
+    if(isOutsideStaffHours(nm, t) && closureKind === 'dayoff') closureKind = 'outside';
     const isDerivedClosed = closureKind === 'outside' || closureKind === 'dayoff';
     var slotHtml = getCurrentSlotInfoHtml();
     var actSlotEl = document.getElementById('actionModSlotInfo');
@@ -2876,7 +2941,7 @@ async function cellClick(nm, t) {
     var actTargetEl = document.getElementById('actTarget');
     if(actTargetEl) actTargetEl.style.display = 'none';
     var blockBtn = document.getElementById('actionBlockBtn');
-    if(blockBtn) blockBtn.style.display = isDerivedClosed ? 'none' : '';
+    if(blockBtn) blockBtn.style.display = closureKind === 'dayoff' ? 'none' : '';
     var openBtn = document.getElementById('actionOpenOverrideBtn');
     if(openBtn) {
       openBtn.style.display = isDerivedClosed ? '' : 'none';
@@ -2896,9 +2961,6 @@ async function cellClick(nm, t) {
     document.getElementById('cPhone').value = '';
     document.getElementById('cSym').value = '';
     document.getElementById('cDuration').value = '60'; // デフォルトを60分に戻す
-  } else if(c.status === 'blocked') {
-    document.getElementById('unblkTarget').textContent = `${nm} ${t} (${c.label})`;
-    openMod('unblockMod');
   }
 }
 
@@ -3324,11 +3386,17 @@ async function openSearchDetail(bookingId) {
 }
 
 async function runSingleBlock() {
-  const r = document.getElementById('sBlkReason').value;
-  const duration = parseInt(document.getElementById('sBlkDuration').value) || 60;
-  const endTime = addTime(s.cur.time, duration);
-  const slots = getTimeSlots(s.cur.time, endTime);
+  const durationValue = document.getElementById('sBlkDuration').value;
+  const r = formatBlockReason(document.getElementById('sBlkColor').value, document.getElementById('sBlkReason').value);
+  let slots = durationValue === 'day'
+    ? TIMES.slice()
+    : getTimeSlots(s.cur.time, addTime(s.cur.time, parseInt(durationValue, 10) || 60));
+  if(durationValue !== 'day') slots = slots.filter(function(t) { return TIMES.indexOf(t) >= 0; });
   const dStr = fmtLocal(s.date);
+  if(!slots.length) {
+    alert('ブロックできる時間帯がありません。');
+    return;
+  }
   
   // 予約が入っている時間帯にブロックを防ぐ
   const { data: existingBookings, error: existingBookingsError } = await db.from('bookings')
@@ -3341,30 +3409,52 @@ async function runSingleBlock() {
     return;
   }
   
+  const bookedTimes = new Set();
   if (existingBookings && existingBookings.length > 0) {
-    const conflicting = [];
     for (const booking of existingBookings) {
       const bookingSlots = getTimeSlots(booking.start_time, booking.end_time);
       for (const bt of bookingSlots) {
-        if (slots.includes(bt)) {
-          conflicting.push(`${bt}（${booking.patient_name}様）`);
-        }
+        if (slots.includes(bt)) bookedTimes.add(bt);
       }
     }
-    if (conflicting.length > 0) {
-      const msg = '以下の時間帯に予約が入っているため、ブロックできません：\n\n' + conflicting.join('\n');
-      alert(msg);
+  }
+  if (bookedTimes.size > 0 && durationValue !== 'day') {
+    const conflicting = [];
+    existingBookings.forEach(function(booking) {
+      getTimeSlots(booking.start_time, booking.end_time).forEach(function(bt) {
+        if (bookedTimes.has(bt)) conflicting.push(bt + '（' + booking.patient_name + '様）');
+      });
+    });
+    alert('以下の時間帯に予約が入っているため、ブロックできません：\n\n' + conflicting.join('\n'));
+    return;
+  }
+  if (durationValue === 'day') {
+    slots = slots.filter(function(t) { return !bookedTimes.has(t); });
+    if (!slots.length) {
+      alert('この日は予約が入っているため、ブロックできる枠がありません。');
       return;
     }
   }
   
   const rows = slots.map(t => ({ date: dStr, time: t, staff: s.cur.staff, reason: r }));
   for(const t of slots) {
-    await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff, reason:OPEN_OVERRIDE_REASON });
+    const deleted = await db.from('blocks').delete().match({ date:dStr, time:t, staff:s.cur.staff });
+    if(deleted.error) {
+      alert('ブロックの保存に失敗しました。');
+      return;
+    }
   }
-  await db.from('blocks').insert(rows);
+  const inserted = await db.from('blocks').insert(rows);
+  if(inserted.error) {
+    alert('ブロックの保存に失敗しました。');
+    return;
+  }
   clearAdminCache();
-  closeAll(); load();
+  closeAll();
+  load();
+  if(durationValue === 'day' && bookedTimes.size > 0) {
+    showToast('予約が入っている時間は残して、1日をブロックしました');
+  }
 }
 
 async function runSingleUnblock() {
