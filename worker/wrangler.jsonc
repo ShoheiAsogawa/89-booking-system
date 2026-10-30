@@ -1,0 +1,26 @@
+// booking-89center 本番設定。2026-10-30 18:42 JST の版 3431f329-4545-41a6-8f19-1b5b304c7e2e。
+// 平文 vars とバインディングは直前の版 879eeb25-9f84-4859-b0a7-75b35d239d09 から引き継いでいる。
+// ルート／カスタムドメインはここに書かない（Cloudflare側の既存設定をそのまま使う）。
+// シークレットは wrangler deploy で上書きされない。ここにある平文 vars はデプロイのたびに上書きされる。
+// 管理者メールの扱いと、デプロイは CEO が行うことは README.md を参照。
+{
+  "name": "booking-89center",
+  "account_id": "d2874089eebcda705bf220d39f117aec",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "assets": { "directory": "./public", "binding": "ASSETS", "html_handling": "none", "not_found_handling": "none", "run_worker_first": true },
+  "vars": {
+    "ADMIN_EMAILS": "senseco89center@gmail.com,uken.shohei@gmail.com",
+    "ADMIN_ORIGIN": "https://admin.89center.dev",
+    "ALERT_FROM_EMAIL": "alert@89center.dev",
+    "ALERT_TO_EMAIL": "uken.shohei@gmail.com",
+    "BOOKING_ORIGIN": "https://www.89center.dev",
+    "SUPABASE_ANON_KEY": "sb_publishable_J5lxwjP27PycJD78Jkgzsw_VhW4ThgJ",
+    "SUPABASE_URL": "https://zzezehgnzeneueklxduy.supabase.co"
+  },
+  "send_email": [{ "name": "ALERT_EMAIL", "destination_address": "uken.shohei@gmail.com" }],
+  "d1_databases": [{ "binding": "DB", "database_id": "254bc99a-d597-4b1f-a891-82fa9458fc84", "database_name": "要確認" }],
+  "kv_namespaces": [{ "binding": "OCCUPANCY", "id": "2c164f1db1a04340b0c8e72ab9bce448" }]
+}

@@ -1,105 +1,27 @@
 # 89CENTER 予約システム
 
-89CENTERの予約管理システムです。
+本番は Cloudflare Worker `booking-89center` です。患者画面は https://www.89center.dev/ 、管理画面は https://admin.89center.dev/ です。今後の修正とデプロイ手順の正は [`worker/`](worker/README.md) です。
 
-## 📁 プロジェクト構成
+## 本番と、リポジトリ直下のファイル
 
-- `index.html` - ユーザー向け予約画面（LINE LIFFアプリ）
-- `admin.html` - 管理者向け管理画面
-- `COST_OPTIMIZATION.md` - コスト最適化の詳細
-- `SECURITY_AND_COST_ANALYSIS.md` - セキュリティとコスト分析
+| 場所 | 役割 |
+| --- | --- |
+| `worker/` | 本番そのもの。Worker 本体、静的ファイル、`wrangler.jsonc` |
+| 直下の `index.html` / `admin.html` / `404.html` | GitHub Pages（`89center.dev`）の転送。患者は www、`/admin` は管理画面のホストへ送る |
+| 直下のカレンダー、画像、SQL | Cloudflare に移る前の静的版の残り。本番では使わない |
 
-## 🚀 ローカル開発環境のセットアップ
+PR #10 の管理画面は、ブラウザから Supabase を直接叩く古い系統です。本番は D1 と `/api/db` と `worker/public/cloudflare-db-client.js` を使う版で、その5つの画面変更は 2026-10-30 に `worker/public/admin.html` へ移して本番に出してあります。管理画面の次の修正は `worker/public/admin.html` に対して行います。
 
-### 前提条件
+`index.js.old` などの古い Worker は使いません。古い版には `/api/occupancy-sync` の認可の抜けがあります。
 
-- Node.js（v14以上推奨）
+## デプロイ
 
-### 起動方法（推奨）
+本番へ出すコマンドは、`worker/` で実行する `npx wrangler deploy` です。Cloudflare の API トークンはこのリポジトリにもクラウドエージェントにもないので、デプロイは CEO が行います。`main` への push は GitHub Pages を更新するだけで、Worker は更新しません。
 
-```bash
-# 依存関係をインストール（初回のみ）
-npm install
+詳細、版 ID、管理者メールを公開リポジトリに残さない分け方は [`worker/README.md`](worker/README.md) に書いてあります。
 
-# サーバーを起動（ポート 3000）
-npm start
-```
+## 関連ドキュメント
 
-- **管理画面:** http://127.0.0.1:3000/admin.html  
-- **予約画面:** http://127.0.0.1:3000/index.html  
-
-ブラウザを自動で開く場合: `npm run dev`
-
-### その他の起動方法
-
-#### Python を使用
-
-```bash
-python -m http.server 3000
-# http://localhost:3000/admin.html または /index.html
-```
-
-#### VS Code Live Server
-
-1. 「Live Server」拡張機能をインストール
-2. `index.html` または `admin.html` を右クリック → 「Open with Live Server」
-
-## 🔧 設定
-
-### Supabase設定
-
-`index.html`と`admin.html`内の以下の定数を設定してください：
-
-```javascript
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_KEY = 'your-anon-key';
-```
-
-### LINE LIFF設定
-
-`index.html`内のLIFF IDを設定してください：
-
-```javascript
-const LIFF_ID = 'your-liff-id';
-```
-
-## 📝 機能
-
-### ユーザー向け機能（index.html）
-
-- 日付・時間選択による予約
-- LINEログイン連携
-- 予約の確認・キャンセル
-- スタッフ情報・料金表示
-
-### 管理者向け機能（admin.html）
-
-- 予約管理（作成・編集・キャンセル）
-- スロットブロック機能
-- 一括ブロック設定
-- 患者検索
-- ダッシュボード（売上・統計）
-- 料金設定
-
-## 🔒 セキュリティ
-
-詳細は `SECURITY_AND_COST_ANALYSIS.md` を参照してください。
-
-主な対策：
-- Supabase RLS（Row Level Security）の推奨
-- 入力値検証
-- XSS対策
-
-## 💰 コスト
-
-詳細は `COST_OPTIMIZATION.md` と `SECURITY_AND_COST_ANALYSIS.md` を参照してください。
-
-- Supabase: 無料プランで月間50,000リクエストまで
-- GitHub Pages: 完全無料
-- LINE LIFF: 完全無料
-
-## 📚 参考資料
-
-- [Supabase Documentation](https://supabase.com/docs)
-- [LINE LIFF Documentation](https://developers.line.biz/ja/docs/liff/)
-
+- `COST_OPTIMIZATION.md`
+- `SECURITY_AND_COST_ANALYSIS.md`
+- `SECURITY_AND_COST_EVALUATION.md`
