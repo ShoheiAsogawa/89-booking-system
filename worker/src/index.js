@@ -134,15 +134,54 @@ function chunk(items, size) {
 __name(chunk, "chunk");
 
 // src/booking-write.ts
+function bookingPhoneDigits(phone) {
+  return String(phone || "").replace(/\D/g, "");
+}
+__name(bookingPhoneDigits, "bookingPhoneDigits");
+async function inferNewPatientFlag(database, input) {
+  if (typeof input.is_new_patient === "boolean" || typeof input.is_new_patient === "number") {
+    return input.is_new_patient ? 1 : 0;
+  }
+  const userId = input.user_id || "";
+  const phone = bookingPhoneDigits(input.phone);
+  const name = String(input.patient_name || "").trim();
+  let row;
+  if (userId) {
+    row = await database.prepare(`
+      SELECT id FROM bookings
+      WHERE user_id = ? AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+      LIMIT 1
+    `).bind(userId).first();
+  } else if (phone.length >= 10) {
+    row = await database.prepare(`
+      SELECT id FROM bookings
+      WHERE COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+        AND replace(replace(replace(phone, '-', ''), ' ', ''), '\u3000', '') = ?
+      LIMIT 1
+    `).bind(phone).first();
+  } else if (name) {
+    row = await database.prepare(`
+      SELECT id FROM bookings
+      WHERE COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+        AND trim(patient_name) = ?
+      LIMIT 1
+    `).bind(name).first();
+  } else {
+    return 0;
+  }
+  return row ? 0 : 1;
+}
+__name(inferNewPatientFlag, "inferNewPatientFlag");
 async function insertBookingIfAvailable(database, input, audit) {
   const id = input.id || generateBookingId();
   const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+  const isNewPatient = await inferNewPatientFlag(database, input);
   const booking = await database.prepare(`
     INSERT INTO bookings (
       id, created_at, date, start_time, end_time, staff, patient_name, phone,
       symptoms, fee, status, user_id, admin_memo, is_new_patient
     )
-    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '\u4E88\u7D04\u6E08\u307F', ?, ?, 0
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '\u4E88\u7D04\u6E08\u307F', ?, ?, ?
     WHERE NOT EXISTS (
       SELECT 1 FROM bookings
       WHERE date = ? AND staff = ?
@@ -168,6 +207,7 @@ async function insertBookingIfAvailable(database, input, audit) {
     input.fee,
     input.user_id ?? null,
     input.admin_memo ?? null,
+    isNewPatient,
     input.date,
     input.staff,
     input.end_time,
