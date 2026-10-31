@@ -467,6 +467,11 @@
     
     /* 予約詳細モーダル専用スタイル */
     #detailMod .box { width: 520px; }
+    #detailMod .detail-slot-info { margin-top: 10px; font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--text); }
+    #detailMod .detail-slot-date,
+    #detailMod .detail-slot-time,
+    #detailMod .detail-slot-staff { display: block; }
+    #detailMod .detail-slot-staff { margin-top: 2px; }
     #detailMod .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     #detailMod .info-item { background: var(--bg); padding: 14px 16px; border-radius: 10px; }
     #detailMod .info-lbl { color: var(--sub); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: block; }
@@ -1387,7 +1392,10 @@
   <!-- MODALS -->
   <div class="overlay" id="detailMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
-      <div class="box-h"><h3 class="box-ttl">📋 予約詳細</h3></div>
+      <div class="box-h">
+        <h3 class="box-ttl">📋 予約詳細</h3>
+        <div id="detailModSlotInfo" class="detail-slot-info"></div>
+      </div>
       <div id="info" class="info-grid"></div>
       <div class="payment-section">
         <label class="inp-lbl">💳 決済方法</label>
@@ -2691,6 +2699,34 @@ function getCurrentSlotInfoHtml() {
   return '<span class="mod-slot-staff">' + escapeHtml(s.cur.staff) + '</span><span class="mod-slot-date">' + y + '\u5e74' + m + '\u6708' + d + '\u65e5\uff08' + dowLabel + '\uff09</span><span class="mod-slot-time">' + escapeHtml(s.cur.time) + '</span>';
 }
 
+function formatDetailDateLabel(dateValue) {
+  var date = null;
+  if(dateValue instanceof Date) date = dateValue;
+  else if(typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    var p = dateValue.split('-').map(Number);
+    date = new Date(p[0], p[1] - 1, p[2]);
+  }
+  if(!date || isNaN(date.getTime())) return '';
+  return date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日（' + WEEKDAY_JA[date.getDay()] + '）';
+}
+
+function setDetailSlotInfo(dateValue, startTime, endTime, staff) {
+  var el = document.getElementById('detailModSlotInfo');
+  if(!el) return;
+  var dateLabel = formatDetailDateLabel(dateValue);
+  var start = String(startTime || '');
+  var end = String(endTime || '');
+  var timeLabel = start;
+  if(start && end && end !== start) timeLabel = start + '〜' + end;
+  var duration = formatDurationMinutes(start, end);
+  if(timeLabel && duration) timeLabel += '（' + duration + '）';
+  var html = '';
+  if(dateLabel) html += '<span class="detail-slot-date">' + escapeHtml(dateLabel) + '</span>';
+  if(timeLabel) html += '<span class="detail-slot-time">' + escapeHtml(timeLabel) + '</span>';
+  if(staff) html += '<span class="detail-slot-staff">' + escapeHtml(staff) + '</span>';
+  el.innerHTML = html;
+}
+
 function isOutsideStaffHours(staff, time) {
   const hours = STAFF_HOURS[staff];
   if(!hours || !time) return false;
@@ -2826,6 +2862,7 @@ async function cellClick(nm, t) {
     const feeEl = document.getElementById('editFee');
     if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
+    setDetailSlotInfo(s.date, t, d.end_time || (c.detail && c.detail.end_time) || '', nm);
     openMod('detailMod');
     loadAuditLogs(c.id);
   } else if(c.status === 'blocked') {
@@ -3172,6 +3209,7 @@ async function openSearchDetail(bookingId) {
   const feeEl = document.getElementById('editFee');
   if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
   if(mEl) mEl.oninput = setupDetailSaveButtonState;
+  setDetailSlotInfo(detail.date, detail.start_time, detail.end_time, detail.staff);
   openMod('detailMod');
   loadAuditLogs(bookingId);
 }
