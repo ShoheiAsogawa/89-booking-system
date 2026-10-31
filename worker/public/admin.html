@@ -115,7 +115,9 @@
     .btn-refresh:hover .refresh-icon { transform: rotate(180deg); }
     .btn-refresh.spinning .refresh-icon { animation: refreshSpin 0.6s ease-in-out; }
     .schedule-header-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 0 0 24px; }
-    .schedule-header-left { display: flex; align-items: center; justify-self: start; }
+    .schedule-header-left { display: flex; align-items: center; justify-self: start; gap: 8px; }
+    .schedule-header-left .btn-repeat { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; height: 44px; padding: 0 16px; font-size: 12px; white-space: nowrap; flex: 0 0 auto; }
+    .schedule-header-left .btn-repeat:hover { background: #DCF5E0; }
     .schedule-header-row .date-nav { margin: 0; grid-column: 2; justify-self: center; }
     .schedule-header-right { display: flex; align-items: center; gap: 12px; justify-self: end; grid-column: 3; }
     .schedule-header-row .btn-refresh { position: static; height: 44px; min-width: 100px; padding: 0 20px; flex-shrink: 0; }
@@ -244,7 +246,6 @@
     .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
     .cell.cell-has-new { padding-right: 14px; }
     .cell-new { position: absolute; top: 2px; right: 2px; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
-    .header-left .btn-repeat { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; height: 34px; padding: 0 12px; font-size: 12px; flex: 0 0 auto; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
     .outside:hover { background: #D0D0D0; cursor: pointer; }
     .dayoff { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -1039,7 +1040,6 @@
           <button class="tab tab-expenses" onclick="switchTab('expenses')">小口経費</button>
           <button class="tab tab-advancetab" onclick="switchTab('advancetab')">先払い・つけ払い</button>
         </div>
-        <button id="repeatBtn" type="button" class="btn btn-repeat" onclick="openRepeatModal()">繰り返し予約</button>
       </div>
       <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
         <button id="expenseBtn" class="btn btn-expense" onclick="openExpenseModal()">経費入力</button>
@@ -1053,6 +1053,7 @@
       <div class="schedule-header-row">
         <div class="schedule-header-left">
           <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()" title="先払い・つけ払いを登録">先払い・つけ払い登録</button>
+          <button id="repeatBtn" type="button" class="btn btn-repeat" onclick="openRepeatModal()">繰り返し予約</button>
         </div>
         <div class="date-nav">
           <button class="nav-btn" onclick="move(-1)">‹</button>
