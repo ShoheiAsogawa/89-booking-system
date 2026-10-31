@@ -469,6 +469,9 @@
     /* 予約詳細モーダル専用スタイル */
     #detailMod .box { width: 520px; }
     #detailMod .detail-slot-info { margin-top: 10px; font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--text); }
+    #detailMod .box-ttl { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    #detailMod .detail-new-mark { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 3px; background: #111827; color: #fff; }
+    #detailMod .detail-new-mark[hidden] { display: none; }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
     #detailMod .detail-slot-staff { display: block; }
@@ -1394,7 +1397,7 @@
   <div class="overlay" id="detailMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
       <div class="box-h">
-        <h3 class="box-ttl">📋 予約詳細</h3>
+        <h3 class="box-ttl">📋 予約詳細<span id="detailModNewMark" class="detail-new-mark" hidden>新</span></h3>
         <div id="detailModSlotInfo" class="detail-slot-info"></div>
       </div>
       <div id="info" class="info-grid"></div>
@@ -2728,6 +2731,17 @@ function setDetailSlotInfo(dateValue, startTime, endTime, staff) {
   el.innerHTML = html;
 }
 
+function setDetailNewMark(isNew) {
+  var el = document.getElementById('detailModNewMark');
+  if(el) el.hidden = !isNew;
+}
+
+function bookingIsNew(detail, fallback) {
+  if(detail && detail.is_new_patient != null) return !!detail.is_new_patient;
+  if(fallback && fallback.is_new_patient != null) return !!fallback.is_new_patient;
+  return false;
+}
+
 function isOutsideStaffHours(staff, time) {
   const hours = STAFF_HOURS[staff];
   if(!hours || !time) return false;
@@ -2797,7 +2811,7 @@ async function cellClick(nm, t) {
     // 詳細情報を取得（必要な場合のみ）
     let detail = null;
     let detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient')
       .eq('id', c.id)
       .single();
     if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
@@ -2864,6 +2878,7 @@ async function cellClick(nm, t) {
     if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     setDetailSlotInfo(s.date, t, d.end_time || (c.detail && c.detail.end_time) || '', nm);
+    setDetailNewMark(bookingIsNew(d, c.detail));
     openMod('detailMod');
     loadAuditLogs(c.id);
   } else if(c.status === 'blocked') {
@@ -3132,7 +3147,7 @@ async function openSearchDetail(bookingId) {
   s.id = bookingId;
   let detail = null;
   let detailRes = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient')
     .eq('id', bookingId)
     .single();
   if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
@@ -3211,6 +3226,7 @@ async function openSearchDetail(bookingId) {
   if(feeEl) feeEl.oninput = () => { renderPaymentBreakdown(); setupDetailSaveButtonState(); };
   if(mEl) mEl.oninput = setupDetailSaveButtonState;
   setDetailSlotInfo(detail.date, detail.start_time, detail.end_time, detail.staff);
+  setDetailNewMark(bookingIsNew(detail));
   openMod('detailMod');
   loadAuditLogs(bookingId);
 }
