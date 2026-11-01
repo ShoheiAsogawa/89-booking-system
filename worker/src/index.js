@@ -17,7 +17,8 @@ async function getSupabaseUser(request, env) {
   if (!isRecord(value) || typeof value.id !== "string" || !value.id) return null;
   return {
     id: value.id,
-    email: typeof value.email === "string" ? value.email : void 0
+    email: typeof value.email === "string" ? value.email : void 0,
+    lineUserId: lineUserIdFromAuthUser(value)
   };
 }
 __name(getSupabaseUser, "getSupabaseUser");
@@ -31,6 +32,37 @@ function isRecord(value) {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 __name(isRecord, "isRecord");
+var LINE_USER_ID_RE = /^U[0-9a-f]{32}$/i;
+function isLineUserId(value) {
+  return LINE_USER_ID_RE.test(String(value || ""));
+}
+__name(isLineUserId, "isLineUserId");
+function lineUserIdFromAuthUser(value) {
+  const candidates = [];
+  const meta = isRecord(value.user_metadata) ? value.user_metadata : {};
+  candidates.push(meta.line_user_id, meta.lineUserId, meta.sub);
+  const identities = Array.isArray(value.identities) ? value.identities : [];
+  identities.sort((a, b) => Number(!/line/i.test(String(a && a.provider || ""))) - Number(!/line/i.test(String(b && b.provider || ""))));
+  for (const identity of identities) {
+    if (!isRecord(identity)) continue;
+    candidates.push(identity.provider_id);
+    const data = isRecord(identity.identity_data) ? identity.identity_data : {};
+    candidates.push(data.sub, data.userId, data.line_user_id);
+  }
+  candidates.push(value.id);
+  for (const candidate of candidates) {
+    if (isLineUserId(candidate)) return String(candidate);
+  }
+  return "";
+}
+__name(lineUserIdFromAuthUser, "lineUserIdFromAuthUser");
+function bookingOwnerIds(user) {
+  const ids = [];
+  if (user?.id) ids.push(user.id);
+  if (user?.lineUserId && !ids.includes(user.lineUserId)) ids.push(user.lineUserId);
+  return ids;
+}
+__name(bookingOwnerIds, "bookingOwnerIds");
 
 // src/booking-rules.ts
 var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -134,41 +166,24 @@ function chunk(items, size) {
 __name(chunk, "chunk");
 
 // src/booking-write.ts
-function bookingPhoneDigits(phone) {
-  return String(phone || "").replace(/\D/g, "");
+function lineNewPatientSql() {
+  const id = `${quoteIdentifier("bookings")}.${quoteIdentifier("id")}`;
+  const userId = `${quoteIdentifier("bookings")}.${quoteIdentifier("user_id")}`;
+  const pattern = `U${"[0-9a-fA-F]".repeat(32)}`;
+  return `CASE WHEN ${userId} GLOB '${pattern}' AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
 }
-__name(bookingPhoneDigits, "bookingPhoneDigits");
+__name(lineNewPatientSql, "lineNewPatientSql");
 async function inferNewPatientFlag(database, input) {
-  if (typeof input.is_new_patient === "boolean" || typeof input.is_new_patient === "number") {
-    return input.is_new_patient ? 1 : 0;
-  }
-  const userId = input.user_id || "";
-  const phone = bookingPhoneDigits(input.phone);
-  const name = String(input.patient_name || "").trim();
-  let row;
-  if (userId) {
-    row = await database.prepare(`
-      SELECT id FROM bookings
-      WHERE user_id = ? AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
-      LIMIT 1
-    `).bind(userId).first();
-  } else if (phone.length >= 10) {
-    row = await database.prepare(`
-      SELECT id FROM bookings
-      WHERE COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
-        AND replace(replace(replace(phone, '-', ''), ' ', ''), '\u3000', '') = ?
-      LIMIT 1
-    `).bind(phone).first();
-  } else if (name) {
-    row = await database.prepare(`
-      SELECT id FROM bookings
-      WHERE COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
-        AND trim(patient_name) = ?
-      LIMIT 1
-    `).bind(name).first();
-  } else {
-    return 0;
-  }
+  const lineId = isLineUserId(input.line_user_id) ? String(input.line_user_id) : isLineUserId(input.user_id) ? String(input.user_id) : "";
+  if (!lineId) return 0;
+  const ids = [lineId];
+  const alt = String(input.alt_user_id || "");
+  if (alt && alt !== lineId) ids.push(alt);
+  const row = await database.prepare(`
+    SELECT id FROM bookings
+    WHERE user_id IN (${ids.map(() => "?").join(", ")}) AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+    LIMIT 1
+  `).bind(...ids).first();
   return row ? 0 : 1;
 }
 __name(inferNewPatientFlag, "inferNewPatientFlag");
@@ -238,11 +253,12 @@ async function insertBookingIfAvailable(database, input, audit) {
 __name(insertBookingIfAvailable, "insertBookingIfAvailable");
 async function cancelBookingIfAllowed(database, input, audit) {
   const cancelledAt = (/* @__PURE__ */ new Date()).toISOString();
+  const ownerIds = input.userIds && input.userIds.length ? input.userIds : [input.userId];
   const result = await database.prepare(`
     UPDATE bookings SET status = '\u30AD\u30E3\u30F3\u30BB\u30EB'
-    WHERE id = ? AND user_id = ? AND date > ? AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+    WHERE id = ? AND user_id IN (${ownerIds.map(() => "?").join(", ")}) AND date > ? AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
     RETURNING id, date, start_time, end_time, staff
-  `).bind(input.bookingId, input.userId, input.minDateExclusive).first();
+  `).bind(input.bookingId, ...ownerIds, input.minDateExclusive).first();
   if (!result) {
     return {
       ok: false,
@@ -765,7 +781,10 @@ function selectedColumns(query) {
   const all = TABLE_COLUMNS[query.table];
   const requested = !query.columns || query.columns.trim() === "*" ? [...all] : query.columns.split(",").map((column) => column.trim()).filter(Boolean);
   validateColumns(query.table, requested);
-  return { sql: requested.map(quoteIdentifier).join(", "), names: requested };
+  return {
+    sql: requested.map((column) => query.table === "bookings" && column === "is_new_patient" ? `${lineNewPatientSql()} AS ${quoteIdentifier("is_new_patient")}` : quoteIdentifier(column)).join(", "),
+    names: requested
+  };
 }
 __name(selectedColumns, "selectedColumns");
 function normalizeOutgoingRow(table, row) {
@@ -890,17 +909,24 @@ async function handlePatientApi(request, env, path) {
   const user = await getSupabaseUser(request, env);
   if (!user) return apiError3("auth required", "AUTH_REQUIRED", 401);
   if (path === "/api/patient/bookings" && request.method === "POST") {
-    return createBooking(request, env, user.id);
+    return createBooking(request, env, user);
   }
   const match = path.match(/^\/api\/patient\/bookings\/([A-Z0-9-]{1,64})(?:\/(cancel))?$/i);
   if (!match) return apiError3("not found", "NOT_FOUND", 404);
   const bookingId = match[1];
-  if (request.method === "GET" && !match[2]) return getBooking(env, user.id, bookingId);
-  if (request.method === "POST" && match[2] === "cancel") return cancelBooking(env, user.id, bookingId);
+  if (request.method === "GET" && !match[2]) return getBooking(env, user, bookingId);
+  if (request.method === "POST" && match[2] === "cancel") return cancelBooking(env, user, bookingId);
   return apiError3("method not allowed", "METHOD_NOT_ALLOWED", 405);
 }
 __name(handlePatientApi, "handlePatientApi");
-async function createBooking(request, env, userId) {
+async function attachLineUserId(database, supabaseUserId, lineUserId) {
+  if (!isLineUserId(lineUserId) || !supabaseUserId || supabaseUserId === lineUserId) return;
+  await database.prepare(`UPDATE bookings SET user_id = ? WHERE user_id = ?`).bind(lineUserId, supabaseUserId).run();
+}
+__name(attachLineUserId, "attachLineUserId");
+async function createBooking(request, env, user) {
+  const userId = user.id;
+  const lineUserId = user.lineUserId || "";
   const contentLength = Number(request.headers.get("Content-Length") || "0");
   if (contentLength > 16e3) return apiError3("request is too large", "PAYLOAD_TOO_LARGE", 413);
   let value;
@@ -933,10 +959,13 @@ async function createBooking(request, env, userId) {
       return apiError3("\u9078\u629E\u3057\u305F\u6642\u9593\u5E2F\u306F\u8A3A\u7642\u6642\u9593\u5916\u307E\u305F\u306F\u5B9A\u4F11\u65E5\u3067\u3059", "OUTSIDE_BUSINESS_HOURS", 409);
     }
   }
+  if (lineUserId) await attachLineUserId(env.DB, userId, lineUserId);
   const saved = await insertBookingIfAvailable(env.DB, {
     ...input,
     fee: 0,
-    user_id: userId
+    user_id: lineUserId || userId,
+    line_user_id: lineUserId,
+    alt_user_id: lineUserId && lineUserId !== userId ? userId : ""
   }, {
     action: "\u60A3\u8005\u304C\u4E88\u7D04",
     details: `${input.date} ${input.start_time}\u301C${input.end_time} ${input.staff} \u306E\u4E88\u7D04\u3092\u767B\u9332`,
@@ -947,19 +976,20 @@ async function createBooking(request, env, userId) {
 }
 __name(createBooking, "createBooking");
 async function getBooking(env, userId, bookingId) {
+  const ownerIds = bookingOwnerIds(typeof userId === "object" ? userId : { id: userId });
   const booking = await env.DB.prepare(`
     SELECT id, date, start_time, end_time, staff, patient_name, phone, symptoms, status
     FROM bookings
-    WHERE id = ? AND user_id = ? AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
-  `).bind(bookingId, userId).first();
+    WHERE id = ? AND user_id IN (${ownerIds.map(() => "?").join(", ")}) AND COALESCE(status, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB'
+  `).bind(bookingId, ...ownerIds).first();
   if (!booking) return apiError3("\u4E88\u7D04\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093", "NOT_FOUND", 404);
   return apiJson3({ booking });
 }
 __name(getBooking, "getBooking");
-async function cancelBooking(env, userId, bookingId) {
+async function cancelBooking(env, user, bookingId) {
   const saved = await cancelBookingIfAllowed(env.DB, {
     bookingId,
-    userId,
+    userIds: bookingOwnerIds(user),
     minDateExclusive: tokyoDateString(/* @__PURE__ */ new Date())
   }, {
     action: "\u60A3\u8005\u304C\u30AD\u30E3\u30F3\u30BB\u30EB",
@@ -1077,12 +1107,13 @@ async function handleApi(request, env) {
         SELECT staff, time, reason FROM blocks WHERE date = ?
       `).bind(date)
     ]);
+    const ownerIds = new Set(bookingOwnerIds(user));
     const books = bookResult.results.map((book) => ({
       id: String(book.id || ""),
       start_time: String(book.start_time || ""),
       end_time: String(book.end_time || ""),
       staff: String(book.staff || ""),
-      user_id: user && book.user_id === user.id ? user.id : null
+      user_id: user && ownerIds.has(String(book.user_id || "")) ? user.id : null
     }));
     const blocks = blockResult.results.map((block) => ({
       staff: String(block.staff || ""),
