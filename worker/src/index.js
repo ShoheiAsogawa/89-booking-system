@@ -166,13 +166,27 @@ function chunk(items, size) {
 __name(chunk, "chunk");
 
 // src/booking-write.ts
+var newPatientOverrideReady = false;
 function lineNewPatientSql() {
   const id = `${quoteIdentifier("bookings")}.${quoteIdentifier("id")}`;
   const userId = `${quoteIdentifier("bookings")}.${quoteIdentifier("user_id")}`;
+  const override = `${quoteIdentifier("bookings")}.${quoteIdentifier("new_patient_override")}`;
   const pattern = `U${"[0-9a-fA-F]".repeat(32)}`;
-  return `CASE WHEN ${userId} GLOB '${pattern}' AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
+  const automatic = `CASE WHEN ${userId} GLOB '${pattern}' AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
+  return `CASE WHEN ${override} IS NOT NULL THEN ${override} ELSE ${automatic} END`;
+}
+async function ensureNewPatientOverrideColumn(database) {
+  if (newPatientOverrideReady) return;
+  try {
+    await database.prepare("ALTER TABLE bookings ADD COLUMN new_patient_override INTEGER").run();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/duplicate column|already exists/i.test(message)) throw error;
+  }
+  newPatientOverrideReady = true;
 }
 __name(lineNewPatientSql, "lineNewPatientSql");
+__name(ensureNewPatientOverrideColumn, "ensureNewPatientOverrideColumn");
 async function inferNewPatientFlag(database, input) {
   const lineId = isLineUserId(input.line_user_id) ? String(input.line_user_id) : isLineUserId(input.user_id) ? String(input.user_id) : "";
   if (!lineId) return 0;
@@ -583,7 +597,8 @@ var TABLE_COLUMNS = {
     "payment_method",
     "payment_date",
     "payment_breakdown",
-    "is_new_patient"
+    "is_new_patient",
+    "new_patient_override"
   ],
   blocks: ["id", "created_at", "date", "time", "staff", "reason"],
   staffs: ["name", "fee"],
@@ -641,6 +656,7 @@ async function handleDatabaseApi(request, env) {
     return apiError2("admin required", "ADMIN_REQUIRED", 401);
   }
   try {
+    if (query.table === "bookings") await ensureNewPatientOverrideColumn(env.DB);
     if (query.operation === "select") return await executeSelect(env.DB, query);
     if (query.operation === "insert" || query.operation === "upsert") {
       return await executeInsert(env.DB, query);

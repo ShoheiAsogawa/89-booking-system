@@ -473,6 +473,8 @@
     #detailMod .info-name-head .info-lbl { margin-bottom: 0; }
     #detailMod .detail-new-mark { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 3px; background: #111827; color: #fff; letter-spacing: 0; text-transform: none; }
     #detailMod .detail-new-mark[hidden] { display: none; }
+    #detailMod .detail-new-toggle { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: var(--text); cursor: pointer; letter-spacing: 0; text-transform: none; }
+    #detailMod .detail-new-toggle:disabled { opacity: 0.5; cursor: default; }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
     #detailMod .detail-slot-staff { display: block; }
@@ -2732,9 +2734,55 @@ function setDetailSlotInfo(dateValue, startTime, endTime, staff) {
   el.innerHTML = html;
 }
 
+function detailNameHeadHtml() {
+  return '<div class="info-name-head">' +
+    '<span class="info-lbl">👤 氏名（編集可）</span>' +
+    '<span id="detailModNewMark" class="detail-new-mark" hidden>新</span>' +
+    '<button type="button" id="detailModNewToggle" class="detail-new-toggle" onclick="toggleDetailNewMark()">表示</button>' +
+  '</div>';
+}
+
 function setDetailNewMark(isNew) {
+  s.detailIsNew = !!isNew;
   var el = document.getElementById('detailModNewMark');
   if(el) el.hidden = !isNew;
+  var btn = document.getElementById('detailModNewToggle');
+  if(btn) {
+    btn.textContent = isNew ? '解除' : '表示';
+    btn.disabled = false;
+  }
+}
+
+function updateScheduleNewMark(bookingId, isNew) {
+  if(!s.data || !bookingId) return;
+  STAFFS.forEach(function(nm) {
+    TIMES.forEach(function(t) {
+      var cell = s.data[nm] && s.data[nm][t];
+      if(cell && cell.id === bookingId && cell.detail) cell.detail.is_new_patient = !!isNew;
+    });
+  });
+  if(currentTab === 'schedule') renderGrid();
+}
+
+async function toggleDetailNewMark() {
+  if(!s.id || s.detailNewMarkSaving) return;
+  var next = !s.detailIsNew;
+  var btn = document.getElementById('detailModNewToggle');
+  s.detailNewMarkSaving = true;
+  if(btn) btn.disabled = true;
+  var result = await db.from('bookings').update({ new_patient_override: next ? 1 : 0 }).eq('id', s.id);
+  s.detailNewMarkSaving = false;
+  if(result.error) {
+    if(btn) btn.disabled = false;
+    showToast('新規マークの更新に失敗しました: ' + (result.error.message || ''));
+    return;
+  }
+  setDetailNewMark(next);
+  updateScheduleNewMark(s.id, next);
+  clearAdminCache();
+  addAuditLog(s.id, next ? '新規マーク表示' : '新規マーク解除', next ? '新規マークを表示しました' : '新規マークを解除しました');
+  loadAuditLogs(s.id);
+  showToast(next ? '新規マークを表示しました' : '新規マークを解除しました');
 }
 
 function bookingIsNew(detail, fallback) {
@@ -2831,10 +2879,7 @@ async function cellClick(nm, t) {
     const safeSymptoms = escapeHtml(d.symptoms || '');
     document.getElementById('info').innerHTML = `
       <div class="info-item">
-        <div class="info-name-head">
-          <span class="info-lbl">👤 氏名（編集可）</span>
-          <span id="detailModNewMark" class="detail-new-mark" hidden>新</span>
-        </div>
+        ${detailNameHeadHtml()}
         <input type="text" id="editName" class="info-edit-input" value="${safeName}">
       </div>
       <div class="info-item">
@@ -3174,10 +3219,7 @@ async function openSearchDetail(bookingId) {
   const safeSymptoms = escapeHtml(detail.symptoms || '');
   document.getElementById('info').innerHTML = `
     <div class="info-item">
-      <div class="info-name-head">
-        <span class="info-lbl">👤 氏名（編集可）</span>
-        <span id="detailModNewMark" class="detail-new-mark" hidden>新</span>
-      </div>
+      ${detailNameHeadHtml()}
       <input type="text" id="editName" class="info-edit-input" value="${safeName}">
     </div>
     <div class="info-item">
