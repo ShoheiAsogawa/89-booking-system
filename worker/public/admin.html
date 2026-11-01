@@ -224,7 +224,7 @@
     .cell.booked.staff-3.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #1E3A8A; }
     .cell.booked.staff-4.patient-group { box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 2px #4C1D95; }
 
-    .cell { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
+    .cell { position: relative; width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; }
     .cell.name-long { font-size: 13px; }
     .cell.name-very-long { font-size: 11px; }
     /* 予約セル内の管理者メモ（氏名の下に表示） */
@@ -469,8 +469,9 @@
     /* 予約詳細モーダル専用スタイル */
     #detailMod .box { width: 520px; }
     #detailMod .detail-slot-info { margin-top: 10px; font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--text); }
-    #detailMod .box-ttl { display: flex; align-items: center; justify-content: center; gap: 8px; }
-    #detailMod .detail-new-mark { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 3px; background: #111827; color: #fff; }
+    #detailMod .info-name-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+    #detailMod .info-name-head .info-lbl { margin-bottom: 0; }
+    #detailMod .detail-new-mark { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 3px; background: #111827; color: #fff; letter-spacing: 0; text-transform: none; }
     #detailMod .detail-new-mark[hidden] { display: none; }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
@@ -1397,7 +1398,7 @@
   <div class="overlay" id="detailMod" onclick="if(event.target===this)closeAll()">
     <div class="box">
       <div class="box-h">
-        <h3 class="box-ttl">📋 予約詳細<span id="detailModNewMark" class="detail-new-mark" hidden>新</span></h3>
+        <h3 class="box-ttl">📋 予約詳細</h3>
         <div id="detailModSlotInfo" class="detail-slot-info"></div>
       </div>
       <div id="info" class="info-grid"></div>
@@ -2830,7 +2831,10 @@ async function cellClick(nm, t) {
     const safeSymptoms = escapeHtml(d.symptoms || '');
     document.getElementById('info').innerHTML = `
       <div class="info-item">
-        <span class="info-lbl">👤 氏名（編集可）</span>
+        <div class="info-name-head">
+          <span class="info-lbl">👤 氏名（編集可）</span>
+          <span id="detailModNewMark" class="detail-new-mark" hidden>新</span>
+        </div>
         <input type="text" id="editName" class="info-edit-input" value="${safeName}">
       </div>
       <div class="info-item">
@@ -3170,7 +3174,10 @@ async function openSearchDetail(bookingId) {
   const safeSymptoms = escapeHtml(detail.symptoms || '');
   document.getElementById('info').innerHTML = `
     <div class="info-item">
-      <span class="info-lbl">👤 氏名（編集可）</span>
+      <div class="info-name-head">
+        <span class="info-lbl">👤 氏名（編集可）</span>
+        <span id="detailModNewMark" class="detail-new-mark" hidden>新</span>
+      </div>
       <input type="text" id="editName" class="info-edit-input" value="${safeName}">
     </div>
     <div class="info-item">
