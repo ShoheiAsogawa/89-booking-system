@@ -473,8 +473,10 @@
     #detailMod .info-name-head .info-lbl { margin-bottom: 0; }
     #detailMod .detail-new-mark { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 3px; background: #111827; color: #fff; letter-spacing: 0; text-transform: none; }
     #detailMod .detail-new-mark[hidden] { display: none; }
-    #detailMod .detail-new-toggle { font-family: var(--font-jp); font-size: 11px; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: var(--text); cursor: pointer; letter-spacing: 0; text-transform: none; }
-    #detailMod .detail-new-toggle:disabled { opacity: 0.5; cursor: default; }
+    #detailMod .detail-new-check { display: flex; align-items: center; gap: 4px; width: fit-content; margin-top: 6px; font-family: var(--font-jp); font-size: 11px; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; letter-spacing: 0; text-transform: none; }
+    #detailMod .detail-new-check input { width: 13px; height: 13px; margin: 0; cursor: pointer; accent-color: #111827; }
+    #detailMod .detail-new-check input:disabled { cursor: default; }
+    #detailMod .detail-new-check:has(input:disabled) { opacity: 0.5; cursor: default; }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
     #detailMod .detail-slot-staff { display: block; }
@@ -2738,18 +2740,24 @@ function detailNameHeadHtml() {
   return '<div class="info-name-head">' +
     '<span class="info-lbl">👤 氏名（編集可）</span>' +
     '<span id="detailModNewMark" class="detail-new-mark" hidden>新</span>' +
-    '<button type="button" id="detailModNewToggle" class="detail-new-toggle" onclick="toggleDetailNewMark()">表示</button>' +
   '</div>';
+}
+
+function detailNewCheckHtml() {
+  return '<label class="detail-new-check">' +
+    '<input type="checkbox" id="detailModNewToggle" onchange="toggleDetailNewMark(this)">' +
+    '<span>新規</span>' +
+  '</label>';
 }
 
 function setDetailNewMark(isNew) {
   s.detailIsNew = !!isNew;
   var el = document.getElementById('detailModNewMark');
   if(el) el.hidden = !isNew;
-  var btn = document.getElementById('detailModNewToggle');
-  if(btn) {
-    btn.textContent = isNew ? '解除' : '表示';
-    btn.disabled = false;
+  var box = document.getElementById('detailModNewToggle');
+  if(box) {
+    box.checked = !!isNew;
+    box.disabled = false;
   }
 }
 
@@ -2764,16 +2772,22 @@ function updateScheduleNewMark(bookingId, isNew) {
   if(currentTab === 'schedule') renderGrid();
 }
 
-async function toggleDetailNewMark() {
-  if(!s.id || s.detailNewMarkSaving) return;
-  var next = !s.detailIsNew;
-  var btn = document.getElementById('detailModNewToggle');
+async function toggleDetailNewMark(input) {
+  var box = input && input.type === 'checkbox' ? input : document.getElementById('detailModNewToggle');
+  if(!s.id || s.detailNewMarkSaving) {
+    if(box) box.checked = !!s.detailIsNew;
+    return;
+  }
+  var next = box ? box.checked : !s.detailIsNew;
   s.detailNewMarkSaving = true;
-  if(btn) btn.disabled = true;
+  if(box) box.disabled = true;
   var result = await db.from('bookings').update({ new_patient_override: next ? 1 : 0 }).eq('id', s.id);
   s.detailNewMarkSaving = false;
   if(result.error) {
-    if(btn) btn.disabled = false;
+    if(box) {
+      box.checked = !next;
+      box.disabled = false;
+    }
     showToast('新規マークの更新に失敗しました: ' + (result.error.message || ''));
     return;
   }
@@ -2881,6 +2895,7 @@ async function cellClick(nm, t) {
       <div class="info-item">
         ${detailNameHeadHtml()}
         <input type="text" id="editName" class="info-edit-input" value="${safeName}">
+        ${detailNewCheckHtml()}
       </div>
       <div class="info-item">
         <span class="info-lbl">📞 電話番号（編集可）</span>
@@ -3221,6 +3236,7 @@ async function openSearchDetail(bookingId) {
     <div class="info-item">
       ${detailNameHeadHtml()}
       <input type="text" id="editName" class="info-edit-input" value="${safeName}">
+      ${detailNewCheckHtml()}
     </div>
     <div class="info-item">
       <span class="info-lbl">📞 電話番号（編集可）</span>
