@@ -166,27 +166,47 @@ function chunk(items, size) {
 __name(chunk, "chunk");
 
 // src/booking-write.ts
-var newPatientOverrideReady = false;
-function lineNewPatientSql() {
+var newPatientOverrideReady = null;
+function isLineUserIdSql(expr) {
+  let stripped = `lower(substr(${expr}, 2))`;
+  for (const ch of "0123456789abcdef") stripped = `replace(${stripped}, '${ch}', '')`;
+  return `(length(${expr}) = 33 AND substr(${expr}, 1, 1) = 'U' AND ${stripped} = '')`;
+}
+function lineNewPatientSql(includeOverride) {
   const id = `${quoteIdentifier("bookings")}.${quoteIdentifier("id")}`;
   const userId = `${quoteIdentifier("bookings")}.${quoteIdentifier("user_id")}`;
+  const automatic = `CASE WHEN ${isLineUserIdSql(userId)} AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
+  if (!includeOverride) return automatic;
   const override = `${quoteIdentifier("bookings")}.${quoteIdentifier("new_patient_override")}`;
-  const pattern = `U${"[0-9a-fA-F]".repeat(32)}`;
-  const automatic = `CASE WHEN ${userId} GLOB '${pattern}' AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
   return `CASE WHEN ${override} IS NOT NULL THEN ${override} ELSE ${automatic} END`;
 }
-async function ensureNewPatientOverrideColumn(database) {
-  if (newPatientOverrideReady) return;
+async function bookingsOverrideAvailable(database) {
+  if (newPatientOverrideReady !== null) return newPatientOverrideReady;
   try {
-    await database.prepare("ALTER TABLE bookings ADD COLUMN new_patient_override INTEGER").run();
+    const info = await database.prepare("PRAGMA table_info(bookings)").all();
+    const hasColumn = (info.results || []).some((row) => row && row.name === "new_patient_override");
+    if (!hasColumn) {
+      const altered = await database.prepare("ALTER TABLE bookings ADD COLUMN new_patient_override INTEGER").run();
+      if (altered && altered.success === false) {
+        throw new Error(altered.error || "alter new_patient_override failed");
+      }
+    }
+    newPatientOverrideReady = true;
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!/duplicate column|already exists/i.test(message)) throw error;
+    if (/duplicate column|already exists|already has column/i.test(message)) {
+      newPatientOverrideReady = true;
+      return true;
+    }
+    console.error(JSON.stringify({ message: "new_patient_override unavailable", error: message }));
+    newPatientOverrideReady = false;
+    return false;
   }
-  newPatientOverrideReady = true;
 }
+__name(isLineUserIdSql, "isLineUserIdSql");
 __name(lineNewPatientSql, "lineNewPatientSql");
-__name(ensureNewPatientOverrideColumn, "ensureNewPatientOverrideColumn");
+__name(bookingsOverrideAvailable, "bookingsOverrideAvailable");
 async function inferNewPatientFlag(database, input) {
   const lineId = isLineUserId(input.line_user_id) ? String(input.line_user_id) : isLineUserId(input.user_id) ? String(input.user_id) : "";
   if (!lineId) return 0;
@@ -656,7 +676,7 @@ async function handleDatabaseApi(request, env) {
     return apiError2("admin required", "ADMIN_REQUIRED", 401);
   }
   try {
-    if (query.table === "bookings") await ensureNewPatientOverrideColumn(env.DB);
+    if (query.table === "bookings") query.newPatientOverride = await bookingsOverrideAvailable(env.DB);
     if (query.operation === "select") return await executeSelect(env.DB, query);
     if (query.operation === "insert" || query.operation === "upsert") {
       return await executeInsert(env.DB, query);
@@ -678,7 +698,17 @@ async function executeSelect(database, query) {
   const limit = Math.min(Math.max(requestedLimit || MAX_RESULT_ROWS, 1), MAX_RESULT_ROWS);
   const offset = query.range ? Math.max(query.range.from, 0) : 0;
   const sql = `SELECT ${columns.sql} FROM ${quoteIdentifier(query.table)}${where.sql}${ordering} LIMIT ? OFFSET ?`;
-  const result = await database.prepare(sql).bind(...where.values, limit, offset).all();
+  let result;
+  try {
+    result = await database.prepare(sql).bind(...where.values, limit, offset).all();
+  } catch (error) {
+    if (query.table !== "bookings" || query.plainNewPatient || !columns.names.includes("is_new_patient")) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(JSON.stringify({ message: "booking select fallback", error: message }));
+    query.plainNewPatient = true;
+    query.newPatientOverride = false;
+    return executeSelect(database, query);
+  }
   const rows = result.results.map((row) => normalizeOutgoingRow(query.table, row));
   if (query.single || query.maybeSingle) {
     if (rows.length === 1) return apiJson2({ data: rows[0], count: 1 });
@@ -798,7 +828,12 @@ function selectedColumns(query) {
   const requested = !query.columns || query.columns.trim() === "*" ? [...all] : query.columns.split(",").map((column) => column.trim()).filter(Boolean);
   validateColumns(query.table, requested);
   return {
-    sql: requested.map((column) => query.table === "bookings" && column === "is_new_patient" ? `${lineNewPatientSql()} AS ${quoteIdentifier("is_new_patient")}` : quoteIdentifier(column)).join(", "),
+    sql: requested.map((column) => {
+      if (query.table === "bookings" && column === "is_new_patient" && !query.plainNewPatient) {
+        return `${lineNewPatientSql(query.newPatientOverride === true)} AS ${quoteIdentifier("is_new_patient")}`;
+      }
+      return quoteIdentifier(column);
+    }).join(", "),
     names: requested
   };
 }
