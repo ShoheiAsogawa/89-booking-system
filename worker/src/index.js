@@ -167,11 +167,15 @@ __name(chunk, "chunk");
 
 // src/booking-write.ts
 var newPatientOverrideReady = null;
+function isLineUserIdSql(expr) {
+  let stripped = `lower(substr(${expr}, 2))`;
+  for (const ch of "0123456789abcdef") stripped = `replace(${stripped}, '${ch}', '')`;
+  return `(length(${expr}) = 33 AND substr(${expr}, 1, 1) = 'U' AND ${stripped} = '')`;
+}
 function lineNewPatientSql(includeOverride) {
   const id = `${quoteIdentifier("bookings")}.${quoteIdentifier("id")}`;
   const userId = `${quoteIdentifier("bookings")}.${quoteIdentifier("user_id")}`;
-  const pattern = `U${"[0-9a-fA-F]".repeat(32)}`;
-  const automatic = `CASE WHEN ${userId} GLOB '${pattern}' AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
+  const automatic = `CASE WHEN ${isLineUserIdSql(userId)} AND ${id} = (SELECT b2.${quoteIdentifier("id")} FROM ${quoteIdentifier("bookings")} b2 WHERE b2.${quoteIdentifier("user_id")} = ${userId} AND COALESCE(b2.${quoteIdentifier("status")}, '') <> '\u30AD\u30E3\u30F3\u30BB\u30EB' ORDER BY b2.${quoteIdentifier("date")} ASC, b2.${quoteIdentifier("start_time")} ASC, COALESCE(b2.${quoteIdentifier("created_at")}, '') ASC, b2.${quoteIdentifier("id")} ASC LIMIT 1) THEN 1 ELSE 0 END`;
   if (!includeOverride) return automatic;
   const override = `${quoteIdentifier("bookings")}.${quoteIdentifier("new_patient_override")}`;
   return `CASE WHEN ${override} IS NOT NULL THEN ${override} ELSE ${automatic} END`;
@@ -200,6 +204,7 @@ async function bookingsOverrideAvailable(database) {
     return false;
   }
 }
+__name(isLineUserIdSql, "isLineUserIdSql");
 __name(lineNewPatientSql, "lineNewPatientSql");
 __name(bookingsOverrideAvailable, "bookingsOverrideAvailable");
 async function inferNewPatientFlag(database, input) {
