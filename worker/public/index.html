@@ -303,6 +303,9 @@
       margin-bottom: 6px; margin-top: 8px;
     }
     .form-label:first-child { margin-top: 0; }
+    .gender-checks { display: flex; gap: 14px; margin-top: 6px; }
+    .gender-check { display: flex; align-items: center; gap: 4px; width: fit-content; font-size: 11px; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; }
+    .gender-check input { width: 13px; height: 13px; margin: 0; accent-color: #111827; cursor: pointer; }
     .required { font-size: 10px; color: #E53935; margin-left: 4px; }
     .optional { font-size: 10px; color: var(--sub); margin-left: 4px; }
     .time-notice {
@@ -507,6 +510,10 @@
         <div class="form-group">
           <label class="form-label">👤 お名前 <span class="required">必須</span></label>
           <input class="inp" id="pName" placeholder="例：山田 太郎">
+          <div class="gender-checks">
+            <label class="gender-check"><input type="checkbox" id="pGenderMale" onchange="selectPatientGender('男性')"><span>男性</span></label>
+            <label class="gender-check"><input type="checkbox" id="pGenderFemale" onchange="selectPatientGender('女性')"><span>女性</span></label>
+          </div>
           
           <label class="form-label">📞 電話番号 <span class="required">必須</span></label>
           <input class="inp" id="pPhone" type="tel" placeholder="例：09012345678（ハイフンなし）" maxlength="15" pattern="[0-9]*" inputmode="numeric">
@@ -1251,6 +1258,25 @@ function validatePhone(phone) {
   return { valid: true };
 }
 
+function selectPatientGender(which) {
+  const male = document.getElementById('pGenderMale');
+  const female = document.getElementById('pGenderFemale');
+  if(!male || !female) return;
+  if(which === '男性' && male.checked) female.checked = false;
+  if(which === '女性' && female.checked) male.checked = false;
+}
+function patientGenderValue() {
+  if(document.getElementById('pGenderMale')?.checked) return '男性';
+  if(document.getElementById('pGenderFemale')?.checked) return '女性';
+  return '';
+}
+function resetPatientGender() {
+  const male = document.getElementById('pGenderMale');
+  const female = document.getElementById('pGenderFemale');
+  if(male) male.checked = false;
+  if(female) female.checked = false;
+}
+
 let _bookingInProgress = false;
 async function createBooking() {
   if(_bookingInProgress) return;
@@ -1319,7 +1345,8 @@ async function createBooking() {
         staff: p.staff,
         patient_name: name,
         phone: phone,
-        symptoms: document.getElementById('pSym').value
+        symptoms: document.getElementById('pSym').value,
+        gender: patientGenderValue()
       })
     });
     const bookingResult = await bookingResponse.json().catch(() => ({}));
@@ -1493,6 +1520,7 @@ async function tap(s, t, st, id) {
   if(!isOwn) {
     document.getElementById('pName').value=''; document.getElementById('pPhone').value='';
     document.getElementById('pSym').value=''; document.getElementById('inTerm').checked = false;
+    resetPatientGender();
     var durationSelect = document.getElementById('pDuration');
     var timeNotice = document.getElementById('timeNotice');
     const allDurations = [30, 60, 90, 120];

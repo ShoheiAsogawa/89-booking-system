@@ -246,6 +246,7 @@
     .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
     .cell.cell-has-new { padding-right: 14px; }
     .cell-new { position: absolute; top: 2px; right: 2px; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
+    .cell-gender { display: inline-block; margin-left: 2px; font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; vertical-align: middle; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
     .outside:hover { background: #D0D0D0; cursor: pointer; }
     .dayoff { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -481,6 +482,7 @@
     #detailMod .detail-new-check input { width: 13px; height: 13px; margin: 0; cursor: pointer; accent-color: #111827; }
     #detailMod .detail-new-check input:disabled { cursor: default; }
     #detailMod .detail-new-check:has(input:disabled) { opacity: 0.5; cursor: default; }
+    #detailMod .detail-gender { margin-top: 6px; font-size: 11px; font-weight: 700; line-height: 1; color: var(--sub); }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
     #detailMod .detail-slot-staff { display: block; }
@@ -2503,9 +2505,15 @@ async function load() {
 
     // 必要なカラムのみ取得（コスト削減）。決済済み表示のため payment_date / payment_breakdown も取得
     let booksRes = await db.from('bookings')
-      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient, gender')
       .eq('date', dStr)
       .or('status.is.null,status.neq.キャンセル');
+    if(booksRes.error && booksRes.error.message && booksRes.error.message.indexOf('gender') >= 0) {
+      booksRes = await db.from('bookings')
+        .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient')
+        .eq('date', dStr)
+        .or('status.is.null,status.neq.キャンセル');
+    }
     if(booksRes.error && booksRes.error.message && (booksRes.error.message.indexOf('payment_breakdown') >= 0 || booksRes.error.message.indexOf('payment_date') >= 0)) {
       // 古いDB（payment_date / payment_breakdown 列なし）へのフォールバック
       booksRes = await db.from('bookings')
@@ -2678,6 +2686,10 @@ function renderGrid() {
         newHtml = '<span class="cell-new">新</span>';
         newClass = ' cell-has-new';
       }
+      let genderHtml = '';
+      if(c.status === 'booked' && c.detail && (c.detail.gender === '男性' || c.detail.gender === '女性')) {
+        genderHtml = '<span class="cell-gender">' + (c.detail.gender === '男性' ? '男' : '女') + '</span>';
+      }
       let blockColorClass = '';
       let blockColorAttr = '';
       if(cellStatus === 'blocked' && /^#[0-9A-Fa-f]{6}$/.test(c.color || '')) {
@@ -2690,10 +2702,10 @@ function renderGrid() {
         memoHtml = '<div class="cell-memo">' + escapeHtml(String(c.detail.admin_memo)) + '</div>';
       }
       if(run && run.slotCount > 1) {
-        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td rowspan="' + run.slotCount + '"><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + genderHtml + memoHtml + '</div></td>';
         skipCount[idx] = run.slotCount - 1;
       } else {
-        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + memoHtml + '</div></td>';
+        h += '<td><div class="cell ' + cellStatus + staffClass + nameClass + newClass + blockColorClass + '"' + blockColorAttr + ' onclick="cellClick(\'' + safeNm + '\',\'' + safeClickTime + '\')">' + newHtml + safeLbl + genderHtml + memoHtml + '</div></td>';
       }
     });
     h+=`<td class="time-right">${timeDisplay}</td>`;
@@ -2750,6 +2762,11 @@ function detailNewCheckHtml() {
     '<input type="checkbox" id="detailModNewToggle" onchange="toggleDetailNewMark(this)">' +
     '<span>新規</span>' +
   '</label>';
+}
+
+function detailGenderHtml(gender) {
+  if(gender !== '男性' && gender !== '女性') return '';
+  return '<div class="detail-gender">' + escapeHtml(gender) + '</div>';
 }
 
 function setDetailNewMark(isNew) {
@@ -2876,9 +2893,15 @@ async function cellClick(nm, t) {
     // 詳細情報を取得（必要な場合のみ）
     let detail = null;
     let detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient, gender')
       .eq('id', c.id)
       .single();
+    if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('gender') >= 0) {
+      detailRes = await db.from('bookings')
+        .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient')
+        .eq('id', c.id)
+        .single();
+    }
     if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
       detailRes = await db.from('bookings')
         .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date')
@@ -2898,6 +2921,7 @@ async function cellClick(nm, t) {
         ${detailNameHeadHtml()}
         <input type="text" id="editName" class="info-edit-input" value="${safeName}">
         ${detailNewCheckHtml()}
+        ${detailGenderHtml(d.gender)}
       </div>
       <div class="info-item">
         <span class="info-lbl">📞 電話番号（編集可）</span>
@@ -3213,9 +3237,15 @@ async function openSearchDetail(bookingId) {
   s.id = bookingId;
   let detail = null;
   let detailRes = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient, gender')
     .eq('id', bookingId)
     .single();
+  if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('gender') >= 0) {
+    detailRes = await db.from('bookings')
+      .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient')
+      .eq('id', bookingId)
+      .single();
+  }
   if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
     detailRes = await db.from('bookings')
       .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date')
@@ -3239,6 +3269,7 @@ async function openSearchDetail(bookingId) {
       ${detailNameHeadHtml()}
       <input type="text" id="editName" class="info-edit-input" value="${safeName}">
       ${detailNewCheckHtml()}
+      ${detailGenderHtml(detail.gender)}
     </div>
     <div class="info-item">
       <span class="info-lbl">📞 電話番号（編集可）</span>
