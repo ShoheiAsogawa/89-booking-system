@@ -460,6 +460,10 @@
     .box { background: var(--surface); width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 28px; border-radius: var(--radius-l); box-shadow: 0 20px 60px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s; }
     .overlay.open .box { transform: scale(1); }
     .box-h { margin-bottom: 20px; text-align: center; padding-bottom: 16px; border-bottom: 2px solid var(--line); }
+    .box-h-list { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; }
+    .box-h-list .box-ttl { margin: 0; }
+    .btn-modal-list { justify-self: end; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .btn-modal-list:hover { background: var(--bg); }
     .box-ttl { font-size: 20px; font-weight: 800; }
     .mod-slot-info { display: none; margin-bottom: 16px; padding: 10px 14px; background: var(--bg); border-radius: 10px; font-size: 14px; color: var(--sub); text-align: center; }
     .mod-slot-info .mod-slot-staff { font-weight: 700; color: var(--text); margin-right: 8px; }
@@ -1045,8 +1049,6 @@
           <button class="tab tab-schedule active" onclick="switchTab('schedule')">予約管理</button>
           <button class="tab tab-search" onclick="switchTab('search')">患者検索</button>
           <button class="tab tab-dashboard" onclick="switchTab('dashboard')">売上</button>
-          <button class="tab tab-expenses" onclick="switchTab('expenses')">小口経費</button>
-          <button class="tab tab-advancetab" onclick="switchTab('advancetab')">先払い・つけ払い</button>
         </div>
       </div>
       <div class="header-right" style="display:flex; gap:12px; align-items:flex-end;">
@@ -1340,7 +1342,7 @@
     <!-- 先払い・つけ払い -->
     <div id="viewAdvancePayments" class="hidden">
       <div style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-        <h2 style="font-size:18px; font-weight:800; margin:0;">先払い・つけ払い一覧</h2>
+        <h2 id="advanceTabPageTitle" style="font-size:18px; font-weight:800; margin:0;">先払い・つけ払い一覧</h2>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <button type="button" class="btn-advance-tab" onclick="openAdvanceTabModal()">先払い・つけ払い登録</button>
           <button type="button" class="btn-expense-refresh" id="btnAdvanceTabRefresh" onclick="refreshAdvanceTabPage()" title="一覧を再取得">
@@ -1636,7 +1638,7 @@
   <!-- 経費入力モーダル -->
   <div class="overlay" id="expenseMod" onclick="if(event.target===this)closeAll()">
     <div class="box" style="width:520px;">
-      <div class="box-h"><h3 class="box-ttl">小口経費 登録</h3></div>
+      <div class="box-h box-h-list"><span aria-hidden="true"></span><h3 class="box-ttl">小口経費 登録</h3><button type="button" class="btn-modal-list" onclick="openExpenseListFromModal()">一覧</button></div>
       <div class="expense-form-grid">
         <div class="inp-group" style="grid-column:1/-1;">
           <label class="inp-lbl">💰 種別</label>
@@ -1774,7 +1776,7 @@
   <!-- 先払い・つけ払い 登録モーダル -->
   <div class="overlay" id="advanceTabMod" onclick="if(event.target===this)closeAll()">
     <div class="box" style="width:500px;">
-      <div class="box-h"><h3 class="box-ttl">💰 先払い・つけ払い 登録</h3></div>
+      <div class="box-h box-h-list"><span aria-hidden="true"></span><h3 class="box-ttl" id="advanceTabModTitle">先払い 登録</h3><button type="button" class="btn-modal-list" onclick="openAdvanceTabListFromModal()">一覧</button></div>
       <div class="inp-group" style="margin-bottom:16px;">
         <label class="inp-lbl">分類</label>
         <div class="advance-type-btns">
@@ -5078,6 +5080,11 @@ function toggleExpenseInflowMethod(which) {
   groupEl.style.display = 'block';
   labelEl.textContent = inRadio?.checked ? '💳 入金方法' : '💳 出金方法';
 }
+function openExpenseListFromModal() {
+  closeAll();
+  switchTab('expenses');
+  loadExpensesPage();
+}
 function openExpenseModal() {
   document.getElementById('expFlowOut').checked = true;
   document.getElementById('expFlowIn').checked = false;
@@ -6186,9 +6193,26 @@ function populateAdvanceTabStaffSelect(selectEl, selected) {
 }
 
 function selectAdvanceTabType(type) {
-  advanceTabCreateType = type;
-  document.getElementById('atTypePrepay')?.classList.toggle('active', type === '先払い');
-  document.getElementById('atTypeTab')?.classList.toggle('active', type === 'つけ払い');
+  advanceTabCreateType = type === 'つけ払い' ? 'つけ払い' : '先払い';
+  document.getElementById('atTypePrepay')?.classList.toggle('active', advanceTabCreateType === '先払い');
+  document.getElementById('atTypeTab')?.classList.toggle('active', advanceTabCreateType === 'つけ払い');
+  const title = document.getElementById('advanceTabModTitle');
+  if(title) title.textContent = advanceTabCreateType + ' 登録';
+}
+function syncAdvanceTabPageTitle() {
+  const typeVal = document.getElementById('atListType')?.value || '';
+  const title = document.getElementById('advanceTabPageTitle');
+  if(!title) return;
+  title.textContent = typeVal ? (typeVal + '一覧') : '先払い・つけ払い一覧';
+}
+function openAdvanceTabListFromModal() {
+  const type = advanceTabCreateType === 'つけ払い' ? 'つけ払い' : '先払い';
+  closeAll();
+  switchTab('advancetab');
+  const typeEl = document.getElementById('atListType');
+  if(typeEl) typeEl.value = type;
+  syncAdvanceTabPageTitle();
+  loadAdvanceTabPage();
 }
 
 function selectAdvanceTabEditType(type) {
@@ -6316,6 +6340,7 @@ async function loadAdvanceTabPage() {
   const fromVal = document.getElementById('atListDateFrom')?.value;
   const toVal = document.getElementById('atListDateTo')?.value;
   const typeVal = document.getElementById('atListType')?.value;
+  syncAdvanceTabPageTitle();
   const staffVal = document.getElementById('atListStaff')?.value;
   const methodVal = document.getElementById('atListMethod')?.value;
   const keywordVal = (document.getElementById('atListKeyword')?.value || '').trim();
