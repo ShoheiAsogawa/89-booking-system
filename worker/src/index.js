@@ -167,6 +167,11 @@ __name(chunk, "chunk");
 
 // src/booking-write.ts
 var newPatientOverrideReady = null;
+var bookingGenderReady = null;
+function normalizeGender(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text === "\u7537\u6027" || text === "\u5973\u6027" || text === "\u305D\u306E\u4ED6" ? text : null;
+}
 function isLineUserIdSql(expr) {
   let stripped = `lower(substr(${expr}, 2))`;
   for (const ch of "0123456789abcdef") stripped = `replace(${stripped}, '${ch}', '')`;
@@ -207,6 +212,32 @@ async function bookingsOverrideAvailable(database) {
 __name(isLineUserIdSql, "isLineUserIdSql");
 __name(lineNewPatientSql, "lineNewPatientSql");
 __name(bookingsOverrideAvailable, "bookingsOverrideAvailable");
+async function bookingsGenderAvailable(database) {
+  if (bookingGenderReady !== null) return bookingGenderReady;
+  try {
+    const info = await database.prepare("PRAGMA table_info(bookings)").all();
+    const hasColumn = (info.results || []).some((row) => row && row.name === "gender");
+    if (!hasColumn) {
+      const altered = await database.prepare("ALTER TABLE bookings ADD COLUMN gender TEXT").run();
+      if (altered && altered.success === false) {
+        throw new Error(altered.error || "alter gender failed");
+      }
+    }
+    bookingGenderReady = true;
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/duplicate column|already exists|already has column/i.test(message)) {
+      bookingGenderReady = true;
+      return true;
+    }
+    console.error(JSON.stringify({ message: "gender unavailable", error: message }));
+    bookingGenderReady = false;
+    return false;
+  }
+}
+__name(normalizeGender, "normalizeGender");
+__name(bookingsGenderAvailable, "bookingsGenderAvailable");
 async function inferNewPatientFlag(database, input) {
   const lineId = isLineUserId(input.line_user_id) ? String(input.line_user_id) : isLineUserId(input.user_id) ? String(input.user_id) : "";
   if (!lineId) return 0;
@@ -225,12 +256,14 @@ async function insertBookingIfAvailable(database, input, audit) {
   const id = input.id || generateBookingId();
   const createdAt = (/* @__PURE__ */ new Date()).toISOString();
   const isNewPatient = await inferNewPatientFlag(database, input);
+  const genderReady = await bookingsGenderAvailable(database);
+  const gender = genderReady ? normalizeGender(input.gender) : null;
   const booking = await database.prepare(`
     INSERT INTO bookings (
       id, created_at, date, start_time, end_time, staff, patient_name, phone,
-      symptoms, fee, status, user_id, admin_memo, is_new_patient
+      symptoms, fee, status, user_id, admin_memo, is_new_patient${genderReady ? ", gender" : ""}
     )
-    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '\u4E88\u7D04\u6E08\u307F', ?, ?, ?
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '\u4E88\u7D04\u6E08\u307F', ?, ?, ?${genderReady ? ", ?" : ""}
     WHERE NOT EXISTS (
       SELECT 1 FROM bookings
       WHERE date = ? AND staff = ?
@@ -257,6 +290,7 @@ async function insertBookingIfAvailable(database, input, audit) {
     input.user_id ?? null,
     input.admin_memo ?? null,
     isNewPatient,
+    ...genderReady ? [gender] : [],
     input.date,
     input.staff,
     input.end_time,
@@ -618,7 +652,8 @@ var TABLE_COLUMNS = {
     "payment_date",
     "payment_breakdown",
     "is_new_patient",
-    "new_patient_override"
+    "new_patient_override",
+    "gender"
   ],
   blocks: ["id", "created_at", "date", "time", "staff", "reason"],
   staffs: ["name", "fee"],
@@ -676,7 +711,10 @@ async function handleDatabaseApi(request, env) {
     return apiError2("admin required", "ADMIN_REQUIRED", 401);
   }
   try {
-    if (query.table === "bookings") query.newPatientOverride = await bookingsOverrideAvailable(env.DB);
+    if (query.table === "bookings") {
+      query.newPatientOverride = await bookingsOverrideAvailable(env.DB);
+      query.genderColumn = await bookingsGenderAvailable(env.DB);
+    }
     if (query.operation === "select") return await executeSelect(env.DB, query);
     if (query.operation === "insert" || query.operation === "upsert") {
       return await executeInsert(env.DB, query);
@@ -702,8 +740,13 @@ async function executeSelect(database, query) {
   try {
     result = await database.prepare(sql).bind(...where.values, limit, offset).all();
   } catch (error) {
-    if (query.table !== "bookings" || query.plainNewPatient || !columns.names.includes("is_new_patient")) throw error;
     const message = error instanceof Error ? error.message : String(error);
+    if (query.table === "bookings" && !query.genderFallback && columns.names.includes("gender") && /no such column: gender/i.test(message)) {
+      query.genderFallback = true;
+      query.genderColumn = false;
+      return executeSelect(database, query);
+    }
+    if (query.table !== "bookings" || query.plainNewPatient || !columns.names.includes("is_new_patient")) throw error;
     console.error(JSON.stringify({ message: "booking select fallback", error: message }));
     query.plainNewPatient = true;
     query.newPatientOverride = false;
@@ -831,6 +874,9 @@ function selectedColumns(query) {
     sql: requested.map((column) => {
       if (query.table === "bookings" && column === "is_new_patient" && !query.plainNewPatient) {
         return `${lineNewPatientSql(query.newPatientOverride === true)} AS ${quoteIdentifier("is_new_patient")}`;
+      }
+      if (query.table === "bookings" && column === "gender" && query.genderColumn === false) {
+        return `NULL AS ${quoteIdentifier("gender")}`;
       }
       return quoteIdentifier(column);
     }).join(", "),
@@ -1059,7 +1105,8 @@ function parseBookingInput(value) {
     staff: stringValue2(value.staff),
     patient_name: stringValue2(value.patient_name).trim(),
     phone: stringValue2(value.phone),
-    symptoms: stringValue2(value.symptoms).trim()
+    symptoms: stringValue2(value.symptoms).trim(),
+    gender: normalizeGender(value.gender)
   };
   if (!DATE_RE.test(input.date) || !isValidIsoDate(input.date)) return null;
   if (!TIME_RE.test(input.start_time) || !TIME_RE.test(input.end_time)) return null;
