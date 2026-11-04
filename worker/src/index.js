@@ -170,7 +170,7 @@ var newPatientOverrideReady = null;
 var bookingGenderReady = null;
 function normalizeGender(value) {
   const text = typeof value === "string" ? value.trim() : "";
-  return text === "\u7537\u6027" || text === "\u5973\u6027" ? text : null;
+  return text === "\u7537\u6027" || text === "\u5973\u6027" || text === "\u305D\u306E\u4ED6" ? text : null;
 }
 function isLineUserIdSql(expr) {
   let stripped = `lower(substr(${expr}, 2))`;

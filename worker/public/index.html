@@ -303,9 +303,12 @@
       margin-bottom: 6px; margin-top: 8px;
     }
     .form-label:first-child { margin-top: 0; }
-    .gender-checks { display: flex; gap: 14px; margin-top: 6px; }
+    #pName { margin-bottom: 4px; }
+    .gender-checks { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
+    .gender-check-group { display: flex; align-items: center; gap: 12px; }
     .gender-check { display: flex; align-items: center; gap: 4px; width: fit-content; font-size: 11px; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; }
     .gender-check input { width: 13px; height: 13px; margin: 0; accent-color: #111827; cursor: pointer; }
+    .gender-optional { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--sub); }
     .required { font-size: 10px; color: #E53935; margin-left: 4px; }
     .optional { font-size: 10px; color: var(--sub); margin-left: 4px; }
     .time-notice {
@@ -511,8 +514,12 @@
           <label class="form-label">👤 お名前 <span class="required">必須</span></label>
           <input class="inp" id="pName" placeholder="例：山田 太郎">
           <div class="gender-checks">
-            <label class="gender-check"><input type="checkbox" id="pGenderMale" onchange="selectPatientGender('男性')"><span>男性</span></label>
-            <label class="gender-check"><input type="checkbox" id="pGenderFemale" onchange="selectPatientGender('女性')"><span>女性</span></label>
+            <div class="gender-check-group">
+              <label class="gender-check"><input type="checkbox" id="pGenderMale" onchange="selectPatientGender('男性')"><span>男性</span></label>
+              <label class="gender-check"><input type="checkbox" id="pGenderFemale" onchange="selectPatientGender('女性')"><span>女性</span></label>
+              <label class="gender-check"><input type="checkbox" id="pGenderOther" onchange="selectPatientGender('その他')"><span>その他</span></label>
+            </div>
+            <span class="gender-optional">任意</span>
           </div>
           
           <label class="form-label">📞 電話番号 <span class="required">必須</span></label>
@@ -1259,22 +1266,26 @@ function validatePhone(phone) {
 }
 
 function selectPatientGender(which) {
-  const male = document.getElementById('pGenderMale');
-  const female = document.getElementById('pGenderFemale');
-  if(!male || !female) return;
-  if(which === '男性' && male.checked) female.checked = false;
-  if(which === '女性' && female.checked) male.checked = false;
+  const boxes = [
+    ['男性', document.getElementById('pGenderMale')],
+    ['女性', document.getElementById('pGenderFemale')],
+    ['その他', document.getElementById('pGenderOther')]
+  ];
+  boxes.forEach(function(pair) {
+    if(pair[1] && pair[0] !== which) pair[1].checked = false;
+  });
 }
 function patientGenderValue() {
   if(document.getElementById('pGenderMale')?.checked) return '男性';
   if(document.getElementById('pGenderFemale')?.checked) return '女性';
+  if(document.getElementById('pGenderOther')?.checked) return 'その他';
   return '';
 }
 function resetPatientGender() {
-  const male = document.getElementById('pGenderMale');
-  const female = document.getElementById('pGenderFemale');
-  if(male) male.checked = false;
-  if(female) female.checked = false;
+  ['pGenderMale', 'pGenderFemale', 'pGenderOther'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if(el) el.checked = false;
+  });
 }
 
 let _bookingInProgress = false;

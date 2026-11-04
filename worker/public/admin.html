@@ -2687,8 +2687,8 @@ function renderGrid() {
         newClass = ' cell-has-new';
       }
       let genderHtml = '';
-      if(c.status === 'booked' && c.detail && (c.detail.gender === '男性' || c.detail.gender === '女性')) {
-        genderHtml = '<span class="cell-gender">' + (c.detail.gender === '男性' ? '男' : '女') + '</span>';
+      if(c.status === 'booked' && c.detail && (c.detail.gender === '男性' || c.detail.gender === '女性' || c.detail.gender === 'その他')) {
+        genderHtml = '<span class="cell-gender">' + (c.detail.gender === '男性' ? '男' : c.detail.gender === '女性' ? '女' : '他') + '</span>';
       }
       let blockColorClass = '';
       let blockColorAttr = '';
@@ -2765,7 +2765,7 @@ function detailNewCheckHtml() {
 }
 
 function detailGenderHtml(gender) {
-  if(gender !== '男性' && gender !== '女性') return '';
+  if(gender !== '男性' && gender !== '女性' && gender !== 'その他') return '';
   return '<div class="detail-gender">' + escapeHtml(gender) + '</div>';
 }
 
