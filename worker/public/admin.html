@@ -246,9 +246,6 @@
     .block-color-swatch.is-selected { box-shadow: 0 0 0 2px var(--text); }
     .cell.cell-has-new { padding-right: 14px; }
     .cell-new { position: absolute; top: 2px; right: 2px; font-family: var(--font-jp); font-size: 9px; font-weight: 700; line-height: 1; padding: 1px 2px; border-radius: 2px; background: rgba(255,255,255,0.92); color: #111827; pointer-events: none; }
-    .cell-name-gender { display: inline-block; max-width: 100%; padding: 0 2px; border-radius: 3px; border: 1px solid transparent; background: #fff; line-height: 1.2; }
-    .cell-name-gender.male { color: #1D4ED8; border-color: #2563EB; }
-    .cell-name-gender.female { color: #DC2626; border-color: #DC2626; }
     .outside { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
     .outside:hover { background: #D0D0D0; cursor: pointer; }
     .dayoff { background: #E0E0E0; color: #666; font-size: 13px; font-weight: 700; }
@@ -484,10 +481,6 @@
     #detailMod .detail-new-check input { width: 13px; height: 13px; margin: 0; cursor: pointer; accent-color: #111827; }
     #detailMod .detail-new-check input:disabled { cursor: default; }
     #detailMod .detail-new-check:has(input:disabled) { opacity: 0.5; cursor: default; }
-    #detailMod .detail-gender-checks { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-    #detailMod .detail-gender-check { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; }
-    #detailMod .detail-gender-check input { width: 13px; height: 13px; margin: 0; accent-color: #111827; cursor: pointer; }
-    #detailMod .detail-gender-check input:disabled { cursor: default; }
     #detailMod .detail-slot-date,
     #detailMod .detail-slot-time,
     #detailMod .detail-slot-staff { display: block; }
@@ -2510,15 +2503,9 @@ async function load() {
 
     // 必要なカラムのみ取得（コスト削減）。決済済み表示のため payment_date / payment_breakdown も取得
     let booksRes = await db.from('bookings')
-      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient, gender')
+      .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient')
       .eq('date', dStr)
       .or('status.is.null,status.neq.キャンセル');
-    if(booksRes.error && booksRes.error.message && booksRes.error.message.indexOf('gender') >= 0) {
-      booksRes = await db.from('bookings')
-        .select('id, start_time, end_time, staff, patient_name, admin_memo, payment_method, payment_date, payment_breakdown, is_new_patient')
-        .eq('date', dStr)
-        .or('status.is.null,status.neq.キャンセル');
-    }
     if(booksRes.error && booksRes.error.message && (booksRes.error.message.indexOf('payment_breakdown') >= 0 || booksRes.error.message.indexOf('payment_date') >= 0)) {
       // 古いDB（payment_date / payment_breakdown 列なし）へのフォールバック
       booksRes = await db.from('bookings')
@@ -2692,8 +2679,6 @@ function renderGrid() {
         newClass = ' cell-has-new';
       }
       let nameHtml = safeLbl;
-      if(c.status === 'booked' && c.detail && c.detail.gender === '男性') nameHtml = '<span class="cell-name-gender male">' + safeLbl + '</span>';
-      else if(c.status === 'booked' && c.detail && c.detail.gender === '女性') nameHtml = '<span class="cell-name-gender female">' + safeLbl + '</span>';
       let blockColorClass = '';
       let blockColorAttr = '';
       if(cellStatus === 'blocked' && /^#[0-9A-Fa-f]{6}$/.test(c.color || '')) {
@@ -2767,58 +2752,6 @@ function detailNewCheckHtml() {
     '<input type="checkbox" id="detailModNewToggle" onchange="toggleDetailNewMark(this)">' +
     '<span>新規</span>' +
   '</label>';
-}
-
-function detailGenderHtml(gender) {
-  const current = gender === '男性' || gender === '女性' || gender === 'その他' ? gender : '';
-  function box(value, label) {
-    return '<label class="detail-gender-check">' +
-      '<input type="checkbox" value="' + value + '"' + (current === value ? ' checked' : '') + ' onchange="toggleDetailGender(this)">' +
-      '<span>' + label + '</span>' +
-    '</label>';
-  }
-  return '<div class="detail-gender-checks">' + box('男性', '男性') + box('女性', '女性') + box('その他', 'その他') + '</div>';
-}
-
-function setDetailGender(gender) {
-  s.detailGender = gender === '男性' || gender === '女性' || gender === 'その他' ? gender : '';
-  document.querySelectorAll('#detailMod .detail-gender-check input').forEach(function(box) {
-    box.checked = box.value === s.detailGender;
-    box.disabled = false;
-  });
-}
-
-function updateScheduleGender(bookingId, gender) {
-  if(!s.data || !bookingId) return;
-  STAFFS.forEach(function(nm) {
-    TIMES.forEach(function(t) {
-      var cell = s.data[nm] && s.data[nm][t];
-      if(cell && cell.id === bookingId && cell.detail) cell.detail.gender = gender || '';
-    });
-  });
-  if(currentTab === 'schedule') renderGrid();
-}
-
-async function toggleDetailGender(input) {
-  if(!input || !s.id || s.detailGenderSaving) {
-    setDetailGender(s.detailGender || '');
-    return;
-  }
-  const next = input.checked ? input.value : '';
-  const previous = s.detailGender || '';
-  setDetailGender(next);
-  s.detailGenderSaving = true;
-  document.querySelectorAll('#detailMod .detail-gender-check input').forEach(function(box) { box.disabled = true; });
-  var result = await db.from('bookings').update({ gender: next || null }).eq('id', s.id);
-  s.detailGenderSaving = false;
-  if(result.error) {
-    setDetailGender(previous);
-    showToast('性別の更新に失敗しました: ' + (result.error.message || ''));
-    return;
-  }
-  setDetailGender(next);
-  updateScheduleGender(s.id, next);
-  showToast(next ? ('性別を' + next + 'にしました') : '性別を消しました');
 }
 
 function setDetailNewMark(isNew) {
@@ -2945,15 +2878,9 @@ async function cellClick(nm, t) {
     // 詳細情報を取得（必要な場合のみ）
     let detail = null;
     let detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient, gender')
+      .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient')
       .eq('id', c.id)
       .single();
-    if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('gender') >= 0) {
-      detailRes = await db.from('bookings')
-        .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date, payment_breakdown, end_time, is_new_patient')
-        .eq('id', c.id)
-        .single();
-    }
     if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
       detailRes = await db.from('bookings')
         .select('patient_name, phone, symptoms, fee, admin_memo, payment_method, payment_date')
@@ -2972,7 +2899,6 @@ async function cellClick(nm, t) {
       <div class="info-item">
         ${detailNameHeadHtml()}
         <input type="text" id="editName" class="info-edit-input" value="${safeName}">
-        ${detailGenderHtml(d.gender)}
       </div>
       <div class="info-item">
         <span class="info-lbl">📞 電話番号（編集可）</span>
@@ -3020,7 +2946,6 @@ async function cellClick(nm, t) {
     if(mEl) mEl.oninput = setupDetailSaveButtonState;
     setDetailSlotInfo(s.date, t, d.end_time || (c.detail && c.detail.end_time) || '', nm);
     setDetailNewMark(bookingIsNew(d, c.detail));
-    setDetailGender(d.gender);
     openMod('detailMod');
     loadAuditLogs(c.id);
   } else if(c.status === 'blocked') {
@@ -3289,15 +3214,9 @@ async function openSearchDetail(bookingId) {
   s.id = bookingId;
   let detail = null;
   let detailRes = await db.from('bookings')
-    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient, gender')
+    .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient')
     .eq('id', bookingId)
     .single();
-  if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('gender') >= 0) {
-    detailRes = await db.from('bookings')
-      .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date, payment_breakdown, is_new_patient')
-      .eq('id', bookingId)
-      .single();
-  }
   if(detailRes.error && detailRes.error.message && detailRes.error.message.indexOf('payment_breakdown') >= 0) {
     detailRes = await db.from('bookings')
       .select('patient_name, phone, symptoms, fee, admin_memo, date, start_time, end_time, staff, payment_method, payment_date')
@@ -3320,7 +3239,6 @@ async function openSearchDetail(bookingId) {
     <div class="info-item">
       ${detailNameHeadHtml()}
       <input type="text" id="editName" class="info-edit-input" value="${safeName}">
-      ${detailGenderHtml(detail.gender)}
     </div>
     <div class="info-item">
       <span class="info-lbl">📞 電話番号（編集可）</span>
@@ -3376,7 +3294,6 @@ async function openSearchDetail(bookingId) {
   if(mEl) mEl.oninput = setupDetailSaveButtonState;
   setDetailSlotInfo(detail.date, detail.start_time, detail.end_time, detail.staff);
   setDetailNewMark(bookingIsNew(detail));
-  setDetailGender(detail.gender);
   openMod('detailMod');
   loadAuditLogs(bookingId);
 }
